@@ -10,6 +10,8 @@
 
 ### Frontend
 
+Packages installed using Bun
+
 - SvelteKit
 - TailwindCSS
 - Drizzle
@@ -45,5 +47,9 @@ Hit `Ctrl-C` to stop the dev server.
 - Visit `/demo/better-auth` to view the demo
 
 ---
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for commit conventions and guidelines.
 
 Stuck? Visit https://svelte.dev/chat
