@@ -16,18 +16,18 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/) t
 
 ### Types
 
-| Type | Description | Release |
-|---|---|---|
-| `feat` | A new feature | Minor (`1.0.0 → 1.1.0`) |
-| `fix` | A bug fix | Patch (`1.0.0 → 1.0.1`) |
-| `perf` | A performance improvement | Patch |
-| `docs` | Documentation changes only | — |
-| `style` | Formatting, missing semicolons, etc. | — |
-| `refactor` | Code change that is neither a fix nor a feature | — |
-| `test` | Adding or updating tests | — |
-| `chore` | Build process, dependency updates, tooling | — |
-| `ci` | CI/CD configuration changes | — |
-| `revert` | Reverts a previous commit | — |
+| Type       | Description                                     | Release                 |
+|------------|-------------------------------------------------|-------------------------|
+| `feat`     | A new feature                                   | Minor (`1.0.0 → 1.1.0`) |
+| `fix`      | A bug fix                                       | Patch (`1.0.0 → 1.0.1`) |
+| `perf`     | A performance improvement                       | Patch                   |
+| `docs`     | Documentation changes only                      | —                       |
+| `style`    | Formatting, missing semicolons, etc.            | —                       |
+| `refactor` | Code change that is neither a fix nor a feature | —                       |
+| `test`     | Adding or updating tests                        | —                       |
+| `chore`    | Build process, dependency updates, tooling      | —                       |
+| `ci`       | CI/CD configuration changes                     | —                       |
+| `revert`   | Reverts a previous commit                       | —                       |
 
 ### Breaking Changes
 
