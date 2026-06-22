@@ -28,7 +28,10 @@ func main() {
 		}
 	})
 
-	log.Info().Str("port", port).Msg("server starting")
+	log.Info().Str("port", port).Msg("API Server starting")
+	if os.Getenv("APP_ENV") == "development" {
+		log.Info().Msg("running in development mode - http://localhost:" + port)
+	}
 
 	if err := http.ListenAndServe(":"+port, router); err != nil {
 		log.Fatal().Err(err).Msg("server failed")
