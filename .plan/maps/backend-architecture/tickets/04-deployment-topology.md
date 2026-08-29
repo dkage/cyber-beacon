@@ -25,6 +25,7 @@ To resolve:
 - HTTPS and certificates outside local development.
 - Docker Compose topology, and what runs natively versus containerised in each environment.
 - Backups: what is genuinely irreplaceable once integrations can re-sync from source.
+- **Where uploaded files live.** [The domain model](./02-domain-model.md) settled that attachments store a relative key through Django's storage layer, so local disk, a MinIO bucket on the homelab, or S3 are a settings change apart with no migration between them. Two concrete inputs: meeting audio recordings are large, and the Pi's SD card is the wrong place for them; and uploaded files are the one category of data that **no integration can re-sync**, which makes them the sharpest case in the backup question above.
 
 ## Done when
 
@@ -33,3 +34,4 @@ To resolve:
 - The certificate strategy for non-local environments is settled.
 - The compose service topology is written down per environment.
 - The backup scope names what is irreplaceable versus re-syncable.
+- The storage backend for uploaded files is chosen, and its location survives the backend host moving.

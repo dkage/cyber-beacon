@@ -30,7 +30,11 @@ The frontend is a **pure API client** — no database, no auth logic, no busines
 
 **Google Calendar** and **Notion** come first, deliberately: Calendar is bidirectional (scheduling writes back to it), while Notion is read-heavy behind a ~3 req/sec rate limit. Between them they stress an integration abstraction in opposite directions, so building against both produces a contract that survives the rest.
 
-Then: Outlook (personal and work tenants), Gmail, Jira, GitHub, Sentry, Obsidian (fleeting-note count), Telegram (notifications).
+Notion carries extra weight beyond that: it is the work task source, so it is where the day actually gets planned from.
+
+Then: Outlook (personal and work tenants), Gmail, GitHub, Sentry, Obsidian (fleeting-note count), Telegram (notifications).
+
+Jira is deprioritised. The work it tracked has moved to Notion, so the integration serves old references rather than daily use.
 
 ### AI
 
