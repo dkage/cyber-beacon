@@ -17,3 +17,6 @@ Desktop.ini
 
 # Local notes
 notes/
+
+# LLMs
+.claude/
