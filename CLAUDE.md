@@ -12,54 +12,75 @@ The secondary surface is a **kiosk dashboard** — an always-on display for an o
 ## Stack
 
 ### Backend (`/backend`)
-- **Language**: Go
-- **Database**: SQLite
-- **Module**: `schedule-dashboard`
-- Status: scaffolded, no real code yet
+- **Language**: Python
+- **Framework**: Django, as a modular monolith
+- **API**: Django REST Framework, with **drf-spectacular** for OpenAPI (wired from day one, so the schema is never retrofitted)
+- **Database**: PostgreSQL, locally and in production
+- **Auth**: django-allauth in headless mode — the sole account system
+- **Background work**: undecided; see the planning map
+- Status: **not yet written.** The directory still holds an abandoned Go scaffold from before the stack change.
 
 ### Frontend (`/frontend`)
 - **Framework**: SvelteKit + TypeScript
 - **Package manager**: Bun
-- **Auth**: Better Auth
-- **ORM**: Drizzle (SQLite)
 - **UI**: TailwindCSS
 - **Testing**: Playwright (e2e), Vitest (unit)
 - **Other**: Storybook, Prettier, ESLint
+- **Role**: a **pure API client**. No auth logic, no database, no business logic.
+- Status: the generated Better Auth + Drizzle + SQLite server stack is **still present and slated for removal** — `src/lib/server/`, `drizzle.config.ts`, and the `hooks.server.ts` auth handle.
 
-## Planned Integrations
-- Google Calendar (bidirectional sync — task scheduling writes back to GCal)
-- Gmail
-- Notion
-- Obsidian (read fleeting notes count, surface notes)
-- Jira
+### Architecture
 
-## AI Features
-- Task priority analysis
-- Daily briefing generation (after user finalizes the day's schedule)
+```
+SvelteKit web app ─┐
+                   ├──> Django API ──> PostgreSQL
+Swift iOS app ─────┘
+```
+
+- **Django owns everything stateful**: users, authentication, authorization, OAuth credentials, integration state, migrations, background jobs. See `docs/adr/0001-django-owns-identity.md`.
+- **Every API consumer is a first-class client.** The web frontend holds no privileged position. A native iOS client is designed *for*, not built.
+- Integration tokens stay server-side and are never exposed to any client.
+- **"Sign in with Google" and "connect Google Calendar" are different things** — different scopes, consent, and lifecycles. Revoking calendar access must not log anyone out.
+- Clients call versioned routes: `/api/v1/...`.
+- **Multi-user in structure from day one**, single-user in practice for now, SaaS-plausible later.
 
 ## Developer Context
 
-The developer is a senior PHP/Laravel engineer (10y PHP, 7y Laravel) learning Go through this project. Claude acts as a **pair programming guide**, not a code generator:
-- Do NOT write code unprompted — guide, explain Go-specific concepts and idioms, point out gotchas
-- DO provide ready snippets if explicitly asked or if there's a bug in existing code
-- No need to explain general programming concepts — focus on Go-specific behavior, the stdlib, tooling, and ecosystem differences from PHP/Laravel
-- When it makes sense to do so, make comparison to Laravel features and PHP 8 features, with the Go implementations and quirks
+The developer is a senior PHP/Laravel engineer who used Django and DRF for a few months some years ago — rusty rather than new, and as so:
+- No need to explain general programming concepts — focus on Django and Python behavior, the stdlib, tooling, and ecosystem differences or comparisons from PHP/Laravel
+- Bridge from Laravel where it helps. The mapping is close and worth using:
 
-### Frontend experience
-- Primarily a backend developer — frontend was mainly Blade templates + jQuery + TailwindCSS + plain HTML/JS
-- Some basic exposure to React and AngularJS, but not deeply experienced in either
-- No prior TypeScript experience
-- No prior Svelte experience
-- Frontend guidance should bridge from "jQuery/plain JS" mental models to modern reactive/component patterns when explaining SvelteKit concepts
+  | Laravel                      | Django / DRF                                          |
+  |------------------------------|-------------------------------------------------------|
+  | API Resource                 | DRF Serializer (output)                               |
+  | FormRequest                  | DRF Serializer (validation)                           |
+  | Resource Controller          | ViewSet                                               |
+  | `Route::apiResource()`       | `DefaultRouter`                                       |
+  | Policy                       | Permission class                                      |
+  | Eloquent                     | Django ORM                                            |
+  | Artisan                      | `manage.py` / Typer                                   |
+  | Migrations                   | Django migrations                                     |
+  | Supervisor for queue workers | **systemd units** — do not reach for supervisord here |
 
-## Key Go Concepts to Introduce Progressively
-- Error handling as values (no exceptions)
-- Interfaces and implicit satisfaction
-- Goroutines and channels for concurrency
-- Go modules and workspace layout
-- Stdlib-first philosophy (net/http, database/sql, encoding/json)
+
+## Private notes directory
+
+`notes/` holds the developer's personal notes and scratch work. It is gitignored, and the same directory convention is used across their other projects.
+
+- **Never commit it**, and never propose un-ignoring it.
+- **Never reference a `notes/` path from anything committed** — not `CLAUDE.md`, not `.plan/` maps or tickets, not `docs/`, not source, not commit messages. A committed file citing a gitignored path is broken for anyone else and on any fresh clone.
+- **Reading it for context is fine and often useful.** If a committed artifact needs something from it, quote the content inline so the artifact stands on its own, and attribute it generically (e.g. "from the developer's product research") rather than by path.
 
 ## Agent skills
+
+### Planning vs. buildable work
+
+Two trackers, split by kind, with a hard rule: **if it has no diff, it's a chartr ticket; if it has a diff, it's a GitHub issue.**
+
+`CHARTR.md` at the repo root describes chartr and the skills it can resolve. It is generated by chartr per machine and is **not committed**, so it may be absent — that is expected, not a missing file.
+
+- **Decisions** live in `.plan/maps/<slug>/` — chartr maps, versioned with the code. The active one is `.plan/maps/backend-architecture/`.
+- **Buildable work** lives in GitHub Issues, and is generated once a map's frontier empties.
 
 ### Issue tracker
 
@@ -68,7 +89,9 @@ GitHub Issues on `dkage/cyber-beacon`, via the `gh` CLI. See `docs/agents/issue-
 ### Triage labels
 
 The five canonical roles, using the default label strings. See `docs/agents/triage-labels.md`.
+Area labels: `area:backend`, `area:frontend`, `area:infra`, `area:integrations`.
 
 ### Domain docs
 
 Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+`CONTEXT.md` does not exist yet — the domain-model ticket creates it.

@@ -6,7 +6,7 @@ Locked architectural decisions plus a domain spec the first backend vertical sli
 
 ## Notes
 
-**Domain.** Personal productivity scheduling, Sunsama-shaped: pull tasks from integrations, drag them onto a day timeline that syncs to the calendar, generate an AI briefing from the finalised schedule. The secondary surface is an always-on kiosk dashboard. Full product brainstorm in `notes/01-brainstorm.md`; the frontend dashboard is already specified in `notes/02-initial-prompt-claude-design.md`.
+**Domain.** Personal productivity scheduling, Sunsama-shaped: pull tasks from integrations, drag them onto a day timeline that syncs to the calendar, generate an AI briefing from the finalised schedule. The secondary surface is an always-on kiosk dashboard. The full product brainstorm and the frontend design brief are private notes the developer holds; anything a ticket depends on is quoted into that ticket rather than referenced by path.
 
 **This map plans, it does not build.** Every ticket resolves a decision. No production code is produced here.
 
@@ -16,25 +16,18 @@ Locked architectural decisions plus a domain spec the first backend vertical sli
 
 ### Settled architecture
 
-The premise of this map, decided before it existed — not steps along its route:
-
-- **Python + Django** modular monolith. The backend was originally Go; switched for the AI/LLM ecosystem and integration library breadth, having judged that a CPU-light, I/O-bound workload gains little from Go.
-- **Django REST Framework**, with **drf-spectacular** wired in from day one so the OpenAPI schema exists before there are endpoints to retrofit onto. DRF over Django Ninja for legibility: it maps cleanly onto Laravel (Serializer/API Resource, ViewSet/Resource Controller, Permission/Policy).
-- **PostgreSQL** from the start, locally and in production. Not SQLite — concurrent web and worker processes writing one file is a contention problem Postgres does not have.
-- **Django owns identity.** Users, auth, authorization, OAuth credentials, integration state, migrations, background jobs. Integration tokens never leave the server.
-- **django-allauth headless** as the sole account system — not django-oauth-toolkit, whose third-party-developer machinery this project has no use for. Web uses HttpOnly session cookies; a future native client uses allauth's token strategy, preferring the opaque revocable one over JWT until statelessness actually pays. `socialaccount` for Google sign-in; `mfa` later.
-- **SvelteKit is a pure API client.** Its generated Drizzle / Better Auth / SQLite server stack comes out.
+Decided before this map existed — the premise of the route, not steps along it. **`CLAUDE.md` holds the current stack and architecture; `docs/adr/0001-django-owns-identity.md` holds the identity-ownership decision and the alternatives rejected.** Read both before working any ticket; they are authoritative and this map does not restate them.
 
 ### Standing constraints
 
-- **Multi-user in structure from day one**, single-user in practice for months, SaaS-plausible later. Schema, auth, and credential storage all assume more than one human.
-- **Every API consumer is a first-class client.** The web frontend holds no privileged position; no auth or business logic lives in SvelteKit. A native iOS client is designed *for*, not built.
-- **"Sign in with Google" and "connect Google Calendar" are different things**, with different scopes, consent, and lifecycles. Revoking calendar access must not log anyone out.
-- **Hardware.** An 8GB Raspberry Pi 5 drives a 4K TV; a 64GB Xeon TrueNAS homelab is also available.
+- **Hardware.** An 8GB Raspberry Pi 5 drives a 4K TV as the always-on kiosk; a 64GB Xeon TrueNAS homelab is also available. Which hosts the backend is undecided — see the deployment ticket.
+- The multi-user structure, first-class-client, and sign-in-vs-connect constraints are recorded in `CLAUDE.md`.
 
 ## Decisions so far
 
 <!-- one gisted, linked line per resolved ticket -->
+
+- [Record the settled stack in CLAUDE.md and ADR-0001](./tickets/01-record-settled-stack.md) — `CLAUDE.md` now describes the Django stack and the two-tracker rule; identity ownership recorded as [ADR-0001](../../../docs/adr/0001-django-owns-identity.md).
 
 ## Not yet specified
 
@@ -47,6 +40,6 @@ The premise of this map, decided before it existed — not steps along its route
 
 ## Out of scope
 
-- **Frontend design and build.** `notes/02-initial-prompt-claude-design.md` already specifies it in full — design tokens, five viewport profiles, widget catalog, mock data layer. Not fog; charted elsewhere.
+- **Frontend design and build.** Already specified in full in a separate design brief the developer holds — design tokens, five viewport profiles, widget catalog, mock data layer. Not fog; charted elsewhere.
 - **The Swift iOS app.** The API is designed so it can exist; building it is a separate effort and is not confirmed.
 - **Kiosk hardware setup.** TV mounting, orientation, and Pi provisioning.

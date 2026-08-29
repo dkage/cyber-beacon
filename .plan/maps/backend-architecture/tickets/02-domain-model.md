@@ -10,7 +10,7 @@ type: grilling
 
 This is the root of the map. Django models get written early and migrations are awkward to unwind, so this decides the shape of the schema, the API contract, and the calendar write-back.
 
-The sharpest known constraint, and the thing that most motivated this project: **do-date and due-date are different.** From the research in `notes/01-brainstorm.md` — *"If I organized things by when they're due, like every app wants, rather than when I intend to do them, as is normal behavior, I would be up all night every night."* That is a statement about what a Task **is**, not a feature request.
+The sharpest known constraint, and the thing that most motivated this project: **do-date and due-date are different.** From the developer's own product research — *"If I organized things by when they're due, like every app wants, rather than when I intend to do them, as is normal behavior, I would be up all night every night."* That is a statement about what a Task **is**, not a feature request.
 
 To resolve:
 
@@ -20,6 +20,45 @@ To resolve:
 - **Task provenance.** A task pulled from Jira or Notion is a projection of something someone else owns. What is locally editable, what stays authoritative upstream, and what happens on conflict.
 - Subtasks and hierarchy, and whether they schedule independently of their parent.
 - Where completion lives, and whether completing locally writes back to the source.
+
+## Evidence
+
+Verbatim from the developer's product research, quoted here so this ticket stands alone. Each line constrains the model rather than requesting a feature.
+
+**The do-date / due-date split — the motivating constraint:**
+
+> "If I organized things by when they're due, like every app wants, rather than when I intend to do them, as is normal behavior, I would be up all night every night"
+
+> "I desperately need this for planning homework and time blocking for study. I want to know when it's due but I want to plan it for days to study it without changing the initial due date"
+
+> **Do/Due Date Distinction**: This is by far one of the most requested features — separating when you plan to work on a task from when it's actually due
+
+**A precise invariant, and the sharpest test of whether the split is modelled correctly:**
+
+> **Don't change end date when postponing** — Postponing a task should not shift the deadline
+
+If moving a task's do-date drags its due-date along, the two fields are not actually independent and the model is wrong.
+
+**A third date, distinct from both:**
+
+> **Start date / "Start On"** — For tasks that aren't actionable until a future date
+
+**One task, several blocks:**
+
+> Split tasks into multiple time blocks
+
+> **Time estimation in calendar view** — Including splitting a task into multiple time blocks
+
+This is why a scheduled block cannot simply be two columns on `Task`.
+
+**Hierarchy and dependency, which may or may not be in scope for a first model:**
+
+> **Sequential/dependent tasks within projects** — Arrange tasks that depend on one or more previous tasks
+
+> **Subtask time repeats with parent** — When a parent task repeats, subtask times should follow
+
+> **Display parent task name** — Option to show the parent task context when viewing subtasks
+
 
 ## Done when
 
