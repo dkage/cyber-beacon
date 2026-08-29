@@ -38,4 +38,4 @@ tmp/
 logs/*.log
 
 # Built binaries
-server
+/server
