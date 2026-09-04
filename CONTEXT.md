@@ -80,11 +80,25 @@ _Avoid_: Story points, effort, size.
 
 ### Provenance
 
+**Provider**:
+A service this application knows how to speak to — Google Calendar, Notion,
+Telegram. A Provider is a kind of thing, not a thing you own; what you own is a
+Connection to it.
+_Avoid_: Integration, service, adapter.
+
 **Connection**:
-One authorised link to one account at one provider. You may hold several to the
-same provider — a personal calendar and a work calendar are two Connections — and
+One authorised link to one account at one Provider. You may hold several to the
+same Provider — a personal calendar and a work calendar are two Connections — and
 losing one never affects the others or your ability to sign in.
 _Avoid_: Integration, account, credential.
+
+**Mount**:
+One remote resource attached through a Connection: a single calendar, a single
+Notion database view, a single Obsidian directory. A Connection is the permission;
+a Mount is what that permission is aimed at. A Mount says how the remote thing's
+fields correspond to ours, and it can be detached without the Connection being
+lost.
+_Avoid_: Binding, feed, channel, subscription, sync target.
 
 **Source**:
 The upstream record a Task is a projection of, and everything known about that

@@ -110,18 +110,18 @@ events. Without it every round trip risks duplicating the day.
 
 **`Task`** — something you intend to do.
 
-| field | type | null | notes |
-| --- | --- | --- | --- |
-| `user` | FK | no | multi-user in structure from day one |
-| `parent` | self-FK | yes | subtask; schedules independently of its parent |
-| `title` | text | no | mirrored when sourced |
-| `notes` | text | yes | local |
-| `due_date` | **local date** | yes | mirrored when sourced; absent means no deadline |
-| `start_date` | **local date** | yes | absent means actionable now |
-| `do_date` | **local date** | yes | absent means the task is in the backlog |
-| `priority` | small int | yes | local; consulted before any upstream priority |
-| `estimated_minutes` | int | yes | the planned half of planned-versus-actual |
-| `completed_at` | **instant** | yes | local; never written upstream |
+| field               | type           | null | notes                                           |
+|---------------------|----------------|------|-------------------------------------------------|
+| `user`              | FK             | no   | multi-user in structure from day one            |
+| `parent`            | self-FK        | yes  | subtask; schedules independently of its parent  |
+| `title`             | text           | no   | mirrored when sourced                           |
+| `notes`             | text           | yes  | local                                           |
+| `due_date`          | **local date** | yes  | mirrored when sourced; absent means no deadline |
+| `start_date`        | **local date** | yes  | absent means actionable now                     |
+| `do_date`           | **local date** | yes  | absent means the task is in the backlog         |
+| `priority`          | small int      | yes  | local; consulted before any upstream priority   |
+| `estimated_minutes` | int            | yes  | the planned half of planned-versus-actual       |
+| `completed_at`      | **instant**    | yes  | local; never written upstream                   |
 
 No status column and no source columns. Status is derived — `do_date IS NULL` is
 the backlog, a set `do_date` is planned, a set `completed_at` is done — because a
