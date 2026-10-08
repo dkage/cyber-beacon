@@ -32,6 +32,7 @@ Decided before this map existed — the premise of the route, not steps along it
 - [Record the settled stack in CLAUDE.md and ADR-0001](./tickets/01-record-settled-stack.md) — `CLAUDE.md` now describes the Django stack and the two-tracker rule; identity ownership recorded as [ADR-0001](../../../docs/adr/0001-django-owns-identity.md).
 - [The domain model: do-date, due-date, and what a Task is](./tickets/02-domain-model.md) — `Task` carries three independent **local dates** (do, due, start) and no status; a separate `TimeBlock` holds the **instants**. Mirrored fields belong to upstream and are read-only, local fields are never touched by sync, and completion stays local. Vocabulary recorded in [`CONTEXT.md`](../../../CONTEXT.md).
 - [The integration provider abstraction](./tickets/03-integration-provider-abstraction.md) — providers are **thin adapters** over one shared sync engine, differing only by a declared **capability** set; `IntegrationConnection` is independent of allauth ([ADR-0002](../../../docs/adr/0002-integration-connections-separate-from-identity.md)) and credentials are encrypted at rest ([ADR-0003](../../../docs/adr/0003-credential-encryption-at-rest.md)). A **Mount** is one remote resource under a Connection, carrying its own cursor and field mapping. Polling is the baseline and push only accelerates it; calendar write-back resolves conflicts by `If-Match` with the remote winning.
+- [The daily prep and wrap-up flow](./tickets/06-daily-prep-and-wrap-up.md) — the **bump is gated by the wrap-up** (completed, skipped, or auto-skipped after a 24h limit), not by the clock; the task list stays pinned to the **pending day** until then. `DailyPrep` and `WrapUp` are stored, one row per day, each resolved by `completed_at` or `skipped_at`. Journal text lives in Postgres with a retried, idempotent Obsidian write. Clients drive ordinary task writes plus ritual resources, and read all gate state from one `GET /api/v1/day-state`.
 
 ## Not yet specified
 
@@ -41,7 +42,6 @@ Decided before this map existed — the premise of the route, not steps along it
 - **Agent-executed tasks.** The n8n / Hermes dispatch described as "Development 2" in the brainstorm — a task the AI can perform on the user's behalf, triggered from the briefing.
 - **Notification system.** Telegram, email, and the TV's attention/alerting model for overdue work and skipped daily prep.
 - **Widget data contracts.** What the dashboard actually asks the API for, per widget, and at what refresh cadence.
-- **Daily-prep flow mechanics.** The morning ritual itself as a sequence of steps, including the previous day's wrap-up and its Obsidian journal write. <clears-with: 06>
 
 ## Out of scope
 

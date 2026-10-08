@@ -121,18 +121,29 @@ _Avoid_: Custom field, user field, override.
 
 **Daily prep**:
 The morning ritual: settle what happened yesterday, then decide what today is for
-by giving Tasks a do date and placing Time blocks.
+by giving Tasks a do date and placing Time blocks. It is gated behind the previous
+Wrap-up, may be skipped, and is **missed** if still unresolved past the user's prep
+cutoff.
 _Avoid_: Planning session, daily planning, standup.
 
 **Wrap-up**:
 The evening counterpart: review what was and was not finished, and write the day's
-journal entry.
+journal entry. It is **resolved** when completed or skipped; a skip the system makes
+after the wrap-up limit is an **auto-skip**. Resolving it is what triggers the Bump.
 _Avoid_: Review, retro, end of day.
 
+**Pending day**:
+The day whose Wrap-up is not yet resolved. The task list stays pinned to it, labelled
+with its date, until the Wrap-up is completed or skipped, even after the calendar has
+moved on.
+_Avoid_: Stale day, overdue day, yesterday.
+
 **Bump**:
-What happens to a Task that had a do date for a day which ended without it being
-completed — it returns to the Backlog, and the fact that it was planned and missed
-is kept. Repeated bumps are a signal about the Task, not noise to be tidied away.
+What happens to a Task that had a do date for a day whose Wrap-up was resolved
+without it being completed — it returns to the Backlog, and the fact that it was
+planned and missed is kept. Only the system bumps; a deliberate move to another day
+is a reschedule, not a bump. Repeated bumps are a signal about the Task, not noise to
+be tidied away.
 _Avoid_: Rollover, carry over, postpone, reschedule.
 
 **Activity**:
