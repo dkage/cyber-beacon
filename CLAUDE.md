@@ -17,7 +17,7 @@ The secondary surface is a **kiosk dashboard** — an always-on display for an o
 - **API**: Django REST Framework, with **drf-spectacular** for OpenAPI (wired from day one, so the schema is never retrofitted)
 - **Database**: PostgreSQL, locally and in production
 - **Auth**: django-allauth in headless mode — the sole account system
-- **Background work**: undecided; see the planning map
+- **Background work**: Django-Q2 on the Postgres ORM broker, no Redis; see ticket 05 in the planning map
 - Status: **not yet written.** The directory still holds an abandoned Go scaffold from before the stack change.
 
 ### Frontend (`/frontend`)

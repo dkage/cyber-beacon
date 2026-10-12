@@ -29,7 +29,7 @@ and translates payloads, with no loop, transaction or `save()`. An `if provider 
 | **Tombstone** | `deleted_upstream_at`. Records missing from a full sync are tombstoned, never deleted |
 | **`last_attempted_at` vs `last_succeeded_at`** | Two columns on purpose. The UI shows the second, so a failing Mount never reads as "synced just now" |
 | **Polling baseline** | Every provider polls. A `WEBHOOK` only shortens the interval and enqueues the same sync. It carries no data. Currently off (no public URL) |
-| **Rate scope** | A string the adapter names (`notion:ws:abc123`, `google:conn:42`). The token bucket is keyed by it, not by Connection. Enforced in the engine's HTTP client |
+| **Rate scope** | A string the adapter names (`notion:ws:abc123`, `google:conn:42`). The token bucket is keyed by it, not by Connection. Enforced in the engine's HTTP client, stored as a Postgres row (ticket 05) |
 | **Publish target** | The one Mount per user where Time blocks are written. A partial unique index enforces "at most one". Defaults to the connection's primary calendar |
 | **Mapping** | Per-Mount field map keyed by property id, validated on write against a live `describe_schema` |
 

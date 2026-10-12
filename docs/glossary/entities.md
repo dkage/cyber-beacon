@@ -21,7 +21,13 @@ Model names and the fields that carry a decision. Not a schema.
 | Model | Purpose |
 |---|---|
 | `IntegrationConnection` | Account link: `user`, `provider`, `account_identity`, `scopes`, encrypted `credentials`, `status`, `last_error`. Health lives here |
-| `Mount` | Remote resource: `mapping` (JSONB, keyed by remote property **id**), `mirrors`, `is_publish_target`, `enabled`, `cursor`, `last_attempted_at`, `last_succeeded_at`, `consecutive_failures`. Freshness lives here |
+| `Mount` | Remote resource: `mapping` (JSONB, keyed by remote property **id**), `mirrors`, `is_publish_target`, `enabled`, `cursor`, `last_attempted_at`, `last_succeeded_at`, `consecutive_failures`, plus `next_attempt_at` and the `sync_started_at` lease (ticket 05). Freshness lives here |
+
+## Background work (ticket 05)
+
+| Model | Purpose |
+|---|---|
+| `JobRun` | One row per background job attempt. 30-day retention. Behind the frontend's failure log view |
 
 ## Daily rhythm (ticket 06)
 

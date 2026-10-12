@@ -88,3 +88,7 @@ A **ZFS dataset mounted into the backend container**, with the host path as a Co
 
 - **Ticket 05:** the `worker` and `scheduler` slots are left generic. The queue choice must run as Compose services.
 - **Not specified:** the Cloud Sync and `pg_dump` schedules and bucket lifecycle rules are implementation detail. The restore procedure is not written.
+
+### Amended by ticket 05
+
+Ticket 05 chose **Django-Q2 on the Postgres ORM broker**, so no `redis` or `beat` service exists. The generic `worker` and `scheduler` slots become: `worker` (a `qcluster` for the `default` queue, which also runs the schedules) and **`worker-ai`** (a `qcluster` for the `ai` queue, one worker). Prod services are therefore `web`, `worker`, `worker-ai`, `postgres`, `vault-sync` and `frontend`. The backup scope above is unchanged.

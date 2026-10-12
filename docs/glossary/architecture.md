@@ -10,7 +10,7 @@ Source: `CLAUDE.md`, [ADR-0001](../adr/0001-django-owns-identity.md), ticket 04,
 | Auth | django-allauth headless, the sole account system |
 | Database | PostgreSQL |
 | Frontend | SvelteKit + TypeScript, Bun, Tailwind. A **pure API client**, no auth or business logic |
-| Background work | Undecided. Ticket 05 |
+| Background work | Django-Q2 on the Postgres ORM broker. See [background-work.md](./background-work.md) |
 
 ## Principles
 
@@ -38,7 +38,7 @@ Source: `CLAUDE.md`, [ADR-0001](../adr/0001-django-owns-identity.md), ticket 04,
 |---|---|
 | **Homelab** | 64GB Xeon TrueNAS box. Hosts the backend and Postgres in containers, 24/7 |
 | **Pi** | Raspberry Pi 5, 8GB. Thin kiosk, runs only Chromium |
-| **Prod services** | `web` (gunicorn), `worker`, `scheduler`, `postgres`, `vault-sync`, `frontend` (nginx static) |
+| **Prod services** | `web` (gunicorn), `worker`, `worker-ai`, `postgres`, `vault-sync`, `frontend` (nginx static). No Redis. Ticket 05 amended this list |
 | **Dev** | Only Postgres in Docker. Django and Bun run natively on the Mac |
 | **Zoraxy** | Shared TLS terminator outside the stack. Routes `/api` to Django and `/` to the frontend on one hostname, so cookies stay same-origin |
 | **Access** | WireGuard only. Nothing is public. TLS from Let's Encrypt DNS-01 via Cloudflare |

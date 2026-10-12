@@ -12,6 +12,7 @@ drifts from them, they win. Fix this file.
 | [domain.md](./domain.md) | Work, time, and provenance terms (Task, Do date, Mount, Source…) and the daily rhythm (Prep, Wrap-up, Bump) |
 | [entities.md](./entities.md) | Model names, their key fields, and the per-user settings |
 | [integrations.md](./integrations.md) | Provider interface, capabilities, sync engine, rate budget, health states |
+| [background-work.md](./background-work.md) | Queue, scheduler, workers, retries, `JobRun` |
 | [architecture.md](./architecture.md) | Stack, deployment, API conventions, infrastructure names |
 
 Each entry gives a one-line meaning and where it was decided. Ticket references are to
@@ -20,5 +21,3 @@ Each entry gives a one-line meaning and where it was decided. Ticket references 
 **Maintenance:** any change to a plan, ADR or `CONTEXT.md` needs a check of this
 glossary in the same commit.
 
-Terms for ticket 05 (queue, scheduler, `SyncRun`) are not final and are deliberately
-absent until that ticket resolves.
