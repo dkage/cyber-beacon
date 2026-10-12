@@ -17,5 +17,8 @@ drifts from them, they win. Fix this file.
 Each entry gives a one-line meaning and where it was decided. Ticket references are to
 `.plan/maps/backend-architecture/tickets/`.
 
+**Maintenance:** any change to a plan, ADR or `CONTEXT.md` needs a check of this
+glossary in the same commit.
+
 Terms for ticket 05 (queue, scheduler, `SyncRun`) are not final and are deliberately
 absent until that ticket resolves.

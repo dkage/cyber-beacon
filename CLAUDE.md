@@ -94,4 +94,10 @@ Area labels: `area:backend`, `area:frontend`, `area:infra`, `area:integrations`.
 ### Domain docs
 
 Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
-`CONTEXT.md` does not exist yet — the domain-model ticket creates it.
+`docs/glossary/` is a quick-lookup index of settled terms, models and infrastructure
+names; `CONTEXT.md` and the ADRs win if the two disagree. `docs/README.md` maps all of `docs/`.
+
+**Keep the glossary current.** Whenever a planning ticket resolves, a map changes, or an ADR
+or `CONTEXT.md` is added or edited, check `docs/glossary/` in the same commit and add or
+amend any term, model, or name that changed. A ticket's `## Answer` is not done until the
+glossary check has been made.
