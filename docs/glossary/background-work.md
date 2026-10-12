@@ -14,10 +14,12 @@ separate beat process.
 | **Lease** | `sync_started_at` on a Mount. Stops two syncs of one Mount and expires so a crashed worker cannot wedge it |
 | **`next_attempt_at`** | When a Mount may next be attempted. Holds the backoff after a failure |
 | **Rate bucket** | One Postgres row per rate scope, taken with `SELECT ... FOR UPDATE`. Enforced in the engine's HTTP client |
-| **Release** | A throttled job re-queues itself with `schedule(..., Schedule.ONCE, next_run=...)` and **never sleeps**. The Laravel equivalent is `release($delay)` |
+| **Throttle** | A throttled job checkpoints its cursor, sets `next_attempt_at` a few seconds ahead and exits. It **never sleeps** and creates no schedule row. The tick is the only retry mechanism |
 | **Auto-disable** | After 5 consecutive failures a Mount gets `enabled=false` and a visible `last_error`. Re-enabled manually or by a successful manual sync |
 | **Derivable job** | Every background job must be re-derivable from Postgres state, with the sweep as the safety net |
 | **`JobRun`** | One generic table of every background job attempt: `kind`, optional Mount or WrapUp, times, outcome, error in human words, counts. Retained 30 days. Feeds a read-only `/api/v1` endpoint and the frontend's red "!" log view |
+| **Lost run** | A `JobRun` left open past its timeout (Django-Q2 hard-kills the task). The sweep closes it with outcome `lost`, counted as a failure |
+| **`ensure_schedules()`** | Idempotent function, run on deploy, that recreates the tick, sweep and purge schedules if missing or edited in Admin |
 | **Health event** | A state transition (`active→needs_reauth`, a Mount auto-disabled, a journal write stuck). Sends one Telegram message per transition, never per failure |
 
 ## Backoff by `classify` kind
@@ -34,9 +36,12 @@ separate beat process.
 
 1. Tasks are thin wrappers calling one engine function each.
 2. All enqueueing goes through one `enqueue()` helper.
-3. All schedules are defined in one place.
+3. All schedules are defined in one place, `ensure_schedules()`.
 4. Jobs are idempotent. Django-Q2's `retry` setting must exceed the task `timeout`, or a
    running task is redelivered and runs twice.
+
+Django-Q2's own success and failure tables are capped or disabled, so `JobRun` is the only
+record.
 
 ## Inspection
 

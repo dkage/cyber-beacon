@@ -63,7 +63,7 @@ Django-Q2 queue names are cluster names, and a cluster works exactly one queue. 
 - **`worker`** (queue `default`): every sync for every provider, the sweep, the Obsidian journal write, purges and Telegram sends.
 - **`worker-ai`** (queue `ai`, one worker): the AI briefing only. It has a long timeout and **at most 2 retries**, because a retry costs money. Its output is stored in Postgres. It never shares capacity with syncs, in either direction.
 
-A per-provider cluster (a `notion` queue) is a settings-and-Compose change and is deferred until a crawl is seen starving another provider. **A throttled job never sleeps.** When the token bucket is empty it re-queues itself with `schedule(..., Schedule.ONCE, next_run=...)`, freeing its worker slot. Without that rule a split would be cosmetic.
+A per-provider cluster (a `notion` queue) is a settings-and-Compose change and is deferred until a crawl is seen starving another provider. **A throttled job never sleeps.** When the token bucket is empty it checkpoints its cursor, sets the Mount's `next_attempt_at` a few seconds ahead and exits, freeing its worker slot; the next dispatcher tick picks it up again. No per-job schedule row is created. Without this rule a split would be cosmetic.
 
 ### Rate-limit enforcement and the bucket's store
 
@@ -93,6 +93,20 @@ The queue is in Postgres, so a restart loses nothing queued. All truth is in Pos
 - **A red "!" and log view in the frontend** is a requirement from the developer: clicking the indicator shows why a job failed, from `JobRun`. This ticket supplies the data and the endpoint; the UI belongs to the frontend design brief, which is out of scope for this map.
 - **Telegram, on state transitions only**: `active→needs_reauth`, a Mount auto-disabled, a journal write stuck. One message per transition, never per failure. Routing, quiet hours and the TV's alert model stay with the notification system, still fog.
 - **Inspection:** Django Admin for queued tasks, schedules and results, plus `manage.py qmonitor` and `qinfo` from a shell. The monitor needs a shared cache (a database cache table is enough), not the default local-memory one.
+
+### Refinements
+
+Added after the answer above was first written, from a review of the Django-Q2 switch.
+
+- **The tick is the only retry mechanism.** Throttling, backoff and re-attempts all go through `next_attempt_at`; the `Schedule.ONCE` release originally proposed was redundant and is dropped. The journal write retries the same way, through the sweep.
+- **Lost runs.** Django-Q2 hard-kills a task past its timeout, so a `JobRun` can be left open. The sweep closes any run still open past its timeout with outcome `lost`, counted as a failure, so the failure log never shows a run stuck as "started".
+- **One record, not two.** Django-Q2's own success and failure result tables are capped or disabled (its save-limit setting). `JobRun` is the only human-facing log, and the 30-day purge covers it.
+- **`retry` above `timeout` is tested.** One test asserts it for every cluster, since the `ai` cluster's long timeout is where a mistake would cause a duplicate run.
+- **Schedules come from code.** The tick, sweep and purges are defined once in an idempotent `ensure_schedules()` that runs on deploy and recreates anything missing, so an accidental edit in Admin does not silently stop polling.
+
+### For the build issue
+
+Not decisions, only setup items to carry onto the backend issue when one is filed: a shared cache (a database cache table is enough) for `qmonitor` and `qinfo`; a small `workers` count of about 2, since each worker loads the whole Django app; and pinning the Django-Q2 version after checking at build time that its release cadence and Django support are healthy.
 
 ### Excluded deliberately
 
