@@ -60,7 +60,7 @@ The developer is a senior PHP/Laravel engineer who used Django and DRF for a few
   | Eloquent                     | Django ORM                                            |
   | Artisan                      | `manage.py` / Typer                                   |
   | Migrations                   | Django migrations                                     |
-  | Supervisor for queue workers | **systemd units** — do not reach for supervisord here |
+  | Supervisor for queue workers | **systemd units** in a VM, or Compose services with a `restart:` policy in containers (production is containers on TrueNAS) — do not reach for supervisord here |
 
 
 ## Private notes directory
