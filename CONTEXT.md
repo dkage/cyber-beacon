@@ -151,3 +151,14 @@ The recorded history of a Task, written as things happen and never derived after
 the fact. It says what an occurrence *meant* — that a Task was bumped, not that a
 column changed — because meaning cannot be recovered from a diff later.
 _Avoid_: Audit log, changelog, task event, history entry.
+
+### Background work
+
+**Job run**:
+The recorded outcome of one attempt at a piece of background work — a sync, a journal
+write, a briefing, a purge. It is written by the system and read by people: it is what
+the red indicator opens to say why something failed, in plain words, and it is kept for
+thirty days. Activity says what happened to a Task; a Job run says what happened to the
+machinery. Never call a background job a "task": that word is reserved for the thing
+you intend to do, even though the queue library uses it.
+_Avoid_: Task run, sync log, run log, audit log.

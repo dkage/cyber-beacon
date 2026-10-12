@@ -53,3 +53,9 @@ One Google Connection can have several Mounts.
 | **Activity** | Semantic history of a Task, written as things happen ("bumped", not "column changed") | audit log, changelog |
 
 The bump is gated by the wrap-up, not the clock (ticket 06).
+
+## Background work
+
+| Term | Meaning | Don't say |
+|---|---|---|
+| **Job run** | The recorded outcome of one attempt at background work (sync, journal write, briefing, purge), with the error in plain words. Kept 30 days. The model is `JobRun`. Never call a background job a "task", which is reserved for the domain Task | task run, sync log, run log |
