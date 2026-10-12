@@ -52,6 +52,17 @@ and translates payloads, with no loop, transaction or `save()`. An `if provider 
 - A remotely deleted event we authored deletes the `TimeBlock` and keeps the `Task`.
 - Our events are stamped with `extendedProperties.private` to tell them from meetings.
 
+## Unobtainable Connections
+
+Source: ticket 07, [research](../research/microsoft-entra-app-registration-and-consent.md).
+
+- A tenant may refuse **consent** (not app registration) before any Connection exists.
+  This is the result of a connect attempt, not a `status`. The UI says an administrator
+  must approve, as an expected outcome.
+- All Microsoft consent and token failures classify as `auth_dead`; `last_error` carries
+  whether an admin (`AADSTS90094`/`65001`) or only the user (others) can fix it.
+- One Microsoft app registration (personal + work audience) serves every Outlook Connection.
+
 ## Non-sync Connections
 
 Telegram declares `{NOTIFY}` only, and Obsidian holds a path in its credential blob.

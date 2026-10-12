@@ -4,6 +4,7 @@
 |---|---|
 | [`adr/`](./adr/) | Architecture decision records. Authoritative on the decisions they record |
 | [`glossary/`](./glossary/) | Quick-lookup index of settled terms, models, and infrastructure names. Not authoritative |
+| [`research/`](./research/) | Cited findings from primary sources, written for planning tickets of type research |
 | [`agents/`](./agents/) | How the agent skills use the issue tracker, triage labels and domain docs |
 
 Related, outside `docs/`:
