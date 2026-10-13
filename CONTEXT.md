@@ -106,6 +106,19 @@ record: which Connection it came through, its identity there, and the untouched
 payload last received. A Task you created yourself has no Source.
 _Avoid_: Origin, external task, remote task, integration.
 
+**Snapshot**:
+The latest summary of a Mount — a count and a short list — kept so the dashboard
+never has to ask the provider. It is how an integration appears as a widget without
+becoming Tasks, and it is shown with the time it last succeeded, so a provider outage
+reads as stale rather than blank. Only the latest is kept.
+_Avoid_: Cache, widget data, metric, stats.
+
+**Promotion**:
+A deliberate "make this a Task" on a dashboard item that is not one. The resulting
+Task is an ordinary one with an ordinary Source; nothing about it marks it as
+second-class afterwards.
+_Avoid_: Convert, import, pin.
+
 **Mirrored field**:
 A field an upstream provider owns. Syncing overwrites it, and this application
 never writes it back.

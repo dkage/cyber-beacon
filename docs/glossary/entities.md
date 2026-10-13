@@ -22,6 +22,7 @@ Model names and the fields that carry a decision. Not a schema.
 |---|---|
 | `IntegrationConnection` | Account link: `user`, `provider`, `account_identity`, `scopes`, encrypted `credentials`, `status`, `last_error`. Health lives here |
 | `Mount` | Remote resource: `mapping` (JSONB, keyed by remote property **id**), `mirrors`, `is_publish_target`, `enabled`, `cursor`, `last_attempted_at`, `last_succeeded_at`, `consecutive_failures`, plus `next_attempt_at` and the `sync_started_at` lease (ticket 05). Freshness lives here |
+| `MountSnapshot` | One row per Mount, latest only: `value` (JSONB), `fetched_at`. Written by the engine from the adapter's `summarize`. Read by widgets and the briefing (ticket 08) |
 
 ## Background work (ticket 05)
 

@@ -36,8 +36,15 @@ instants.
 | **Connection** | One authorised link to one account at one Provider. This is "the integration" you own | integration, account |
 | **Mount** | One remote resource under a Connection: one calendar, one Notion data source, one Obsidian directory. Holds mapping, cursor, freshness | binding, feed, sync target |
 | **Source** | The upstream record a Task projects, plus its Connection, identity and last raw payload. No Source means you created it | origin, external task |
+| **Snapshot** | Latest count and short list for a Mount, so widgets never call a provider. Shown with `last_succeeded_at`. Latest only | cache, widget data |
+| **Promotion** | Manual "make this a Task" on a widget item. Yields an ordinary Task with an ordinary Source | convert, import |
 | **Mirrored field** | Owned by upstream. Sync overwrites it. Never written back | synced field |
 | **Local field** | Owned by you (do date, Time blocks, priority, notes, attachments, completion). Sync never touches it | custom field, override |
+
+**Task or widget (ticket 08).** A record is a Task only if it is yours, you could do-date
+it, and done is your call. Everything else is widget-only. A Task-projecting Mount must
+carry a filter (default "mine"), has a cap on open projected Tasks (~200) and needs
+confirmation on first sync.
 
 Connection vs Mount: the Connection is the permission, the Mount is what it is aimed at.
 One Google Connection can have several Mounts.

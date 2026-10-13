@@ -33,6 +33,18 @@ and translates payloads, with no loop, transaction or `save()`. An `if provider 
 | **Publish target** | The one Mount per user where Time blocks are written. A partial unique index enforces "at most one". Defaults to the connection's primary calendar |
 | **Mapping** | Per-Mount field map keyed by property id, validated on write against a live `describe_schema` |
 
+## Task or widget (ticket 08)
+
+| Term | Meaning |
+|---|---|
+| **`SUMMARIZE`** | Capability: the adapter can produce a Snapshot. Added to the set from ticket 03 |
+| **`summarize`** | Pure adapter method, beside `project`. The engine writes the result |
+| **Dual purpose** | Per **Mount**: `mirrors=true` projects Tasks, `mirrors=false` is Snapshot only. Every Mount writes a Snapshot |
+| **Mount cap** | Per-Mount ceiling on open projected Tasks (~200). Past it the engine stops projecting, warns, and still counts the overflow |
+| **First-sync preview** | A new Mount shows a count and needs confirmation before projecting |
+| **Tombstone reason** | `resolved` completes the Task (actor: the integration, local write only). `withdrawn` tombstones it and leaves it open |
+| **Promotion** | Manual widget-item-to-Task. Needs a stable `external_id` and `url`. Then follows the normal sync path |
+
 ## Connection health
 
 `status`: `active` / `needs_reauth` / `disabled` / `disconnected`.
