@@ -40,6 +40,7 @@ Decided before this map existed — the premise of the route, not steps along it
 
 ## Not yet specified
 
+- **Kiosk authentication.** [ADR-0001](../../../docs/adr/0001-django-owns-identity.md) covers the web and native clients; a keyboardless Pi on a TV fits neither. How it authenticates, what scope it gets, and how it is revoked is not decided. <clears-with: 11>
 - **Offline client versus server concurrency.** [Ticket 03](./tickets/03-integration-provider-abstraction.md) settled how *this server* resolves a conflict with *a provider*. It did not settle how a client that was offline — the contemplated Swift app, holding a drag it could not send — replays a stale mutation against our own API. That is our own concurrency control on our own resources, and it will be discovered during a client build and retrofitted badly if left here. <clears-with: 09>
 - **A trash bin for Tasks generally.** Disconnecting a Connection can soft-delete the Tasks it sourced, recoverable for thirty days. Whether *every* Task deletion works that way is a Task-lifecycle decision that ticket 03 deliberately did not make on the domain model's behalf. <clears-with: 09>
 - **AI briefing architecture.** What triggers generation, how context is assembled, which model, what it costs per run, and where the output lives. <clears-with: 10>
