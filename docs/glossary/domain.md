@@ -3,6 +3,11 @@
 Full definitions and `_Avoid_` synonyms are in [`CONTEXT.md`](../../CONTEXT.md). Use
 these words in models, routes, issues and commits.
 
+**Reference caveat:** source admission/field ownership, remote completion, day rollover
+and meeting checklists are under review in the [parity map](../../.plan/maps/sunsama-parity/map.md).
+These entries remain current decisions, not assertions of Sunsama behavior. In particular,
+Sunsama's start date means our **Do date**. See [reference translation](./sunsama-reference.md).
+
 ## Work
 
 | Term | Meaning | Don't say |

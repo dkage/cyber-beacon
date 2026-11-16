@@ -7,6 +7,8 @@ claimed_at: 2026-08-29T20:41:16Z
 
 # The integration provider abstraction
 
+**Reference reconciliation required (2026-11-16).** Keep the shared engine, rate-limited transport, credential encryption and Connection/Mount ownership. They are our architecture, not discovered Sunsama internals. The [provider matrix](../../../../docs/research/sunsama/integration-semantics.md) exposes missing candidate discovery/import, copy-on-import vs live fields, remote-preview commands, scoped automations, action idempotency and per-channel calendar destinations. The current WRITE_BACK calendar methods, mirrors flag and one-publish-target index do not express all of those. Resolve [parity 02](../../sunsama-parity/tickets/02-source-admission-and-worksheets.md), [03](../../sunsama-parity/tickets/03-provider-sync-and-actions.md) and [05](../../sunsama-parity/tickets/05-capacity-projections-and-timeboxing.md) before treating this interface as complete. Preserve history until an approved replacement is written.
+
 ## Question
 
 **What shape does an integration have, such that adding the eighth one is boring?**
@@ -40,10 +42,10 @@ To resolve:
 
 Settled through a grilling session. The shape below is what the first integration app can
 be built against. Two decisions were large enough to record separately:
-[ADR-0002](../../../docs/adr/0002-integration-connections-separate-from-identity.md) for
+[ADR-0002](../../../../docs/adr/0002-integration-connections-separate-from-identity.md) for
 the split from allauth, and
-[ADR-0003](../../../docs/adr/0003-credential-encryption-at-rest.md) for credentials at
-rest. `Mount` is now in [`CONTEXT.md`](../../../CONTEXT.md), which takes precedence over
+[ADR-0003](../../../../docs/adr/0003-credential-encryption-at-rest.md) for credentials at
+rest. `Mount` is now in [`CONTEXT.md`](../../../../CONTEXT.md), which takes precedence over
 the prose here if the two ever drift.
 
 ### The spine: adapters are thin, and the engine is the only thing that writes

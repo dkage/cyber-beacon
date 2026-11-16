@@ -5,6 +5,18 @@ hold it, placed onto a day, and pushed back out to a calendar and an always-on
 display. This glossary fixes the vocabulary that everything — models, API routes,
 issues, commit messages — should use.
 
+## Reference alignment under review
+
+The developer has selected Sunsama's planning workflows as the product baseline, with
+Cyber Beacon identity and added dashboard. The [reference audit](docs/research/sunsama/README.md)
+and [parity map](.plan/maps/sunsama-parity/map.md) identify decisions requiring confirmation
+before affected domain migrations: worksheet admission/field ownership, source completion,
+day rollover, meeting checklists, calendar routing and daily time allocation. Definitions
+below remain the **current settled vocabulary**, not proof of Sunsama parity. In particular,
+Sunsama's “start date” means our **Do date**, not our earliest-actionable **Start date**.
+Do not silently redefine Bump, Backlog, Promotion or Calendar event to fit the reference;
+resolve the relevant ticket and update this document and its glossary index together.
+
 ## Language
 
 ### Work

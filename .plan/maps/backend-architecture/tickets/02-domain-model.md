@@ -4,6 +4,8 @@ type: grilling
 
 # The domain model: do-date, due-date, and what a Task is
 
+**Reference reconciliation required (2026-11-16).** This answer is retained as the historical decision, not a verified Sunsama model. The [audit](../../../../docs/research/sunsama/README.md) finds intentional worksheet import (including repeated Jira imports/local retitles), provider-specific import copies rather than universal mirrored title/due dates, meeting checklist representations, daily time allocations, projections and timers. Sunsama's start date translates to our **Do date**, not our Start date. Before first affected migrations, resolve [parity 02](../../sunsama-parity/tickets/02-source-admission-and-worksheets.md), [04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md), [05](../../sunsama-parity/tickets/05-capacity-projections-and-timeboxing.md) and [06–08](../../sunsama-parity/map.md), then amend the answer and glossary with explicit approval. Do not reinterpret the current model in code.
+
 ## Question
 
 **What is a Task, and what does it mean for one to be scheduled?**
@@ -72,7 +74,7 @@ This is why a scheduled block cannot simply be two columns on `Task`.
 ## Answer
 
 Settled through a grilling session. The model below is what the first Django app
-can be built against; the vocabulary is now recorded in [`CONTEXT.md`](../../../CONTEXT.md)
+can be built against; the vocabulary is now recorded in [`CONTEXT.md`](../../../../CONTEXT.md)
 at the repository root, which is the authority on the terms and takes precedence
 over the prose here if the two ever drift.
 

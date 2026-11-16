@@ -7,6 +7,8 @@ claimed_at: 2026-10-13T00:55:56Z
 
 # What becomes a Task, and what is only a widget
 
+**Reference reconciliation required (2026-11-16).** Latest-only Snapshot/freshness remains valuable for our kiosk. However Sunsama's source panels deliberately browse before Task admission; GitHub closing/merging does not complete a personal worksheet; calendar meetings can have checklist representations; and imported Notion pages are not automatically live-mirrored Tasks. The existing mine-filter/cap/confirmation and generic resolved→complete rule are not verified parity. Read the [provider semantics](../../../../docs/research/sunsama/integration-semantics.md); resolve [parity 02](../../sunsama-parity/tickets/02-source-admission-and-worksheets.md), [03](../../sunsama-parity/tickets/03-provider-sync-and-actions.md) and [04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md) before implementing these behaviors. Keep widget classification separate from source-candidate eligibility; do not discard Snapshots to imitate Sunsama's client cache.
+
 ## Question
 
 **Which upstream things are projected into `Task` rows, and which exist only as numbers
@@ -70,7 +72,7 @@ mechanic stops meaning anything.
 
 ## Answer
 
-Settled through a grilling session. Vocabulary is recorded in [`CONTEXT.md`](../../../CONTEXT.md)
+Settled through a grilling session. Vocabulary is recorded in [`CONTEXT.md`](../../../../CONTEXT.md)
 (**Snapshot**, **Promotion**), which takes precedence over this prose if the two drift.
 
 ### The rule

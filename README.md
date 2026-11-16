@@ -1,5 +1,8 @@
 # Cyber Beacon
 
+A self-hosted daily planner following Sunsama's proven workflows, with Cyber Beacon's
+own visual identity, API-first architecture, AI briefing and always-on kiosk dashboard.
+
 ## Stack
 
 ### Backend
@@ -44,10 +47,23 @@ Jira is deprioritised. The work it tracked has moved to Notion, so the integrati
 
 ### Surfaces
 
+- Interactive planner: daily preparation, ordered work, capacity, calendar timeboxing,
+  Today/Board/Focus views and source selection — behavior is being reconciled against
+  Sunsama before implementation
 - Web dashboard, responsive from phone to a 4K TV in kiosk mode
 - A native iOS client is designed *for* — the API treats every consumer as a first-class client — but is not committed to
 
-Planning for the backend architecture is tracked as a [chartr map](.plan/maps/backend-architecture/map.md).
+Planning lives in two linked chartr maps:
+
+- [Backend architecture](.plan/maps/backend-architecture/map.md): stack, domain,
+  integrations, workers, identity and deployment.
+- [Sunsama parity](.plan/maps/sunsama-parity/map.md): the behavioral baseline and explicit
+  decisions for the [110-feature gap inventory](docs/research/sunsama/feature-inventory.md).
+
+The [reference audit](docs/research/sunsama/README.md) records how Sunsama imports issues,
+Notion pages, mail and meetings, its provider-specific sync rules, and what is **not**
+known about its private implementation. Earlier domain decisions remain documented but
+affected policies must be reconciled before their first migrations.
 
 ## Getting Started
 

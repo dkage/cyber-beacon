@@ -14,9 +14,13 @@ drifts from them, they win. Fix this file.
 | [integrations.md](./integrations.md) | Provider interface, capabilities, sync engine, rate budget, health states |
 | [background-work.md](./background-work.md) | Queue, scheduler, workers, retries, `JobRun` |
 | [architecture.md](./architecture.md) | Stack, deployment, API conventions, infrastructure names |
+| [sunsama-reference.md](./sunsama-reference.md) | Reference-to-domain translation and explicitly unsettled parity decisions; not settled new models |
 
 Each entry gives a one-line meaning and where it was decided. Ticket references are to
-`.plan/maps/backend-architecture/tickets/`.
+`.plan/maps/backend-architecture/tickets/` unless explicitly labelled **parity**; those
+refer to `.plan/maps/sunsama-parity/tickets/`. The [reference audit](../research/sunsama/README.md)
+flags behavioral premises under review; retain current definitions until an approved
+answer updates `CONTEXT.md` and this index.
 
 **Maintenance:** any change to a plan, ADR or `CONTEXT.md` needs a check of this
 glossary in the same commit.

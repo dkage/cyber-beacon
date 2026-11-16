@@ -9,7 +9,7 @@ blocked_by: [04]
 
 **How does the always-on kiosk authenticate to the API, and what is it allowed to see?**
 
-[ADR-0001](../../../docs/adr/0001-django-owns-identity.md) settled two client shapes: the
+[ADR-0001](../../../../docs/adr/0001-django-owns-identity.md) settled two client shapes: the
 web client uses HttpOnly session cookies through SvelteKit as a backend-for-frontend, and a
 native client holds opaque, revocable tokens in the Keychain. The kiosk fits neither. It is
 a Raspberry Pi running Chromium on a 4K TV with **no keyboard**, and it must sign in once,
@@ -24,12 +24,16 @@ or what it may read.
 ### What is already settled and must not be re-decided
 
 - Django owns identity and authentication; allauth headless is the sole account system, and
-  every API consumer is a first-class client ([ADR-0001](../../../docs/adr/0001-django-owns-identity.md)).
+  every API consumer is a first-class client ([ADR-0001](../../../../docs/adr/0001-django-owns-identity.md)).
 - Integration tokens are never exposed to any client.
 - Access is WireGuard-only, with TLS terminated at Zoraxy
   ([ticket 04](./04-deployment-topology.md)).
 - Widgets read stored data and Snapshots, never a live provider call
   ([ticket 08](./08-task-or-widget.md)).
+
+### Reference follow-up: data scope is not only route scope
+
+[Parity 09](../../sunsama-parity/tickets/09-planner-surfaces-and-dashboard.md), [11](../../sunsama-parity/tickets/11-capture-notifications-and-client-scope.md) and [12](../../sunsama-parity/tickets/12-release-scope-provider-breadth-and-privacy.md) add source previews, personal/private channels and richer notifications as planning questions. A kiosk read token must not automatically read full email bodies, remote comments, AI conversations, forwarding secrets or integration action controls just because a dashboard route can aggregate them. Specify redacted widget projections and what cached sensitive data does on revocation; browsing a Gmail/Outlook preview can mark mail read and is not a passive kiosk operation. Keep token/pairing decisions owned here.
 
 ### To resolve
 

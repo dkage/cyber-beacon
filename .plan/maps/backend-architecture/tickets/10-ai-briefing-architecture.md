@@ -32,6 +32,12 @@ could hang off: Daily prep completion, a skipped prep, the Pending day.
 - Integration tokens never leave the server; the briefing is generated server-side.
 - Journal text lives in Postgres ([ticket 06](./06-daily-prep-and-wrap-up.md)).
 
+### Reference baseline and shared ownership
+
+The [Sunsama audit](../../../../docs/research/sunsama/README.md) finds that current Sunsama has a manual ritual plus optional agentic planning, a local assistant, creation suggestions and two opposite MCP directions. Those are not synonyms for this stored post-plan briefing. [Parity 10](../../sunsama-parity/tickets/10-ai-planning-and-mcp-boundaries.md) owns their product/permission boundary and sequencing; **this ticket remains the canonical owner of briefing architecture**. Resolve together, not as competing specs.
+
+Daily prep completion and Pending day depend on [parity 04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md). Inputs must distinguish fluid projections, committed Time blocks, actual Time entries, missing estimates and stale source data. A Snapshot is latest state, not an external activity history for highlights. Manual planning must remain usable with AI disabled or unavailable.
+
 ### To resolve
 
 - The trigger: on Daily prep completion, on a schedule, on demand, or a combination, and
@@ -50,3 +56,5 @@ could hang off: Daily prep completion, a skipped prep, the Pending day.
 - The trigger, regeneration and failure behaviours are written down.
 - The context contract is specified well enough to write the prompt builder against.
 - The stored shape and the cost estimate are decided.
+- The briefing's data/mutation boundary is distinct from plan suggestions, assistant commands, external MCP tools and n8n/Hermes execution; consent and stale/undo behavior are linked to parity 10.
+- Changed day lifecycle, schedule revisions and proposed-vs-committed time are reflected in triggers/context before this answer is treated as build-ready.

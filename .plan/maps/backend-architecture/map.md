@@ -2,13 +2,17 @@
 
 ## Destination
 
-Locked architectural decisions plus a domain spec the first backend vertical slice can be built against — the point where someone can start writing Django code without another decision needing to be made first.
+Locked architectural decisions plus a domain spec the first backend vertical slice can be built against — the point where someone can start writing Django code without another decision needing to be made first. **The Sunsama parity audit has identified behavioral decisions that must be reconciled before affected domain/integration migrations are considered ready.** The stack is not reopened.
 
 ## Notes
 
 **Domain.** Personal productivity scheduling, Sunsama-shaped: pull tasks from integrations, drag them onto a day timeline that syncs to the calendar, generate an AI briefing from the finalised schedule. The secondary surface is an always-on kiosk dashboard. The full product brainstorm and the frontend design brief are private notes the developer holds; anything a ticket depends on is quoted into that ticket rather than referenced by path.
 
 **This map plans, it does not build.** Every ticket resolves a decision. No production code is produced here.
+
+**Sunsama baseline update (2026-11-16).** The developer wants Sunsama's planning behavior followed closely, with Cyber Beacon identity and added dashboard. Read the [reference audit](../../../docs/research/sunsama/README.md), [110-feature gap inventory](../../../docs/research/sunsama/feature-inventory.md) and the companion [parity map](../sunsama-parity/map.md). Existing answers remain historical decisions, but tickets 02/03/06/08 have contradicted parity premises: automatic Task projection vs intentional worksheet import, global remote completion, mirrored fields vs import copies, Wrap-up-gated Bump vs midnight carry-forward, meetings excluded from checklist work, and one publishing calendar vs per-channel routing. **Do not implement those policies as finalized parity.** Resolve the linked parity decision first, then amend this map, the original answer, CONTEXT.md and glossary together with explicit approval. Numeric blockers are map-local; cross-map dependencies are these prose links.
+
+**Missing domain work is now owned.** Ordered daily work/capacity/projections, TimeEntry/timers, channels/contexts/weekly objectives, recurrence/backlog horizons, source browsing and provider commands all have decision tickets in the parity map. They are no longer unnamed optional polish. Release inclusion remains a decision; research is not approval for every feature.
 
 **Skills.** Use `grill` every session, and a domain-modeling skill where one is available.
 
@@ -44,15 +48,15 @@ Decided before this map existed — the premise of the route, not steps along it
 - **Kiosk authentication.** [ADR-0001](../../../docs/adr/0001-django-owns-identity.md) covers the web and native clients; a keyboardless Pi on a TV fits neither. How it authenticates, what scope it gets, and how it is revoked is not decided. <clears-with: 11>
 - **Offline client versus server concurrency.** [Ticket 03](./tickets/03-integration-provider-abstraction.md) settled how *this server* resolves a conflict with *a provider*. It did not settle how a client that was offline — the contemplated Swift app, holding a drag it could not send — replays a stale mutation against our own API. That is our own concurrency control on our own resources, and it will be discovered during a client build and retrofitted badly if left here. <clears-with: 09>
 - **A trash bin for Tasks generally.** Disconnecting a Connection can soft-delete the Tasks it sourced, recoverable for thirty days. Whether *every* Task deletion works that way is a Task-lifecycle decision that ticket 03 deliberately did not make on the domain model's behalf. <clears-with: 09>
-- **AI briefing architecture.** What triggers generation, how context is assembled, which model, what it costs per run, and where the output lives. <clears-with: 10>
+- **AI briefing architecture.** What triggers generation, how context is assembled, which model, what it costs per run, and where the output lives. Co-resolve with [parity ticket 10](../sunsama-parity/tickets/10-ai-planning-and-mcp-boundaries.md): post-plan briefing is distinct from optional plan drafting, Sunny-style local actions, two MCP directions and external task execution. <clears-with: 10>
 - **Agent-executed tasks.** The n8n / Hermes dispatch described as "Development 2" in the brainstorm — a task the AI can perform on the user's behalf, triggered from the briefing.
 - **Notification system.** Telegram, email, and the TV's attention/alerting model for overdue work and skipped daily prep.
-- **Widget data contracts.** What the dashboard actually asks the API for, per widget, and at what refresh cadence.
+- **Widget data contracts.** What the dashboard actually asks the API for, per widget, and at what refresh cadence. Reconcile proposed projections vs committed Time blocks vs actual Time entries, capacity, imported meetings and source freshness with [parity tickets 04–09](../sunsama-parity/map.md); no parallel dashboard-only task state.
 - **Failure log view in the frontend.** The developer wants a red "!" indicator that opens the reason a job failed. The backend side is settled (`JobRun` and a read-only endpoint, ticket 05); the screen itself belongs to the frontend design brief.
 - **Queue inspection dashboard (v2).** Flower is Celery-only and does not apply. A read-only endpoint over Django-Q2's `Stat` class could feed a web view later; for now `manage.py qmonitor` and Django Admin cover it.
 
 ## Out of scope
 
-- **Frontend design and build.** Already specified in full in a separate design brief the developer holds — design tokens, five viewport profiles, widget catalog, mock data layer. Not fog; charted elsewhere.
+- **Frontend design and build.** The existing brief covers the **dashboard only** — tokens, five viewport profiles, widget catalog and mock data. It explicitly excludes the planner and does not specify Today/Board/Calendar/Focus/source panels or ritual interactions. Those missing surfaces now belong to [parity ticket 09](../sunsama-parity/tickets/09-planner-surfaces-and-dashboard.md), with dashboard identity constraints summarized in that map. Do not assume a private dashboard brief is a complete planner spec.
 - **The Swift iOS app.** The API is designed so it can exist; building it is a separate effort and is not confirmed.
 - **Kiosk hardware setup.** TV mounting, orientation, and Pi provisioning.

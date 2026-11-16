@@ -7,6 +7,8 @@ claimed_at: 2026-10-08T06:05:59Z
 
 # The daily prep and wrap-up flow
 
+**Contradicted reference premise (2026-11-16).** The answer's phrase “like Sunsama” for Pending-day pinning and Wrap-up-gated Bump is not supported by the current reference. Sunsama documents midnight carry-forward; shutdown explicitly does not move unfinished tasks. The [audit](../../../../docs/research/sunsama/README.md) also finds workload review, imported meeting checklists and past-day progress breadcrumbs absent here. The original developer-confirmed choice remains recorded, but is now **under review** in [parity 04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md). Resolve it before building day-state, bump/auto-skip sweeps or the dependent prep-finish briefing trigger. Do not silently replace Bump with rollover or erase the original confirmation.
+
 ## Question
 
 **What are the steps of the morning prep and the evening wrap-up, what does each
@@ -77,7 +79,7 @@ Sunsama and keeps it specifically for this ritual, so the bar is a known one.
 
 ## Answer
 
-Settled through a grilling session. Vocabulary is recorded in [`CONTEXT.md`](../../../CONTEXT.md), which takes precedence over this prose if the two drift.
+Settled through a grilling session. Vocabulary is recorded in [`CONTEXT.md`](../../../../CONTEXT.md), which takes precedence over this prose if the two drift.
 
 ### The bump is gated by the wrap-up, not by the clock
 

@@ -2,6 +2,11 @@
 
 Model names and the fields that carry a decision. Not a schema.
 
+**Migration readiness:** Task/source identity, daily allocations, meeting representation,
+calendar routing and TimeEntry/timer storage require the linked [parity decisions](../../.plan/maps/sunsama-parity/map.md)
+before affected first migrations. Models below are the historical settled baseline,
+not an approved replacement schema. [Translation/status](./sunsama-reference.md).
+
 ## Work and time (ticket 02)
 
 | Model | Purpose |

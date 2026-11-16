@@ -7,6 +7,8 @@ claimed_at: 2026-10-12T15:34:11Z
 
 # Whether the work Microsoft tenant permits a third-party app registration
 
+**Scope follow-up (2026-11-16).** This research established consent behavior for the named calendar/read-mail scopes, not permission for an embedded mail client. Sunsama's [Outlook guide](https://help.sunsama.com/docs/integrations/outlook) adds read-state/flag/category actions, saved drafts, reply/forward/send and import/completion actions; sending has additional consent and may need admin approval. [Parity 03](../../sunsama-parity/tickets/03-provider-sync-and-actions.md) and [12](../../sunsama-parity/tickets/12-release-scope-provider-breadth-and-privacy.md) must decide depth, then verify exact current Graph scopes and employer posture. A Sunsama connection working does not establish approval for our app.
+
 ## Question
 
 **Can this application be registered against the developer's work Microsoft tenant at

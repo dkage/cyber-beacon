@@ -34,6 +34,18 @@ deletion works that way was deliberately not decided on the domain model's behal
   lost to a cascade.
 - Every API consumer is a first-class client (`CLAUDE.md`).
 
+### Sunsama findings to incorporate before resolving
+
+The [reference audit](../../../../docs/research/sunsama/README.md) and [parity 02–06](../../sunsama-parity/map.md) reopen behavioral premises that this lifecycle API depends on. Coordinate rather than settle a conflicting second model:
+
+- Imported worksheets may intentionally share a remote identity; deletion, restore and sync must not recreate a dismissed worksheet or forbid a deliberate new one.
+- Ordinary task trash (Sunsama: one week), inactivity archive, Backlog, removed meeting checklist entry and deleted remote event are different states. Our disconnect retention is currently 30 days; decide the difference explicitly.
+- Undo for moves, rescheduling batches, remote actions and later AI changes needs version checks/compensation, not blind inverse PATCHes after another client has edited.
+- Day order, timers, recurrence exceptions and ritual completion can race with offline writes; state which resources/commands are covered and which must reject stale mutations.
+- Removing a calendar item from checklist must not cancel its event; restoring a task must not republish a remotely deleted block without intent.
+
+The original “already settled” bullets remain history while these parity decisions are open. Do not build against mutually contradictory versions of them.
+
 ### To resolve
 
 - The concurrency mechanism on our own resources: a `version` or `updated_at` precondition
@@ -53,3 +65,4 @@ deletion works that way was deliberately not decided on the domain model's behal
 - Deletion semantics are decided for sourced and unsourced Tasks, including the sync
   interaction.
 - Any new columns on `Task` and `TimeBlock` are named, so the first migration is complete.
+- Reconcile with parity 02/03/04/05/06; specify stale undo, intentional re-import, suppressed meeting import and timer/order mutations with concrete examples. The kiosk's stale cache must not imply editable offline support.

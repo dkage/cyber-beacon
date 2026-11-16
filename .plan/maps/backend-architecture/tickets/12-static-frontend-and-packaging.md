@@ -11,7 +11,7 @@ undermined_by: []
 **Can the web client be a static SvelteKit build served by Django from the same origin,
 using Django's own session cookie, and can the whole backend ship as one image?**
 
-[ADR-0001](../../../docs/adr/0001-django-owns-identity.md) wrote the web client as "HttpOnly
+[ADR-0001](../../../../docs/adr/0001-django-owns-identity.md) wrote the web client as "HttpOnly
 session cookies via SvelteKit as a backend-for-frontend", which keeps a Node server in
 production. The ADR records no reason for the BFF. It is a *backend-for-frontend*: a small
 server between the browser and the API that holds the credential on the browser's behalf.
@@ -26,12 +26,16 @@ The generated scaffold still carries a server stack (`hooks.server.ts` Better Au
 
 - Django, DRF, allauth headless and Django-Q2 stay; the language is not reopened.
 - Django owns identity; every client is first-class
-  ([ADR-0001](../../../docs/adr/0001-django-owns-identity.md)). A native client uses opaque,
+  ([ADR-0001](../../../../docs/adr/0001-django-owns-identity.md)). A native client uses opaque,
   revocable tokens.
 - Production is containers on the TrueNAS homelab, WireGuard-only, with Zoraxy terminating
   TLS and routing `/api` and `/` on one hostname ([ticket 04](./04-deployment-topology.md)).
 - Two worker clusters (`worker`, `worker-ai`) on the Postgres ORM broker
   ([ticket 05](./05-worker-and-scheduler.md)).
+
+### Product-baseline constraint
+
+The [parity map](../../sunsama-parity/map.md) adds an interactive planner beside the dashboard. A static build must support those deep links and server-owned state without importing a client database or privileged BFF back into the architecture. Web packaging does not supply OS-wide capture shortcuts, an always-on-top focus bar, Apple Reminders access or native share/timer surfaces; those are separately scoped in [parity 11](../../sunsama-parity/tickets/11-capture-notifications-and-client-scope.md). Kiosk stale-cache mode is not a general offline-edit guarantee. None of this reverses the still-unproven session/CSRF questions below.
 
 ### To prove or decide
 

@@ -7,6 +7,12 @@
 | [`research/`](./research/) | Cited findings from primary sources, written for planning tickets of type research |
 | [`agents/`](./agents/) | How the agent skills use the issue tracker, triage labels and domain docs |
 
+Product reference: [Sunsama audit](./research/sunsama/README.md),
+[feature inventory](./research/sunsama/feature-inventory.md),
+[integration semantics](./research/sunsama/integration-semantics.md), and
+[source manifest](./research/sunsama/sources.md). These distinguish documented reference
+behavior from current decisions and recommendations; they do not replace `CONTEXT.md`.
+
 Related, outside `docs/`:
 
 - [`CONTEXT.md`](../CONTEXT.md) is the authority on domain vocabulary.

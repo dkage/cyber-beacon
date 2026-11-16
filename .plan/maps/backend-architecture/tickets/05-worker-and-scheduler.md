@@ -7,6 +7,8 @@ claimed_at: 2026-10-12T04:35:03Z
 
 # Background worker and scheduler
 
+**Product-baseline follow-up (2026-11-16).** Queue/worker decisions stand. [Parity 03](../../sunsama-parity/tickets/03-provider-sync-and-actions.md), [04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md) and [08](../../sunsama-parity/tickets/08-recurrence-backlog-and-archive.md) may change the work being scheduled: durable remote action intents, midnight carry-forward instead of Wrap-up Bump, recurring materialization, archive and activity retention. Define idempotency/ambiguous timeout behavior per action (especially email/export), not generic retry for every operation. Do not implement a changed sweep until its product decision closes.
+
 ## Question
 
 **What runs the background work, and what schedules it?**
