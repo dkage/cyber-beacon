@@ -14,8 +14,9 @@ falls between "in the slice" and "explicitly deferred."
   capacity → track → complete → carry-forward → dashboard — is covered end to end.
 - **~15 features are directly enabled** (several only partially), plus the two Cyber
   Beacon additions (kiosk dashboard, freshness/failure states).
-- **One large deliberate deferral**: Sunsama's calendar projections/timeboxing. This is
-  the natural next chunk, not a gap to hide.
+- **One large deferral, now a committed release**: Sunsama's calendar
+  projections/timeboxing. It is the top-priority second release ("Calendar planning"),
+  gated on parity `05`.
 
 ## In the slice
 
@@ -33,14 +34,15 @@ falls between "in the slice" and "explicitly deferred."
 Foundations (`#8` scaffold, `#9` static client, `#10` domain, `#12` auth) enable the
 loop but map to no single feature row; they are the platform the rows sit on.
 
-## The one large deferral: calendar timeboxing
+## The second release: calendar timeboxing
 
 `F049`–`F061` — internal calendar, projections, pin-to-commit, buffers/splitting,
-rescheduling, per-channel calendar targets — are all deferred to parity `05`. These are
+rescheduling, per-channel calendar targets — are owned by parity `05`. These are
 Sunsama's scheduling heart and the reason "drag a task into a time slot" is not in the
-first slice. **Recommendation:** make parity `05` the second release boundary
-("Calendar planning" in the project's Release field) rather than letting it stay an
-unbounded future item.
+first slice. **Decided:** this is the second release boundary ("Calendar planning") and
+top priority after the first usable day. Build slices land on the board with
+Release = "Calendar planning"; acceptance criteria are finalized when parity `05`
+closes.
 
 ## Near-slice items needing a conscious call
 

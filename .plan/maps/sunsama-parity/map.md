@@ -40,6 +40,12 @@ Start connectors with Notion and Google Calendar, then real-use mail/GitHub/Outl
 Provider breadth and collaboration are a separate disposition, not a prerequisite to a
 usable personal planner. Final release boundary is decided in ticket 12.
 
+**Release boundary.** Calendar timeboxing is the next release after the first usable day:
+projections, pin-to-commit working sessions, auto-schedule/buffers/splitting, per-calendar
+semantics and channel routing. Ticket **05 owns this release and is top priority** once the
+first-slice backend is ready to receive it. The board tracks this as Release = "Calendar
+planning".
+
 **Identity and differentiators stay.** Retrofuturist terminal chrome, legible monospace
 body text, amber attention, cyan external state, magenta AI, green healthy/done, red
 late/failure. Five viewing profiles and TV distance calibration; no dense desktop layout
@@ -60,7 +66,7 @@ No committed document may depend on a private scratch path.
 - **Source admission and worksheet identity.** Multiple worksheets per remote record, local retitles, URL and email identities, dedupe and already-imported flags. Explicit import is decided (ticket 13); the remaining detail is the identity/dedupe contract. Affects backend tickets 02/03/08. <clears-with: 02>
 - **Per-provider sync and commands.** Field directions/import copies, source preview edits, import/completion automations, scopes, export/copy, retries and data retention. Local completion is decided (ticket 13); the remaining detail is the per-field/action matrix. Affects backend 02/03/08 and Microsoft scope feasibility. <clears-with: 03>
 - **Day lifecycle, meetings and history.** Progress breadcrumbs, imported meetings, suppression, archive/trash and journal. Midnight carry-forward is decided (ticket 13); the remaining detail is the full day-state contract and meeting checklists. Affects backend 02/06/08/09 and worker sweeps. <clears-with: 04>
-- **Scheduling and capacity.** Ordering, work hours, workload, deterministic projections vs committed blocks, split/auto-reschedule, local calendars and channel-target routing. Affects backend 02/03/06. <clears-with: 05>
+- **Scheduling and capacity.** Ordering, work hours, workload, deterministic projections vs committed blocks, split/auto-reschedule, local calendars and channel-target routing. Affects backend 02/03/06. **Release 2 boundary, top priority.** <clears-with: 05>
 - **Actual time and focus.** Timer state, manual corrections, day totals, inferred actual, Parallel overlap and breaks. Previously deferred TimeEntry now has an explicit parity owner. <clears-with: 06>
 - **Organization and weekly intent.** Channels/contexts, personal privacy/capacity, daily vs backlog priority and weekly objectives/rituals. Not a generic project-board substitution. <clears-with: 07>
 - **Recurrence and backlog.** Series/exceptions, rough/rigid times, rollover dedupe, backlog horizons/folders and archive review. <clears-with: 08>
