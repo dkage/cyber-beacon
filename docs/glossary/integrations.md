@@ -3,11 +3,12 @@
 Source: ticket 03, [ADR-0002](../adr/0002-integration-connections-separate-from-identity.md),
 [ADR-0003](../adr/0003-credential-encryption-at-rest.md).
 
-**Reference reconciliation:** [parity 02/03/05](../../.plan/maps/sunsama-parity/map.md)
-revisit Task admission, field policies, remote actions and calendar targets. The single
-publish-target and generic resolved→complete entries below remain historical decisions,
-not verified Sunsama behavior. Read the [provider matrix](../research/sunsama/integration-semantics.md)
-before implementing those policies; orchestration/token ownership still stands.
+**Reference reconciliation:** explicit import, local worksheets and local completion are
+decided (parity ticket 13). [parity 02/03/05](../../.plan/maps/sunsama-parity/map.md) still
+own field policies, remote actions and calendar targets. The single publish-target and
+generic resolved→complete entries below are superseded by the baseline; read the
+[provider matrix](../research/sunsama/integration-semantics.md) before implementing.
+Orchestration/token ownership still stands.
 
 ## The rule
 

@@ -15,9 +15,13 @@ Read the [reference audit](../../../../docs/research/sunsama/README.md) and the
 [feature inventory](../../../../docs/research/sunsama/feature-inventory.md). Recommendations
 below are starting points for confirmation, not silently approved schema decisions.
 
+### Decided in ticket 13
+
+Midnight carry-forward is decided: unfinished work moves to the next day at midnight, and shutdown does not gate rollover. The remaining questions below are the full day-state contract and meeting checklists.
+
 ### To resolve
 
-- Recommend midnight carry-forward as the parity baseline; explicitly confirm whether configurable rollover, wrap-up gating, Pending day and 24h auto-skip survive. Do not silently rename Bump to mean carry-forward.
+- Decide whether configurable rollover, wrap-up gating, Pending day and 24h auto-skip survive as optional differences.
 
 - Specify prep/shutdown steps including review, gathering meetings, estimating/checking capacity, ordering, optional timeboxing and sharing. Define repeat planning, future days, evening planning and skipped days.
 

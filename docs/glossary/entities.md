@@ -2,10 +2,10 @@
 
 Model names and the fields that carry a decision. Not a schema.
 
-**Migration readiness:** Task/source identity, daily allocations, meeting representation,
-calendar routing and TimeEntry/timer storage require the linked [parity decisions](../../.plan/maps/sunsama-parity/map.md)
-before affected first migrations. Models below are the historical settled baseline,
-not an approved replacement schema. [Translation/status](./sunsama-reference.md).
+**Migration readiness:** explicit import, local worksheets, local completion and midnight
+carry-forward are decided (parity ticket 13). Meeting representation, calendar routing and
+TimeEntry/timer storage still require the linked [parity decisions](../../.plan/maps/sunsama-parity/map.md)
+before affected first migrations. [Translation/status](./sunsama-reference.md).
 
 ## Work and time (ticket 02)
 
@@ -15,7 +15,7 @@ not an approved replacement schema. [Translation/status](./sunsama-reference.md)
 | `TaskSource` | Zero-or-one per Task: provenance. Connection, `external_id`, untouched `raw` payload, `deleted_upstream_at` tombstone. FK is `PROTECT` |
 | `TimeBlock` | A committed span of clock time (instants). Nullable Task. One Task may have several |
 | `CalendarEvent` | Mirrored meeting. Has no do date and is not a Task |
-| `TaskActivity` | Append-only semantic history. Kinds include `bumped`, `rescheduled` |
+| `TaskActivity` | Append-only semantic history. Kinds include `carried_forward`, `rescheduled` |
 | `Attachment` | File on a Task or CalendarEvent. Stores a relative storage key, so the backend can be swapped by settings |
 | `User` | Gains `timezone` (IANA), which local dates depend on |
 
@@ -49,6 +49,6 @@ stored: it is the absence of a row past the cutoff.
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `day_rollover` | 00:00 | Local time the day turns over. Decides when a wrap-up becomes due |
+| `day_rollover` | 00:00 | Local time the day turns over; when carry-forward runs |
 | `prep_cutoff` | 10:00 | Past it, with no prep resolved, prep is missed |
 | `wrap_up_limit` | 24h | Past it, the sweep records an auto-skip |

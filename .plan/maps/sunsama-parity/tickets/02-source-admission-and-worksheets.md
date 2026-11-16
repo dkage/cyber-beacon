@@ -15,9 +15,13 @@ Read the [reference audit](../../../../docs/research/sunsama/README.md) and the
 [feature inventory](../../../../docs/research/sunsama/feature-inventory.md). Recommendations
 below are starting points for confirmation, not silently approved schema decisions.
 
+### Decided in ticket 13
+
+Explicit import is the normal interaction; imported Tasks are local worksheets. The remaining questions below are the identity/dedupe and field-ownership details, not the admission model itself.
+
 ### To resolve
 
-- Recommend explicit import as the normal interaction; decide whether automatic Task projection remains an opt-in per Mount, and what safe defaults replace mirrors=true.
+- Decide whether automatic Task projection remains an opt-in per Mount, and what safe defaults replace mirrors=true.
 
 - Separate remote identity from worksheet ID; allow intentional multiple work units while deduplicating retry/import requests and cross-Mount overlap. Decide whether TaskSource is a remote-record entity or a per-worksheet link.
 

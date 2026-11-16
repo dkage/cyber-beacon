@@ -5,17 +5,27 @@ hold it, placed onto a day, and pushed back out to a calendar and an always-on
 display. This glossary fixes the vocabulary that everything — models, API routes,
 issues, commit messages — should use.
 
-## Reference alignment under review
+## Reference baseline
 
 The developer has selected Sunsama's planning workflows as the product baseline, with
 Cyber Beacon identity and added dashboard. The [reference audit](docs/research/sunsama/README.md)
-and [parity map](.plan/maps/sunsama-parity/map.md) identify decisions requiring confirmation
-before affected domain migrations: worksheet admission/field ownership, source completion,
-day rollover, meeting checklists, calendar routing and daily time allocation. Definitions
-below remain the **current settled vocabulary**, not proof of Sunsama parity. In particular,
+and [parity map](.plan/maps/sunsama-parity/map.md) record the findings. Four reversals of
+the earlier model are decided and reflected below:
+
+- **Explicit import, not automatic projection.** Connecting a source does not fill the
+  task list. Remote records are browsed and deliberately imported as local worksheets.
+- **Local worksheets.** An imported Task is a personal worksheet linked to its remote
+  record; local fields (title, notes, dates, priority, estimate, completion) are owned here.
+- **Local completion.** Completing a Task here does not write back to the provider by
+  default; upstream status changes do not complete the local worksheet. Remote actions are
+  separate, explicit commands.
+- **Midnight carry-forward.** Unfinished work moves to the next day at midnight; shutdown
+  is an optional review and does not gate rollover.
+
 Sunsama's “start date” means our **Do date**, not our earliest-actionable **Start date**.
-Do not silently redefine Bump, Backlog, Promotion or Calendar event to fit the reference;
-resolve the relevant ticket and update this document and its glossary index together.
+Remaining decisions (meeting checklists, calendar routing, capacity/projections, recurrence,
+channels, weekly objectives, AI boundaries) stay open in the parity map and must not be
+assumed settled. Update this document and its glossary index together when they resolve.
 
 ## Language
 
@@ -113,10 +123,17 @@ lost.
 _Avoid_: Binding, feed, channel, subscription, sync target.
 
 **Source**:
-The upstream record a Task is a projection of, and everything known about that
+The upstream record a Task was imported from, and everything known about that
 record: which Connection it came through, its identity there, and the untouched
 payload last received. A Task you created yourself has no Source.
 _Avoid_: Origin, external task, remote task, integration.
+
+**Worksheet**:
+A Task imported from a remote record. It is a personal copy: its local fields —
+title, notes, dates, priority, estimate, completion — are yours, while the remote
+record remains visible as a source preview. Importing the same record again is a
+deliberate new worksheet, not a sync conflict.
+_Avoid_: Mirror, projection, synced task.
 
 **Snapshot**:
 The latest summary of a Mount — a count and a short list — kept so the dashboard
@@ -146,35 +163,29 @@ _Avoid_: Custom field, user field, override.
 
 **Daily prep**:
 The morning ritual: settle what happened yesterday, then decide what today is for
-by giving Tasks a do date and placing Time blocks. It is gated behind the previous
-Wrap-up, may be skipped, and is **missed** if still unresolved past the user's prep
-cutoff.
+by giving Tasks a do date and placing Time blocks. It may be skipped, and is
+**missed** if still unresolved past the user's prep cutoff.
 _Avoid_: Planning session, daily planning, standup.
 
 **Wrap-up**:
 The evening counterpart: review what was and was not finished, and write the day's
 journal entry. It is **resolved** when completed or skipped; a skip the system makes
-after the wrap-up limit is an **auto-skip**. Resolving it is what triggers the Bump.
+after the wrap-up limit is an **auto-skip**. It is an optional review and does not
+gate carry-forward.
 _Avoid_: Review, retro, end of day.
 
-**Pending day**:
-The day whose Wrap-up is not yet resolved. The task list stays pinned to it, labelled
-with its date, until the Wrap-up is completed or skipped, even after the calendar has
-moved on.
-_Avoid_: Stale day, overdue day, yesterday.
-
-**Bump**:
-What happens to a Task that had a do date for a day whose Wrap-up was resolved
-without it being completed — it returns to the Backlog, and the fact that it was
-planned and missed is kept. Only the system bumps; a deliberate move to another day
-is a reschedule, not a bump. Repeated bumps are a signal about the Task, not noise to
-be tidied away.
-_Avoid_: Rollover, carry over, postpone, reschedule.
+**Carry-forward**:
+What happens to a Task that had a do date for a day and was not completed — at
+midnight it moves to the next day, and the fact that it was planned and missed is
+kept. Only the system carries forward; a deliberate move to another day is a
+reschedule. Repeated carry-forwards are a signal about the Task, not noise to be
+tidied away.
+_Avoid_: Bump, rollover, postpone, reschedule.
 
 **Activity**:
 The recorded history of a Task, written as things happen and never derived after
-the fact. It says what an occurrence *meant* — that a Task was bumped, not that a
-column changed — because meaning cannot be recovered from a diff later.
+the fact. It says what an occurrence *meant* — that a Task was carried forward, not
+that a column changed — because meaning cannot be recovered from a diff later.
 _Avoid_: Audit log, changelog, task event, history entry.
 
 ### Background work

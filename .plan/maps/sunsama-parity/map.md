@@ -53,12 +53,13 @@ No committed document may depend on a private scratch path.
 ## Decisions so far
 
 - [Reference audit and product direction](./tickets/01-reference-baseline.md) — REA inspected the installed desktop and captured 80 public-manual URLs; 110 feature rows plus provider rules identify gaps. Sunsama-shaped behavior is the product baseline, while individual reversals remain decisions, not assumed approval.
+- [Baseline reversals of the earlier model](./tickets/13-baseline-reversals.md) — explicit import replaces automatic projection; imported Tasks are local worksheets; completion is local; unfinished work carries forward at midnight rather than a wrap-up-gated Bump.
 
 ## Not yet specified
 
-- **Source admission and worksheet identity.** Candidate browsing/import vs continuous Task projection; multiple worksheets, local retitles, URL and email identities. Affects backend tickets 02/03/08. <clears-with: 02>
-- **Per-provider sync and commands.** Field directions/import copies, source preview edits, import/completion automations, scopes, export/copy, retries and data retention. Affects backend 02/03/08 and Microsoft scope feasibility. <clears-with: 03>
-- **Day lifecycle, meetings and history.** Midnight rollover vs wrap-up Bump; progress breadcrumbs, imported meetings, suppression, archive/trash and journal. Affects backend 02/06/08/09 and worker sweeps. <clears-with: 04>
+- **Source admission and worksheet identity.** Multiple worksheets per remote record, local retitles, URL and email identities, dedupe and already-imported flags. Explicit import is decided (ticket 13); the remaining detail is the identity/dedupe contract. Affects backend tickets 02/03/08. <clears-with: 02>
+- **Per-provider sync and commands.** Field directions/import copies, source preview edits, import/completion automations, scopes, export/copy, retries and data retention. Local completion is decided (ticket 13); the remaining detail is the per-field/action matrix. Affects backend 02/03/08 and Microsoft scope feasibility. <clears-with: 03>
+- **Day lifecycle, meetings and history.** Progress breadcrumbs, imported meetings, suppression, archive/trash and journal. Midnight carry-forward is decided (ticket 13); the remaining detail is the full day-state contract and meeting checklists. Affects backend 02/06/08/09 and worker sweeps. <clears-with: 04>
 - **Scheduling and capacity.** Ordering, work hours, workload, deterministic projections vs committed blocks, split/auto-reschedule, local calendars and channel-target routing. Affects backend 02/03/06. <clears-with: 05>
 - **Actual time and focus.** Timer state, manual corrections, day totals, inferred actual, Parallel overlap and breaks. Previously deferred TimeEntry now has an explicit parity owner. <clears-with: 06>
 - **Organization and weekly intent.** Channels/contexts, personal privacy/capacity, daily vs backlog priority and weekly objectives/rituals. Not a generic project-board substitution. <clears-with: 07>

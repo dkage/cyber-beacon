@@ -4,7 +4,7 @@ type: grilling
 
 # The domain model: do-date, due-date, and what a Task is
 
-**Reference reconciliation required (2026-11-16).** This answer is retained as the historical decision, not a verified Sunsama model. The [audit](../../../../docs/research/sunsama/README.md) finds intentional worksheet import (including repeated Jira imports/local retitles), provider-specific import copies rather than universal mirrored title/due dates, meeting checklist representations, daily time allocations, projections and timers. Sunsama's start date translates to our **Do date**, not our Start date. Before first affected migrations, resolve [parity 02](../../sunsama-parity/tickets/02-source-admission-and-worksheets.md), [04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md), [05](../../sunsama-parity/tickets/05-capacity-projections-and-timeboxing.md) and [06–08](../../sunsama-parity/map.md), then amend the answer and glossary with explicit approval. Do not reinterpret the current model in code.
+**Reference reconciliation (2026-11-16, updated).** This answer is retained as the historical decision. Explicit import and local worksheets are now decided ([parity 13](../../sunsama-parity/tickets/13-baseline-reversals.md)); the earlier automatic projection and mirrored title/due-date ownership are superseded. Meeting checklist representations, daily time allocations, projections and timers remain open in [parity 04/05/06](../../sunsama-parity/map.md). Sunsama's start date translates to our **Do date**, not our Start date. Amend the answer and glossary with explicit approval before first affected migrations.
 
 ## Question
 

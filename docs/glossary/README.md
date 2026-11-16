@@ -9,7 +9,7 @@ drifts from them, they win. Fix this file.
 
 | File | Covers |
 |---|---|
-| [domain.md](./domain.md) | Work, time, and provenance terms (Task, Do date, Mount, Source…) and the daily rhythm (Prep, Wrap-up, Bump) |
+| [domain.md](./domain.md) | Work, time, and provenance terms (Task, Do date, Mount, Source…) and the daily rhythm (Prep, Wrap-up, Carry-forward) |
 | [entities.md](./entities.md) | Model names, their key fields, and the per-user settings |
 | [integrations.md](./integrations.md) | Provider interface, capabilities, sync engine, rate budget, health states |
 | [background-work.md](./background-work.md) | Queue, scheduler, workers, retries, `JobRun` |

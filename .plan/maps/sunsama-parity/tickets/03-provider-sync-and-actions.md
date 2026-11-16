@@ -15,9 +15,13 @@ Read the [reference audit](../../../../docs/research/sunsama/README.md) and the
 [feature inventory](../../../../docs/research/sunsama/feature-inventory.md). Recommendations
 below are starting points for confirmation, not silently approved schema decisions.
 
+### Decided in ticket 13
+
+Local completion is decided: completing a Task here does not write back by default, and upstream status changes do not complete the worksheet. The remaining questions below are the per-field/action matrix and remote commands.
+
 ### To resolve
 
-- For Notion, Google Calendar, Gmail, GitHub and Outlook, specify a field-by-field table: copy-on-import, local, remote preview, continuous read, explicit command, optional automation. Retain upstream state without universally completing worksheets.
+- For Notion, Google Calendar, Gmail, GitHub and Outlook, specify a field-by-field table: copy-on-import, local, remote preview, continuous read, explicit command, optional automation.
 
 - Design remote action descriptions, valid transition choices, ordered/conditional automations, prompts and granted-scope/resource-permission checks; avoid provider identity branches in shared orchestration.
 

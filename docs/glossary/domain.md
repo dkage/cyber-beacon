@@ -3,10 +3,11 @@
 Full definitions and `_Avoid_` synonyms are in [`CONTEXT.md`](../../CONTEXT.md). Use
 these words in models, routes, issues and commits.
 
-**Reference caveat:** source admission/field ownership, remote completion, day rollover
-and meeting checklists are under review in the [parity map](../../.plan/maps/sunsama-parity/map.md).
-These entries remain current decisions, not assertions of Sunsama behavior. In particular,
-Sunsama's start date means our **Do date**. See [reference translation](./sunsama-reference.md).
+**Reference baseline:** explicit import, local worksheets, local completion and midnight
+carry-forward are decided (parity ticket 13). Meeting checklists, calendar routing,
+capacity/projections, recurrence, channels and weekly objectives remain open in the
+[parity map](../../.plan/maps/sunsama-parity/map.md). Sunsama's start date means our
+**Do date**. See [reference translation](./sunsama-reference.md).
 
 ## Work
 
@@ -40,9 +41,10 @@ instants.
 | **Provider** | A kind of service we can talk to (Google Calendar, Notion, Telegram) | integration, adapter |
 | **Connection** | One authorised link to one account at one Provider. This is "the integration" you own | integration, account |
 | **Mount** | One remote resource under a Connection: one calendar, one Notion data source, one Obsidian directory. Holds mapping, cursor, freshness | binding, feed, sync target |
-| **Source** | The upstream record a Task projects, plus its Connection, identity and last raw payload. No Source means you created it | origin, external task |
+| **Source** | The upstream record a Task was imported from, plus its Connection, identity and last raw payload. No Source means you created it | origin, external task |
+| **Worksheet** | A Task imported from a remote record; a personal copy whose local fields are yours | mirror, projection |
 | **Snapshot** | Latest count and short list for a Mount, so widgets never call a provider. Shown with `last_succeeded_at`. Latest only | cache, widget data |
-| **Promotion** | Manual "make this a Task" on a widget item. Yields an ordinary Task with an ordinary Source | convert, import |
+| **Promotion** | Manual "make this a Task" on a widget item — one form of import. Yields an ordinary worksheet with an ordinary Source | convert, pin |
 | **Mirrored field** | Owned by upstream. Sync overwrites it. Never written back | synced field |
 | **Local field** | Owned by you (do date, Time blocks, priority, notes, attachments, completion). Sync never touches it | custom field, override |
 
@@ -58,13 +60,12 @@ One Google Connection can have several Mounts.
 
 | Term | Meaning | Don't say |
 |---|---|---|
-| **Daily prep** | Morning ritual: settle yesterday, assign do dates, place Time blocks. Gated behind the previous Wrap-up. **Missed** if unresolved past `prep_cutoff` | planning session |
-| **Wrap-up** | Evening ritual: review the day, write the journal. **Resolved** when completed or skipped. A system skip after the limit is an **auto-skip** | review, retro |
-| **Pending day** | The day whose Wrap-up is unresolved. The task list stays pinned to it | stale day, yesterday |
-| **Bump** | System-only: an uncompleted Task of a resolved day loses its do date and returns to the Backlog, and the miss is recorded. A deliberate move is a **reschedule**, not a bump | rollover, carry over |
-| **Activity** | Semantic history of a Task, written as things happen ("bumped", not "column changed") | audit log, changelog |
+| **Daily prep** | Morning ritual: settle yesterday, assign do dates, place Time blocks. **Missed** if unresolved past `prep_cutoff` | planning session |
+| **Wrap-up** | Evening ritual: review the day, write the journal. **Resolved** when completed or skipped. Optional; does not gate carry-forward | review, retro |
+| **Carry-forward** | System-only: an uncompleted Task moves to the next day at midnight, and the miss is recorded. A deliberate move is a **reschedule** | bump, rollover |
+| **Activity** | Semantic history of a Task, written as things happen ("carried forward", not "column changed") | audit log, changelog |
 
-The bump is gated by the wrap-up, not the clock (ticket 06).
+Carry-forward happens at midnight, not gated by the wrap-up (parity ticket 13).
 
 ## Background work
 

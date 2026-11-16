@@ -7,7 +7,7 @@ claimed_at: 2026-10-08T06:05:59Z
 
 # The daily prep and wrap-up flow
 
-**Contradicted reference premise (2026-11-16).** The answer's phrase “like Sunsama” for Pending-day pinning and Wrap-up-gated Bump is not supported by the current reference. Sunsama documents midnight carry-forward; shutdown explicitly does not move unfinished tasks. The [audit](../../../../docs/research/sunsama/README.md) also finds workload review, imported meeting checklists and past-day progress breadcrumbs absent here. The original developer-confirmed choice remains recorded, but is now **under review** in [parity 04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md). Resolve it before building day-state, bump/auto-skip sweeps or the dependent prep-finish briefing trigger. Do not silently replace Bump with rollover or erase the original confirmation.
+**Superseded premise (2026-11-16, updated).** The answer's phrase “like Sunsama” for Pending-day pinning and Wrap-up-gated Bump is reversed: midnight carry-forward is now decided ([parity 13](../../sunsama-parity/tickets/13-baseline-reversals.md)). Shutdown is an optional review and does not gate rollover. The [audit](../../../../docs/research/sunsama/README.md) also finds workload review, imported meeting checklists and past-day progress breadcrumbs absent here; those remain open in [parity 04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md). The original developer-confirmed choice is recorded as history. Resolve parity 04 before building the full day-state contract.
 
 ## Question
 
