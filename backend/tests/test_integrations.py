@@ -380,6 +380,124 @@ def test_dead_google_refresh_requires_reauthorization(notion, settings, monkeypa
     assert conn.status == "needs_reauth"
 
 
+def test_microsoft_oauth_account_selection_and_refresh(notion, settings, monkeypatch):
+    from urllib.parse import parse_qs, urlsplit
+
+    import httpx
+
+    settings.INTEGRATION_OAUTH["microsoft"] = {
+        "client_id": "ms-id",
+        "client_secret": "ms-secret",
+        "redirect_uri": "http://localhost/microsoft/callback",
+    }
+    url = providers.authorize_url("microsoft", "state-token")
+    query = parse_qs(urlsplit(url).query)
+    assert query["prompt"] == ["select_account"]
+    assert set(providers.MICROSOFT_SCOPES.split()).issubset(set(query["scope"][0].split()))
+    calls = []
+
+    def send(method, url, **kwargs):
+        calls.append((method, url, kwargs))
+        if url == providers.MICROSOFT_TOKEN:
+            if kwargs["data"]["grant_type"] == "refresh_token":
+                return httpx.Response(200, json={"access_token": "refreshed", "expires_in": 3600})
+            return httpx.Response(
+                200,
+                json={"access_token": "initial", "refresh_token": "refresh", "expires_in": 3600},
+            )
+        return httpx.Response(
+            200,
+            json={"id": "oid-123", "mail": "person@example.test", "userPrincipalName": "person"},
+        )
+
+    monkeypatch.setattr(httpx, "request", send)
+    credentials, identity, label, _ = providers.exchange("microsoft", "code")
+    assert (identity, label) == ("oid-123", "person@example.test")
+    credentials["expires_at"] = "2000-01-01T00:00:00+00:00"
+    conn = notion.connection
+    conn.provider, conn.credentials = "microsoft", credentials
+    conn.save(update_fields=["provider", "credentials"])
+    providers.request(conn, "GET", "me/calendars")
+    assert calls[0][2]["data"]["scope"] == providers.MICROSOFT_SCOPES
+    assert calls[-1][1] == "https://graph.microsoft.com/v1.0/me/calendars"
+    conn.refresh_from_db()
+    assert conn.credentials["access_token"] == "refreshed"
+
+
+def test_microsoft_calendar_sync_paginates_and_maps_all_day_events(notion, settings, monkeypatch):
+    import httpx
+
+    settings.INTEGRATION_OAUTH["microsoft"] = {
+        "client_id": "id",
+        "client_secret": "secret",
+        "redirect_uri": "http://localhost/callback",
+    }
+    conn = notion.connection
+    conn.provider = "microsoft"
+    conn.credentials = {"access_token": "token"}
+    conn.save(update_fields=["provider", "credentials"])
+    calls = []
+    first_page = {
+        "value": [
+            {
+                "id": "timed",
+                "subject": "Planning",
+                "start": {"dateTime": "2026-11-18T09:30:00Z", "timeZone": "UTC"},
+                "end": {"dateTime": "2026-11-18T10:00:00Z", "timeZone": "UTC"},
+                "isAllDay": False,
+                "showAs": "busy",
+                "webLink": "https://outlook.office.com/event/1",
+            }
+        ],
+        "@odata.nextLink": "https://graph.microsoft.com/v1.0/me/calendars/cal/calendarView?$skip=1",
+    }
+    second_page = {
+        "value": [
+            {
+                "id": "allday",
+                "subject": "Holiday",
+                "start": {"dateTime": "2026-11-19T00:00:00Z", "timeZone": "UTC"},
+                "end": {"dateTime": "2026-11-20T00:00:00Z", "timeZone": "UTC"},
+                "isAllDay": True,
+                "showAs": "free",
+                "isCancelled": False,
+            }
+        ]
+    }
+
+    def send(method, url, **kwargs):
+        calls.append((url, kwargs))
+        return httpx.Response(200, json=first_page if len(calls) == 1 else second_page)
+
+    monkeypatch.setattr(httpx, "request", send)
+    services.sync_calendar(str(notion.pk))
+    events = list(CalendarEvent.objects.filter(mount=notion).order_by("external_id"))
+    assert len(events) == 2
+    all_day = next(event for event in events if event.external_id == "allday")
+    assert (all_day.start_date, all_day.end_date, all_day.blocking) == (
+        date(2026, 11, 19),
+        date(2026, 11, 20),
+        False,
+    )
+    assert len(calls) == 2
+    assert calls[0][1]["params"]["startDateTime"]
+    assert calls[1][0] == first_page["@odata.nextLink"]
+
+
+def test_microsoft_provider_rejects_untrusted_next_link(notion, settings):
+    settings.INTEGRATION_OAUTH["microsoft"] = {
+        "client_id": "id",
+        "client_secret": "secret",
+        "redirect_uri": "http://localhost/callback",
+    }
+    conn = notion.connection
+    conn.provider = "microsoft"
+    conn.credentials = {"access_token": "token"}
+    conn.save(update_fields=["provider", "credentials"])
+    with pytest.raises(providers.ProviderError, match="invalid page URL"):
+        providers.request(conn, "GET", "https://attacker.example/steal")
+
+
 def test_notion_record_search_uses_title_property_id(notion, monkeypatch):
     calls = []
 

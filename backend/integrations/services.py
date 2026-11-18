@@ -174,6 +174,28 @@ def import_record(user, mount, external_id, day, key):
 
 
 def event_values(raw):
+    if "isAllDay" in raw:
+        start, end = raw.get("start", {}), raw.get("end", {})
+        if raw.get("isAllDay"):
+            start_value, end_value = start.get("dateTime", ""), end.get("dateTime", "")
+            return {
+                "title": (raw.get("subject") or "Untitled meeting")[:500],
+                "starts_at": None,
+                "ends_at": None,
+                "start_date": parse_date(start_value[:10]),
+                "end_date": parse_date(end_value[:10]),
+                "blocking": raw.get("showAs") != "free" and not raw.get("isCancelled"),
+                "url": raw.get("webLink", "")[:2000],
+            }
+        return {
+            "title": (raw.get("subject") or "Untitled meeting")[:500],
+            "starts_at": parse_datetime(start.get("dateTime")),
+            "ends_at": parse_datetime(end.get("dateTime")),
+            "start_date": None,
+            "end_date": None,
+            "blocking": raw.get("showAs") != "free" and not raw.get("isCancelled"),
+            "url": raw.get("webLink", "")[:2000],
+        }
     start, end = raw.get("start", {}), raw.get("end", {})
     declined = any(
         person.get("self") and person.get("responseStatus") == "declined"
@@ -206,23 +228,39 @@ def sync_calendar(mount_id):
     try:
         rows, cursor = [], None
         for _ in range(50):
-            params = {
-                "timeMin": start.isoformat(),
-                "timeMax": end.isoformat(),
-                "singleEvents": "true",
-                "maxResults": 250,
-                "showDeleted": "false",
-            }
-            if cursor:
-                params["pageToken"] = cursor
+            if mount.connection.provider == "microsoft":
+                params = {
+                    "startDateTime": start.isoformat(),
+                    "endDateTime": end.isoformat(),
+                    "$top": 250,
+                    "$select": "id,subject,start,end,isAllDay,showAs,isCancelled,webLink,attendees",
+                }
+                path = cursor or f"me/calendars/{quote(mount.external_id, safe='')}/calendarView"
+            else:
+                params = {
+                    "timeMin": start.isoformat(),
+                    "timeMax": end.isoformat(),
+                    "singleEvents": "true",
+                    "maxResults": 250,
+                    "showDeleted": "false",
+                }
+                if cursor:
+                    params["pageToken"] = cursor
+                path = f"calendars/{quote(mount.external_id, safe='')}/events"
             result = providers.request(
                 mount.connection,
                 "GET",
-                f"calendars/{quote(mount.external_id, safe='')}/events",
-                params=params,
+                path,
+                params={} if mount.connection.provider == "microsoft" and cursor else params,
             )
-            rows.extend(row for row in result.get("items", []) if row.get("status") != "cancelled")
-            cursor = result.get("nextPageToken")
+            if mount.connection.provider == "microsoft":
+                rows.extend(row for row in result.get("value", []) if not row.get("isCancelled"))
+                cursor = result.get("@odata.nextLink")
+            else:
+                rows.extend(
+                    row for row in result.get("items", []) if row.get("status") != "cancelled"
+                )
+                cursor = result.get("nextPageToken")
             if not cursor:
                 break
         else:

@@ -456,9 +456,10 @@ export interface components {
 		/**
 		 * @description * `notion` - Notion
 		 *     * `google` - Google Calendar
+		 *     * `microsoft` - Outlook Calendar
 		 * @enum {string}
 		 */
-		ConnectionProviderEnum: 'notion' | 'google';
+		ConnectionProviderEnum: 'notion' | 'google' | 'microsoft';
 		CreateMount: {
 			external_id: string;
 			label: string;
@@ -661,9 +662,10 @@ export interface components {
 		/**
 		 * @description * `notion` - notion
 		 *     * `google` - google
+		 *     * `microsoft` - microsoft
 		 * @enum {string}
 		 */
-		ProviderProviderEnum: 'notion' | 'google';
+		ProviderProviderEnum: 'notion' | 'google' | 'microsoft';
 		Reorder: {
 			/** Format: date */
 			date: string;
