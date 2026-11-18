@@ -16,6 +16,10 @@ behavior from current decisions and recommendations; they do not replace `CONTEX
 Backend development: [Django API conventions](./agents/django.md) defines the DRF
 workflow and backend boundary with the SvelteKit client.
 
+Frontend development: [SvelteKit client conventions](./agents/svelte.md) routes planner,
+source, calendar and kiosk work to its owning contracts and defines client state,
+API interaction, accessibility and verification conventions.
+
 Related, outside `docs/`:
 
 - [`CONTEXT.md`](../CONTEXT.md) is the authority on domain vocabulary.
