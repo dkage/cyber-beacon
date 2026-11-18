@@ -133,7 +133,7 @@ class MountViewSet(viewsets.GenericViewSet):
         ]
         counts = {}
         for external_id in TaskSource.objects.filter(
-            mount__connection=mount.connection,
+            mount=mount,
             task__user=request.user,
             task__deleted_at=None,
             external_id__in=external_ids,

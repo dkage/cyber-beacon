@@ -98,6 +98,41 @@ def test_browse_does_not_create_tasks_and_cross_user_mount_rejected(
     assert client.get(f"/api/v1/integrations/mounts/{notion.pk}/browse/").status_code == 404
 
 
+def test_github_import_count_is_scoped_to_the_selected_repository(
+    client, user, notion, monkeypatch
+):
+    connection = notion.connection
+    connection.provider = "github"
+    connection.save(update_fields=["provider"])
+    other_repository = Mount.objects.create(
+        connection=connection, external_id="acme/other", label="acme/other"
+    )
+    notion.external_id = "acme/planner"
+    notion.save(update_fields=["external_id"])
+    task = create_task(user, {"title": "Imported issue"})
+    TaskSource.objects.create(
+        task=task,
+        mount=notion,
+        external_id="12",
+        raw={"number": 12},
+        url="https://github.com/acme/planner/issues/12",
+    )
+    monkeypatch.setattr(
+        providers,
+        "browse",
+        lambda *args: {
+            "results": [{"number": 12, "title": "Same number, different repository"}],
+            "next_cursor": None,
+        },
+    )
+
+    response = client.get(f"/api/v1/integrations/mounts/{other_repository.pk}/browse/")
+
+    assert response.status_code == 200
+    assert response.json()["results"][0]["id"] == "12"
+    assert response.json()["results"][0]["imported_count"] == 0
+
+
 def test_oauth_state_is_session_bound_expiring_and_one_use(user, notion, monkeypatch):
     from django.contrib.sessions.backends.db import SessionStore
 
