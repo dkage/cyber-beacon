@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from django.utils.http import parse_http_date_safe
 from rest_framework.exceptions import APIException
 
 from .models import IntegrationConnection
@@ -52,14 +53,16 @@ def http(method, url, **kwargs):
     except httpx.HTTPError as exc:
         raise ProviderError("Provider is unreachable. Try again later.") from exc
     if response.status_code == 429:
+        retry_after = response.headers.get("Retry-After", "60")
         try:
-            delay = max(1, min(3600, int(response.headers.get("Retry-After", "60"))))
+            delay = int(retry_after)
         except ValueError:
-            delay = 60
+            deadline = parse_http_date_safe(retry_after)
+            delay = deadline - int(timezone.now().timestamp()) if deadline is not None else 60
         raise ProviderError(
             "Provider rate limit reached. Try again shortly.",
             kind="rate_limited",
-            retry_after=delay,
+            retry_after=max(1, delay),
         )
     if response.status_code == 403 and response.headers.get("X-RateLimit-Remaining") == "0":
         try:

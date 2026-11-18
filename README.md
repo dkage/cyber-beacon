@@ -68,16 +68,27 @@ Grant the GitHub App repository permissions `Issues: read-only` and `Metadata: r
 repository browse/import never writes to GitHub. Notion needs read-content access to the
 data sources you select. These connections never become sign-in credentials.
 
-Generate a Fernet key once and save it as `FERNET_KEYS` in `.env`:
+Generate a Fernet key once:
 
 ```sh
 cd backend
 uv run python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
 ```
 
-Back up this key separately from PostgreSQL. Rotation prepends a new comma-separated
-key while retaining older keys until credentials have been re-saved. After changing
-configuration, recreate the containers. In Connections, connect the Provider, attach a
+For local development, save the key as `FERNET_KEYS` in `.env`. To load keys from a
+credential file, set `FERNET_KEYS_FILE` to its absolute path. With systemd, you can
+instead use `LoadCredential=fernet-keys:/path/to/fernet-keys`. Django reads
+`fernet-keys` under `CREDENTIALS_DIRECTORY` when `FERNET_KEYS_FILE` is unset. The
+configured file takes precedence over `FERNET_KEYS`; a missing or unreadable file
+prevents startup.
+
+Give the web and worker processes read access to the same file. For containers, mount
+it read-only and use the path inside each container. Back up the keys separately from
+PostgreSQL. To rotate, prepend the new key and retain older keys until credentials have
+been re-saved. Separate keys with commas or, in a file, newlines. Restart the processes
+after changing keys, or recreate the containers if their configuration changed.
+
+In Connections, connect the Provider, attach a
 data source/repository/calendar, then explicitly import Notion or GitHub Issues, or
 refresh calendar meetings. Provider browsing, import and sync have automated fixtures;
 live OAuth consent still needs your credentials and acceptance check.

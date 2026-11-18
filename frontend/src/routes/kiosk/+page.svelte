@@ -2,29 +2,9 @@
 	import { onMount } from 'svelte';
 	import { clock, formatDate, minutes } from '$lib/format';
 	import { message } from '$lib/api';
-	import type { CalendarEvent } from '$lib/types';
-	interface Summary {
-		date: string;
-		timezone: string;
-		date_order: 'ymd' | 'dmy' | 'mdy';
-		date_separator: '-' | '/';
-		fetched_at: string;
-		tasks: {
-			id: string;
-			title: string;
-			completed_at: string | null;
-			estimated_minutes: number | null;
-		}[];
-		events: CalendarEvent[];
-		briefing: string;
-		calendars: {
-			id: string;
-			label: string;
-			last_error: string;
-			last_succeeded_at: string | null;
-			enabled: boolean;
-		}[];
-	}
+	import type { components } from '$lib/schema';
+
+	type Summary = components['schemas']['KioskSummary'];
 	let summary = $state<Summary | null>(null);
 	let code = $state('');
 	let secret = '';
@@ -44,7 +24,7 @@
 			/* Display can continue without persistence. */
 		}
 	}
-	async function request(path: string, body?: unknown) {
+	async function request<T>(path: string, body?: unknown): Promise<T> {
 		const response = await fetch('/api/v1/kiosk/' + path, {
 			method: body === undefined ? 'GET' : 'POST',
 			headers: {
@@ -74,22 +54,22 @@
 		if (stopped) return;
 		try {
 			if (token) {
-				summary = await request('summary/');
+				summary = await request<Summary>('summary/');
 				remember('beacon-summary', JSON.stringify(summary));
 				stale = false;
 			} else if (!secret) {
-				const pairing = await request('pair/', {});
+				const pairing = await request<{ code: string; secret: string }>('pair/', {});
 				code = pairing.code;
 				secret = pairing.secret;
 			} else {
 				try {
-					const result = await request('pair/poll/', { secret });
+					const result = await request<{ token?: string }>('pair/poll/', { secret });
 					if (result.token) {
 						token = result.token;
 						secret = '';
 						code = '';
 						remember('beacon-device', token);
-						summary = await request('summary/');
+						summary = await request<Summary>('summary/');
 						remember('beacon-summary', JSON.stringify(summary));
 					}
 				} catch (cause) {

@@ -590,6 +590,10 @@ export interface components {
 			readonly last_error: string;
 			readonly consecutive_failures: number;
 		};
+		OAuthRedirect: {
+			/** Format: uri */
+			url: string;
+		};
 		OrderItem: {
 			/** Format: uuid */
 			id: string;
@@ -973,8 +977,20 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			200: {
+			202: {
 				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: unknown;
+					};
+				};
+			};
+			429: {
+				headers: {
+					/** @description Seconds until the calendar can be refreshed. */
+					'Retry-After'?: number;
 					[name: string]: unknown;
 				};
 				content: {
@@ -1005,9 +1021,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': {
-						[key: string]: unknown;
-					};
+					'application/json': components['schemas']['OAuthRedirect'];
 				};
 			};
 		};

@@ -38,9 +38,13 @@ remain in Source. No provider completion, write-back, automatic projection or ba
 Notion content synchronization is in Phase 1. Google and Outlook request read-only
 calendar access, read selected calendars, materialize timed/all-day event occurrences
 and never create Tasks. Each connected account can select its own calendar Mounts.
-Their day windows are bounded and refreshed periodically. Pagination,
-rate limits, failed refreshes and reauthorization are visible; credentials never leave
-Django. OAuth uses expiring one-use state bound to the authenticated owner and session.
+Their day windows are bounded and refreshed periodically. A refresh publishes only a
+complete window and keeps the last good events while it retries. Checkpoints expire
+one hour after the window was opened. Calendar freshness shows when that window was
+opened. Manual refresh honors the Provider's rate-limit deadline, and throttling
+does not count toward pausing a Mount. Failed refreshes and reauthorization are
+visible; credentials never leave Django. OAuth uses expiring one-use state bound to
+the authenticated owner and session.
 Microsoft delegated OAuth requests Calendars.Read and offline_access for refresh tokens.
 GitHub App access lists repositories visible to the connected account, filters out pull
 requests, and imports an explicitly selected issue as a local worksheet. GitHub tokens

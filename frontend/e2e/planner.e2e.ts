@@ -208,7 +208,7 @@ test('GitHub repository issues can be searched and explicitly imported', async (
 	await expect(page.getByText('↗ GitHub issue')).toBeVisible();
 });
 
-test('failed resource and issue lookups clear results from the prior selection', async ({
+test('failed lookups can be retried without showing results from another selection', async ({
 	page
 }) => {
 	const firstConnection = '11111111-1111-4111-8111-111111111111';
@@ -248,13 +248,19 @@ test('failed resource and issue lookups clear results from the prior selection',
 			])
 		});
 	});
+	let resourceSearches = 0;
 	await page.route(
 		`**/api/v1/integrations/connections/${firstConnection}/resources/**`,
 		async (route) => {
+			const query = new URL(route.request().url()).searchParams.get('query');
+			if (query && ++resourceSearches === 1) {
+				await route.fulfill({ status: 503, json: { detail: 'Resource search offline' } });
+				return;
+			}
 			await route.fulfill({
 				contentType: 'application/json',
 				body: JSON.stringify({
-					results: [{ id: 'acme/old', label: 'acme/old' }],
+					results: [{ id: 'acme/old', label: query ? 'acme/matched' : 'acme/old' }],
 					next_cursor: null
 				})
 			});
@@ -270,12 +276,28 @@ test('failed resource and issue lookups clear results from the prior selection',
 			});
 		}
 	);
+	let nextPageRequests = 0;
 	await page.route(`**/api/v1/integrations/mounts/${firstMount}/browse/**`, async (route) => {
+		const params = new URL(route.request().url()).searchParams;
+		if (params.get('cursor')) {
+			expect(params.get('query')).toBe('');
+			if (++nextPageRequests === 1) {
+				await route.fulfill({ status: 503, json: { detail: 'Next page offline' } });
+				return;
+			}
+		}
 		await route.fulfill({
 			contentType: 'application/json',
 			body: JSON.stringify({
-				results: [{ id: '12', title: '#12 Old account issue', url: '', imported_count: 0 }],
-				next_cursor: null
+				results: [
+					{
+						id: '12',
+						title: params.get('cursor') ? '#12 Next issue' : '#12 Old account issue',
+						url: '',
+						imported_count: 0
+					}
+				],
+				next_cursor: params.get('cursor') ? null : 'next'
 			})
 		});
 	});
@@ -290,14 +312,28 @@ test('failed resource and issue lookups clear results from the prior selection',
 	const cards = page.locator('.connection-grid > section');
 	await cards.nth(0).getByRole('button', { name: 'Choose resource' }).click();
 	await expect(page.getByText('acme/old', { exact: true })).toBeVisible();
+	await page.getByLabel('Search resources').fill('matched');
+	const searchResources = page.getByRole('button', { name: 'Search', exact: true });
+	await searchResources.click();
+	await expect(page.getByRole('alert')).toContainText('Resource search offline');
+	await searchResources.click();
+	await expect(page.getByText('acme/matched', { exact: true })).toBeVisible();
 	await cards.nth(1).getByRole('button', { name: 'Choose resource' }).click();
-	await expect(page.getByText('acme/old', { exact: true })).toHaveCount(0);
+	await expect(page.getByText('acme/matched', { exact: true })).toHaveCount(0);
 	await expect(page.getByRole('button', { name: 'Attach resource' })).toHaveCount(0);
+	await expect(searchResources).toBeEnabled();
 	await cards.nth(0).getByRole('button', { name: 'Browse issues' }).click();
 	await expect(page.getByText('#12 Old account issue')).toBeVisible();
+	await page.getByLabel('Search issues').fill('unsubmitted search');
+	const nextRecords = page.getByRole('button', { name: 'Next records' });
+	await nextRecords.click();
+	await expect(page.getByRole('alert')).toContainText('Next page offline');
+	await nextRecords.click();
+	await expect(page.getByText('#12 Next issue')).toBeVisible();
 	await cards.nth(1).getByRole('button', { name: 'Browse issues' }).click();
-	await expect(page.getByText('#12 Old account issue')).toHaveCount(0);
+	await expect(page.getByText('#12 Next issue')).toHaveCount(0);
 	await expect(page.getByRole('button', { name: 'Import worksheet' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Search issues' })).toBeEnabled();
 });
 
 test('OAuth consent denial is shown on Connections', async ({ page }) => {

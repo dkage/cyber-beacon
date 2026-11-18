@@ -45,6 +45,7 @@ class Mount(models.Model):
     label = models.CharField(max_length=255)
     enabled = models.BooleanField(default=True)
     next_attempt_at = models.DateTimeField(default=timezone.now)
+    rate_limited_until = models.DateTimeField(null=True)
     sync_started_at = models.DateTimeField(null=True)
     last_succeeded_at = models.DateTimeField(null=True)
     last_error = models.CharField(max_length=500, blank=True)

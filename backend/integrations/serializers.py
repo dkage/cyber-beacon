@@ -32,6 +32,10 @@ class ProviderSerializer(serializers.Serializer):
     provider = serializers.ChoiceField(choices=["notion", "google", "microsoft", "github"])
 
 
+class OAuthRedirectSerializer(serializers.Serializer):
+    url = serializers.URLField()
+
+
 class BrowseQuerySerializer(serializers.Serializer):
     cursor = serializers.CharField(required=False, default="", max_length=2000, allow_blank=True)
     query = serializers.CharField(required=False, default="", max_length=200, allow_blank=True)

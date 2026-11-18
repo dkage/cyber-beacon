@@ -7,20 +7,11 @@
 	import { api, ApiError, message, write } from '$lib/api';
 	import { formatDateTime, localDate, safeUrl } from '$lib/format';
 	import type { Connection, Mount, Settings } from '$lib/types';
-	interface Resource {
-		id: string;
-		label: string;
-	}
-	interface Candidate {
-		id: string;
-		title: string;
-		url: string;
-		imported_count: number;
-	}
-	interface Page<T> {
-		results: T[];
-		next_cursor: string | null;
-	}
+	import type { components } from '$lib/schema';
+
+	type Schema = components['schemas'];
+	type ResourcePage = Schema['ResourcePage'];
+	type BrowsePage = Schema['BrowsePage'];
 	let connections = $state<Connection[]>([]);
 	let settings = $state<Settings | null>(null);
 	let error = $state('');
@@ -28,9 +19,9 @@
 	let pending = $state(false);
 	let loading = $state(true);
 	let selectedConnection = $state<Connection | null>(null);
-	let resources = $state<Page<Resource> | null>(null);
+	let resources = $state<{ page: ResourcePage; query: string } | null>(null);
 	let selectedMount = $state<Mount | null>(null);
-	let candidates = $state<Page<Candidate> | null>(null);
+	let candidates = $state<{ page: BrowsePage; query: string } | null>(null);
 	let search = $state('');
 	let recordSearch = $state('');
 	let day = $state('');
@@ -68,9 +59,9 @@
 			pending = false;
 		}
 	}
-	function connect(provider: string) {
+	function connect(provider: Schema['Provider']['provider']) {
 		void action(async () => {
-			const result = await write<{ url: string }>('/api/v1/integrations/oauth/start/', {
+			const result = await write<Schema['OAuthRedirect']>('/api/v1/integrations/oauth/start/', {
 				provider
 			});
 			const url = safeUrl(result.url);
@@ -78,34 +69,34 @@
 			window.location.assign(url);
 		});
 	}
-	async function browseResources(connection: Connection, cursor = '') {
+	async function browseResources(connection: Connection, cursor = '', query = search) {
 		const request = ++resourceRequest;
+		if (selectedMount || selectedConnection?.id !== connection.id) resources = null;
 		selectedConnection = connection;
 		selectedMount = null;
 		candidates = null;
-		resources = null;
-		const result = await api<Page<Resource>>(
-			`/api/v1/integrations/connections/${connection.id}/resources/?query=${encodeURIComponent(search)}&cursor=${encodeURIComponent(cursor)}`
+		const result = await api<ResourcePage>(
+			`/api/v1/integrations/connections/${connection.id}/resources/?query=${encodeURIComponent(query)}&cursor=${encodeURIComponent(cursor)}`
 		);
 		if (request === resourceRequest && selectedConnection?.id === connection.id) {
-			resources = result;
+			resources = { page: result, query };
 		}
 	}
-	async function browse(mount: Mount, cursor = '') {
+	async function browse(mount: Mount, cursor = '', query = recordSearch) {
 		const request = ++candidateRequest;
+		if (selectedMount?.id !== mount.id) candidates = null;
 		selectedMount = mount;
 		resources = null;
-		candidates = null;
 		selectedConnection =
 			connections.find((connection) => connection.id === mount.connection) ?? selectedConnection;
-		const result = await api<Page<Candidate>>(
-			`/api/v1/integrations/mounts/${mount.id}/browse/?cursor=${encodeURIComponent(cursor)}&query=${encodeURIComponent(recordSearch)}`
+		const result = await api<BrowsePage>(
+			`/api/v1/integrations/mounts/${mount.id}/browse/?cursor=${encodeURIComponent(cursor)}&query=${encodeURIComponent(query)}`
 		);
 		if (request === candidateRequest && selectedMount?.id === mount.id) {
-			candidates = result;
+			candidates = { page: result, query };
 		}
 	}
-	async function importCandidate(candidate: Candidate) {
+	async function importCandidate(candidate: Schema['BrowseItem']) {
 		if (!selectedMount) return;
 		const identity = `${selectedMount.id}:${candidate.id}:${day}`;
 		const key = importKeys.get(identity) ?? crypto.randomUUID();
@@ -213,7 +204,7 @@
 				</article>{/each}
 		</section>{/each}
 </div>
-{#if selectedConnection && resources}<section class="panel source">
+{#if selectedConnection && !selectedMount}<section class="panel source">
 		<h2>
 			Choose a {selectedConnection.provider === 'notion'
 				? 'Notion data source'
@@ -231,12 +222,15 @@
 				<label>Search resources<input bind:value={search} maxlength="200" /></label><button
 					disabled={pending}>Search</button
 				>
-			</form>{/if}
-		{#if !resources.results.length}<p>
+			</form>
+		{:else if !resources && !pending}<button
+				onclick={() => action(() => browseResources(selectedConnection!))}>Retry resources</button
+			>{/if}
+		{#if resources && !resources.page.results.length}<p>
 				No accessible resources. Check the provider’s sharing permissions.
 			</p>{/if}
 		<ul class="resource-list">
-			{#each resources.results as resource (resource.id)}<li>
+			{#each resources?.page.results ?? [] as resource (resource.id)}<li>
 					<span>{resource.label}</span><button
 						disabled={pending}
 						onclick={() =>
@@ -251,13 +245,15 @@
 					>
 				</li>{/each}
 		</ul>
-		{#if resources.next_cursor}<button
+		{#if resources?.page.next_cursor}<button
 				disabled={pending}
-				onclick={() => action(() => browseResources(selectedConnection!, resources!.next_cursor!))}
-				>Next resources</button
+				onclick={() =>
+					action(() =>
+						browseResources(selectedConnection!, resources!.page.next_cursor!, resources!.query)
+					)}>Next resources</button
 			>{/if}
 	</section>{/if}
-{#if selectedMount && candidates}<section class="panel source">
+{#if selectedMount}<section class="panel source">
 		<div class="section-heading">
 			<div>
 				<span class="eyebrow">SOURCE BROWSER</span>
@@ -281,9 +277,9 @@
 				>{selectedConnection?.provider === 'github' ? 'Search issues' : 'Search records'}</button
 			>
 		</form>
-		{#if !candidates.results.length}<p>No records in this source.</p>{/if}
+		{#if candidates && !candidates.page.results.length}<p>No records in this source.</p>{/if}
 		<ul class="resource-list">
-			{#each candidates.results as candidate (candidate.id)}<li>
+			{#each candidates?.page.results ?? [] as candidate (candidate.id)}<li>
 					<div>
 						<strong>{candidate.title}</strong>
 						<p class="muted small">
@@ -302,9 +298,10 @@
 					>
 				</li>{/each}
 		</ul>
-		{#if candidates.next_cursor}<button
+		{#if candidates?.page.next_cursor}<button
 				disabled={pending}
-				onclick={() => action(() => browse(selectedMount!, candidates!.next_cursor!))}
+				onclick={() =>
+					action(() => browse(selectedMount!, candidates!.page.next_cursor!, candidates!.query))}
 				>Next records</button
 			>{/if}
 	</section>{/if}

@@ -27,6 +27,11 @@ from .models import (
     TaskSource,
 )
 
+CALENDAR_LOOKBACK = timedelta(days=30)
+CALENDAR_LOOKAHEAD = timedelta(days=90)
+CALENDAR_CHECKPOINT_MAX_AGE = timedelta(hours=1)
+CALENDAR_PAGE_LIMIT = 50
+
 
 def digest(value):
     return hashlib.sha256(value.encode()).hexdigest()
@@ -267,6 +272,17 @@ def _calendar_event(mount, values):
     return CalendarEvent(mount=mount, **event_values_for_model)
 
 
+def _calendar_progress(mount, now):
+    progress, _ = CalendarSyncProgress.objects.get_or_create(
+        mount=mount,
+        defaults={
+            "window_start": now - CALENDAR_LOOKBACK,
+            "window_end": now + CALENDAR_LOOKAHEAD,
+        },
+    )
+    return progress
+
+
 def sync_calendar(mount_id):
     """Lease, fetch without database locks, then replace a complete bounded window."""
     now = timezone.now()
@@ -276,26 +292,29 @@ def sync_calendar(mount_id):
             return
         if not providers.supports(mount.connection.provider, "calendar"):
             return
+        if mount.rate_limited_until and mount.rate_limited_until > now:
+            return
         if mount.sync_started_at and mount.sync_started_at > now - timedelta(minutes=3):
             return
         mount.sync_started_at = now
         mount.save(update_fields=["sync_started_at"])
     run = JobRun.objects.create(user=mount.connection.user, kind="calendar_sync")
     try:
-        progress, _ = CalendarSyncProgress.objects.get_or_create(
-            mount=mount,
-            defaults={
-                "window_start": now - timedelta(days=30),
-                "window_end": now + timedelta(days=90),
-            },
-        )
-        start, end = progress.window_start, progress.window_end
+        progress = _calendar_progress(mount, now)
+        if progress.window_start + CALENDAR_LOOKBACK <= now - CALENDAR_CHECKPOINT_MAX_AGE or (
+            not progress.complete and progress.pages_fetched >= CALENDAR_PAGE_LIMIT
+        ):
+            progress.delete()
+            progress = _calendar_progress(mount, now)
+        restarted = False
         while not progress.complete:
-            if progress.pages_fetched >= 50:
+            if progress.pages_fetched >= CALENDAR_PAGE_LIMIT:
+                progress.delete()
                 raise providers.ProviderError(
                     "Calendar is too large for one refresh. Narrow the resource or retry later.",
                     kind="fatal",
                 )
+            start, end = progress.window_start, progress.window_end
             cursor = progress.next_cursor or None
             if mount.connection.provider == "microsoft":
                 params = {
@@ -318,12 +337,22 @@ def sync_calendar(mount_id):
                 if cursor:
                     params["pageToken"] = cursor
                 path = f"calendars/{quote(mount.external_id, safe='')}/events"
-            result = providers.request(
-                mount.connection,
-                "GET",
-                path,
-                params={} if mount.connection.provider == "microsoft" and cursor else params,
-            )
+            try:
+                result = providers.request(
+                    mount.connection,
+                    "GET",
+                    path,
+                    params={} if mount.connection.provider == "microsoft" and cursor else params,
+                )
+            except providers.ProviderError as exc:
+                if not cursor or exc.kind != "fatal":
+                    raise
+                progress.delete()
+                if restarted:
+                    raise
+                progress = _calendar_progress(mount, timezone.now())
+                restarted = True
+                continue
             if mount.connection.provider == "microsoft":
                 page_rows = [row for row in result.get("value", []) if not row.get("isCancelled")]
                 cursor = result.get("@odata.nextLink")
@@ -364,19 +393,22 @@ def sync_calendar(mount_id):
                 [_calendar_event(mount, row) for row in progress.events]
             )
             event_count = len(progress.events)
+            fetched_at = progress.window_start + CALENDAR_LOOKBACK
             progress.delete()
             MountSnapshot.objects.update_or_create(
-                mount=mount, defaults={"value": {"count": event_count}, "fetched_at": now}
+                mount=mount, defaults={"value": {"count": event_count}, "fetched_at": fetched_at}
             )
-            locked.last_succeeded_at = now
+            locked.last_succeeded_at = fetched_at
             locked.last_error = ""
             locked.consecutive_failures = 0
             locked.sync_started_at = None
-            locked.next_attempt_at = now + timedelta(minutes=5)
+            locked.rate_limited_until = None
+            locked.next_attempt_at = timezone.now() + timedelta(minutes=5)
             locked.save()
         run.outcome = "success"
         run.counts = {"events": event_count}
     except Exception as exc:
+        failed_at = timezone.now()
         logging.getLogger(__name__).exception("Calendar refresh failed for Mount %s", mount.pk)
         error = (
             exc
@@ -385,16 +417,20 @@ def sync_calendar(mount_id):
         )
         with transaction.atomic():
             locked = Mount.objects.select_for_update().get(pk=mount.pk)
-            locked.consecutive_failures += 1
             locked.last_error = str(error.detail)
             locked.sync_started_at = None
-            locked.next_attempt_at = now + timedelta(
-                seconds=max(
-                    error.retry_after, min(3600, 60 * 2 ** min(locked.consecutive_failures, 6))
+            if error.kind == "rate_limited":
+                locked.consecutive_failures = 0
+                locked.rate_limited_until = failed_at + timedelta(seconds=error.retry_after)
+                locked.next_attempt_at = locked.rate_limited_until
+            else:
+                locked.rate_limited_until = None
+                locked.consecutive_failures += 1
+                locked.next_attempt_at = failed_at + timedelta(
+                    seconds=min(3600, 60 * 2 ** min(locked.consecutive_failures, 6))
                 )
-            )
-            if error.kind != "rate_limited" and locked.consecutive_failures >= 5:
-                locked.enabled = False
+                if locked.consecutive_failures >= 5:
+                    locked.enabled = False
             locked.save()
         run.outcome, run.message = error.kind, str(error.detail)
     run.ended_at = timezone.now()

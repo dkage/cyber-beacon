@@ -218,6 +218,9 @@ def test_calendar_rate_limit_resumes_from_saved_page_cursor(notion, monkeypatch)
     connection = notion.connection
     connection.provider = "google"
     connection.save(update_fields=["provider"])
+    now = timezone.now()
+    snapshot_started_at = now
+    monkeypatch.setattr(timezone, "now", lambda: now)
     calls = []
 
     def throttled_fetch(connection, method, path, **kwargs):
@@ -243,10 +246,8 @@ def test_calendar_rate_limit_resumes_from_saved_page_cursor(notion, monkeypatch)
     assert progress.next_cursor == "continue-here"
     assert [row["external_id"] for row in progress.events] == ["first-page-event"]
     assert CalendarEvent.objects.filter(mount=notion).count() == 0
-    for _ in range(4):
-        services.sync_calendar(str(notion.pk))
     notion.refresh_from_db()
-    assert notion.enabled
+    now = notion.next_attempt_at
 
     calls.clear()
     monkeypatch.setattr(
@@ -267,6 +268,8 @@ def test_calendar_rate_limit_resumes_from_saved_page_cursor(notion, monkeypatch)
 
     services.sync_calendar(str(notion.pk))
 
+    notion.refresh_from_db()
+    assert notion.last_succeeded_at == snapshot_started_at
     assert calls[0][1]["params"]["pageToken"] == "continue-here"
     assert set(
         CalendarEvent.objects.filter(mount=notion).values_list("external_id", flat=True)
@@ -275,6 +278,127 @@ def test_calendar_rate_limit_resumes_from_saved_page_cursor(notion, monkeypatch)
         "second-page-event",
     }
     assert not CalendarSyncProgress.objects.filter(mount=notion).exists()
+
+
+@pytest.mark.parametrize("checkpoint", ["rejected", "page_cap", "expired", "expired_complete"])
+def test_calendar_recovers_unusable_checkpoint(notion, monkeypatch, checkpoint):
+    conn = notion.connection
+    conn.provider = "google"
+    conn.save(update_fields=["provider"])
+    now = timezone.now()
+    monkeypatch.setattr(timezone, "now", lambda: now)
+    CalendarEvent.objects.create(
+        mount=notion,
+        external_id="last-good",
+        title="Last good",
+        starts_at=now,
+        ends_at=now + timedelta(hours=1),
+    )
+    CalendarSyncProgress.objects.create(
+        mount=notion,
+        window_start=now - timedelta(days=30, hours=2 if checkpoint.startswith("expired") else 0),
+        window_end=now + timedelta(days=90),
+        pages_fetched=50 if checkpoint == "page_cap" else 1,
+        next_cursor="old",
+        complete=checkpoint == "expired_complete",
+    )
+    calls = []
+
+    def fetch(_connection, _method, _path, *, params):
+        assert CalendarEvent.objects.filter(mount=notion, external_id="last-good").exists()
+        calls.append(params.get("pageToken"))
+        if params.get("pageToken"):
+            raise providers.ProviderError("Invalid page token", kind="fatal")
+        assert params["timeMin"] == (now - timedelta(days=30)).isoformat()
+        return {
+            "items": [
+                {
+                    "id": "fresh",
+                    "summary": "Fresh data",
+                    "start": {"date": "2026-11-18"},
+                    "end": {"date": "2026-11-19"},
+                }
+            ]
+        }
+
+    monkeypatch.setattr(providers, "request", fetch)
+    services.sync_calendar(notion.pk)
+
+    assert calls == (["old", None] if checkpoint == "rejected" else [None])
+    assert list(notion.calendarevent_set.values_list("external_id", flat=True)) == ["fresh"]
+    assert not CalendarSyncProgress.objects.filter(mount=notion).exists()
+
+
+def test_calendar_throttle_deadline_and_transient_failure_keep_events(client, notion, monkeypatch):
+    conn = notion.connection
+    conn.provider = "google"
+    conn.save(update_fields=["provider"])
+    now = timezone.now()
+    day = now.astimezone(UTC).date()
+    conn.user.timezone = "UTC"
+    CalendarEvent.objects.create(
+        mount=notion,
+        external_id="kept",
+        title="Last good",
+        start_date=day,
+        end_date=day + timedelta(days=1),
+    )
+    monkeypatch.setattr(timezone, "now", lambda: now)
+    calls = []
+
+    def fetch(*args, **kwargs):
+        nonlocal now
+        calls.append(now)
+        now += timedelta(seconds=35)
+        if len(calls) <= 4:
+            raise providers.ProviderError("Rate limited", kind="rate_limited", retry_after=300)
+        raise providers.ProviderError("Temporary error")
+
+    monkeypatch.setattr(providers, "request", fetch)
+    queued = []
+    monkeypatch.setattr("integrations.views.enqueue", lambda *args: queued.append(args))
+    url = f"/api/v1/integrations/mounts/{notion.pk}/refresh/"
+    for attempt in range(4):
+        services.sync_calendar(notion.pk)
+        notion.refresh_from_db()
+        assert notion.next_attempt_at >= now + timedelta(seconds=300)
+        assert notion.consecutive_failures == 0
+        response = client.post(url)
+        assert response.status_code == 429
+        assert int(response["Retry-After"]) >= 300
+        assert not queued
+        services.sync_calendar(notion.pk)
+        assert len(calls) == attempt + 1
+        now = notion.next_attempt_at
+
+    response = client.post(url)
+    assert response.status_code == 202
+    assert len(queued) == 1
+    services.sync_calendar(notion.pk)
+    notion.refresh_from_db()
+    assert notion.enabled
+    assert notion.consecutive_failures == 1
+    assert list(services.events_for_day(conn.user, day).values_list("external_id", flat=True)) == [
+        "kept"
+    ]
+
+
+@pytest.mark.parametrize(
+    "header, delay", [("7200", 7200), ("Wed, 18 Nov 2026 14:00:00 GMT", 7200), ("invalid", 60)]
+)
+def test_provider_honors_retry_after(monkeypatch, header, delay):
+    import httpx
+
+    monkeypatch.setattr(timezone, "now", lambda: datetime(2026, 11, 18, 12, tzinfo=UTC))
+    monkeypatch.setattr(
+        httpx,
+        "request",
+        lambda *args, **kwargs: httpx.Response(429, headers={"Retry-After": header}),
+    )
+    with pytest.raises(providers.ProviderError) as failure:
+        providers.http("GET", "https://provider.example.test/")
+    assert failure.value.kind == "rate_limited"
+    assert failure.value.retry_after == delay
 
 
 def test_capacity_merges_overlapping_meetings_and_clips_work_hours(user):

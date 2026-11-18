@@ -1,10 +1,11 @@
 from django.db import transaction
 from django.http import HttpResponseRedirect
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import Throttled, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -22,13 +23,14 @@ from .serializers import (
     CreateMountSerializer,
     ImportSerializer,
     MountSerializer,
+    OAuthRedirectSerializer,
     ProviderSerializer,
     ResourcePageSerializer,
 )
 
 
 class OAuthStart(APIView):
-    @extend_schema(request=ProviderSerializer, responses=OpenApiTypes.OBJECT)
+    @extend_schema(request=ProviderSerializer, responses=OAuthRedirectSerializer)
     def post(self, request):
         serializer = ProviderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -185,7 +187,19 @@ class MountViewSet(viewsets.GenericViewSet):
         )
         return Response(TaskSerializer(task).data, status=201)
 
-    @extend_schema(request=None, responses=OpenApiTypes.OBJECT)
+    @extend_schema(
+        request=None,
+        responses={202: OpenApiTypes.OBJECT, 429: OpenApiTypes.OBJECT},
+        parameters=[
+            OpenApiParameter(
+                "Retry-After",
+                int,
+                OpenApiParameter.HEADER,
+                response=[429],
+                description="Seconds until the calendar can be refreshed.",
+            ),
+        ],
+    )
     @action(detail=True, methods=["post"])
     def refresh(self, request, pk=None):
         mount = self.get_object()
@@ -194,6 +208,10 @@ class MountViewSet(viewsets.GenericViewSet):
             or mount.connection.status != "active"
         ):
             raise ValidationError("Choose an active Calendar Mount.")
+        if mount.rate_limited_until:
+            wait = (mount.rate_limited_until - timezone.now()).total_seconds()
+            if wait > 0:
+                raise Throttled(wait=wait, detail="The Provider is rate limiting this calendar.")
         mount.enabled = True
         mount.save(update_fields=["enabled"])
         enqueue("integrations.services.sync_calendar", str(mount.pk))
