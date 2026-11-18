@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { api, ApiError, message, write } from '$lib/api';
-	import { clock, localDate, minutes } from '$lib/format';
+	import { clock, formatDate, localDate, minutes } from '$lib/format';
 	import TaskEditor from '$lib/TaskEditor.svelte';
 	import type { Day, Task } from '$lib/types';
 	let data = $state<Day | null>(null);
@@ -184,7 +184,9 @@
 		<section class="panel task-panel">
 			<div class="section-heading">
 				<h2>Your day <span class="count">{data.tasks.length}</span></h2>
-				<span class="muted">{data.date} · {data.timezone}</span>
+				<span class="muted"
+					>{formatDate(data.date, data.date_order, data.date_separator)} · {data.timezone}</span
+				>
 			</div>
 			{#if !data.tasks.length}<div class="empty">
 					<span class="empty-symbol">＋</span>
@@ -219,7 +221,8 @@
 									>{task.estimated_minutes === null
 										? 'No estimate'
 										: minutes(task.estimated_minutes)}</span
-								>{#if task.due_date}<span class="attention">Due {task.due_date}</span
+								>{#if task.due_date}<span class="attention"
+										>Due {formatDate(task.due_date, data.date_order, data.date_separator)}</span
 									>{/if}{#if task.source}<span class="external">↗ Notion</span>{/if}<span
 									>{minutes((data.task_actual_seconds[task.id] ?? 0) / 60)} actual</span
 								>

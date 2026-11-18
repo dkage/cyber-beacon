@@ -11,7 +11,16 @@ class SettingsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "email", "timezone", "work_start", "work_end", "work_weekdays"]
+        fields = [
+            "id",
+            "email",
+            "timezone",
+            "work_start",
+            "work_end",
+            "work_weekdays",
+            "date_order",
+            "date_separator",
+        ]
         read_only_fields = ["id", "email"]
 
     def validate(self, attrs):

@@ -4,8 +4,8 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { api, ApiError, message, write } from '$lib/api';
-	import { localDate, safeUrl } from '$lib/format';
-	import type { Connection, Mount } from '$lib/types';
+	import { formatDateTime, localDate, safeUrl } from '$lib/format';
+	import type { Connection, Mount, Settings } from '$lib/types';
 	interface Resource {
 		id: string;
 		label: string;
@@ -21,6 +21,7 @@
 		next_cursor: string | null;
 	}
 	let connections = $state<Connection[]>([]);
+	let settings = $state<Settings | null>(null);
 	let error = $state('');
 	let notice = $state('');
 	let pending = $state(false);
@@ -36,7 +37,7 @@
 	async function load() {
 		try {
 			connections = await api<Connection[]>('/api/v1/integrations/connections/');
-			const settings = await api<{ timezone: string }>('/api/v1/settings/');
+			settings = await api<Settings>('/api/v1/settings/');
 			if (!day) day = localDate(new Date(), settings.timezone);
 		} catch (cause) {
 			if (cause instanceof ApiError && cause.status === 403) await goto(resolve('/login'));
@@ -156,8 +157,14 @@
 					<h3>{mount.label}</h3>
 					<p class="muted small">
 						{mount.enabled ? 'Enabled' : 'Paused'} · {mount.last_error ||
-							(mount.last_succeeded_at
-								? 'Updated ' + new Date(mount.last_succeeded_at).toLocaleString()
+							(mount.last_succeeded_at && settings
+								? 'Updated ' +
+									formatDateTime(
+										mount.last_succeeded_at,
+										settings.timezone,
+										settings.date_order,
+										settings.date_separator
+									)
 								: 'No refresh yet')}
 					</p>
 					{#if connection.provider === 'notion'}<button

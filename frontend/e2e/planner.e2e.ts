@@ -52,6 +52,24 @@ test('the login screen hides app navigation, including with a trailing slash', a
 	await expect(page.getByRole('navigation', { name: 'Main navigation' })).toHaveCount(0);
 });
 
+test('date preferences persist and format the planner day', async ({ page }) => {
+	await page.locator('nav').getByRole('link', { name: 'Settings' }).click();
+	await page.getByLabel('Date order').selectOption('dmy');
+	await page.getByLabel('Date separator').selectOption('/');
+	await page.getByRole('button', { name: 'Save preferences' }).click();
+	await expect(page.getByRole('status')).toContainText('Preferences saved.');
+	await page.locator('nav').getByRole('link', { name: 'Today' }).click();
+	const day = await (await page.request.get('/api/v1/day/')).json();
+	const [year, month, date] = day.date.split('-');
+	await expect(page.locator('.section-heading .muted').first()).toContainText(
+		`${date}/${month}/${year}`
+	);
+	await page.reload();
+	await page.locator('nav').getByRole('link', { name: 'Settings' }).click();
+	await expect(page.getByLabel('Date order')).toHaveValue('dmy');
+	await expect(page.getByLabel('Date separator')).toHaveValue('/');
+});
+
 test('static deep links, mobile layout and retained rejected drafts', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/today?date=2026-11-18');

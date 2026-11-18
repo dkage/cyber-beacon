@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { clock, minutes } from '$lib/format';
+	import { clock, formatDate, minutes } from '$lib/format';
 	import { message } from '$lib/api';
 	import type { CalendarEvent } from '$lib/types';
 	interface Summary {
 		date: string;
 		timezone: string;
+		date_order: 'ymd' | 'dmy' | 'mdy';
+		date_separator: '-' | '/';
 		fetched_at: string;
 		tasks: {
 			id: string;
@@ -139,7 +141,11 @@
 	<header class="kiosk-heading">
 		<div>
 			<span class="eyebrow">CYBER BEACON / LIVE DISPLAY</span>
-			<h1>{summary?.date ?? 'Your day, at a glance.'}</h1>
+			<h1>
+				{summary
+					? formatDate(summary.date, summary.date_order, summary.date_separator)
+					: 'Your day, at a glance.'}
+			</h1>
 		</div>
 		<div class="kiosk-clock">
 			{summary ? clock(new Date(now).toISOString(), summary.timezone) : ''}

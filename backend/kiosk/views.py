@@ -145,6 +145,8 @@ class KioskSummary(APIView):
             {
                 "date": day,
                 "timezone": request.user.timezone,
+                "date_order": request.user.date_order,
+                "date_separator": request.user.date_separator,
                 "fetched_at": full["fetched_at"],
                 "tasks": [
                     {key: task[key] for key in ["id", "title", "completed_at", "estimated_minutes"]}

@@ -5,6 +5,13 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
 
+DATE_ORDER_CHOICES = [
+    ("ymd", "Year, month, day"),
+    ("dmy", "Day, month, year"),
+    ("mdy", "Month, day, year"),
+]
+DATE_SEPARATOR_CHOICES = [("-", "Hyphen (-)"), ("/", "Slash (/)")]
+
 
 def validate_timezone(value):
     try:
@@ -21,3 +28,5 @@ class User(AbstractUser):
     work_start = models.TimeField(default=time(9))
     work_end = models.TimeField(default=time(17))
     work_weekdays = models.JSONField(default=list)
+    date_order = models.CharField(max_length=3, choices=DATE_ORDER_CHOICES, default="ymd")
+    date_separator = models.CharField(max_length=1, choices=DATE_SEPARATOR_CHOICES, default="-")
