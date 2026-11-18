@@ -9,7 +9,7 @@ Source: `CLAUDE.md`, [ADR-0001](../adr/0001-django-owns-identity.md), ticket 04,
 | Backend | Python, Django modular monolith, DRF, drf-spectacular (OpenAPI from day one) |
 | Auth | django-allauth headless, the sole account system |
 | Database | PostgreSQL |
-| Frontend | SvelteKit + TypeScript, Bun, Tailwind. A **pure API client**, no auth or business logic |
+| Frontend | SvelteKit + TypeScript, Bun, Tailwind. A **pure API client** with login UI; Django owns identity, persistence and domain rules. Static delivery/session handling still needs the backend ticket 12 proof |
 | Background work | Django-Q2 on the Postgres ORM broker. See [background-work.md](./background-work.md) |
 
 ## Principles

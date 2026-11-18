@@ -16,6 +16,8 @@ behavior from current decisions and recommendations; they do not replace `CONTEX
 Related, outside `docs/`:
 
 - [`CONTEXT.md`](../CONTEXT.md) is the authority on domain vocabulary.
+- [`CLAUDE.md`](../CLAUDE.md) holds shared agent instructions and current project direction.
+- [`COMMITS.md`](../COMMITS.md) defines the required commit message format.
 - `.plan/maps/` holds planning decisions (chartr maps and tickets). Buildable work lives
   in GitHub Issues.
 
