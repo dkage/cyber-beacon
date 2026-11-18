@@ -875,6 +875,24 @@ components:
       required:
       - external_id
       - label
+    DateOrderEnum:
+      enum:
+      - ymd
+      - dmy
+      - mdy
+      type: string
+      description: |-
+        * `ymd` - Year, month, day
+        * `dmy` - Day, month, year
+        * `mdy` - Month, day, year
+    DateSeparatorEnum:
+      enum:
+      - '-'
+      - /
+      type: string
+      description: |-
+        * `-` - Hyphen (-)
+        * `/` - Slash (/)
     Day:
       type: object
       properties:
@@ -883,6 +901,10 @@ components:
           format: date
         timezone:
           type: string
+        date_order:
+          $ref: '#/components/schemas/DateOrderEnum'
+        date_separator:
+          $ref: '#/components/schemas/DateSeparatorEnum'
         fetched_at:
           type: string
           format: date-time
@@ -914,6 +936,8 @@ components:
       - calendars
       - capacity
       - date
+      - date_order
+      - date_separator
       - day_actual_seconds
       - events
       - fetched_at
@@ -1180,6 +1204,10 @@ components:
             maximum: 6
             minimum: 0
           maxItems: 7
+        date_order:
+          $ref: '#/components/schemas/DateOrderEnum'
+        date_separator:
+          $ref: '#/components/schemas/DateSeparatorEnum'
     PatchedTask:
       type: object
       properties:
@@ -1313,6 +1341,10 @@ components:
             maximum: 6
             minimum: 0
           maxItems: 7
+        date_order:
+          $ref: '#/components/schemas/DateOrderEnum'
+        date_separator:
+          $ref: '#/components/schemas/DateSeparatorEnum'
       required:
       - email
       - id

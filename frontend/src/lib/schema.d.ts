@@ -463,10 +463,25 @@ export interface components {
 			external_id: string;
 			label: string;
 		};
+		/**
+		 * @description * `ymd` - Year, month, day
+		 *     * `dmy` - Day, month, year
+		 *     * `mdy` - Month, day, year
+		 * @enum {string}
+		 */
+		DateOrderEnum: 'ymd' | 'dmy' | 'mdy';
+		/**
+		 * @description * `-` - Hyphen (-)
+		 *     * `/` - Slash (/)
+		 * @enum {string}
+		 */
+		DateSeparatorEnum: '-' | '/';
 		Day: {
 			/** Format: date */
 			date: string;
 			timezone: string;
+			date_order: components['schemas']['DateOrderEnum'];
+			date_separator: components['schemas']['DateSeparatorEnum'];
 			/** Format: date-time */
 			fetched_at: string;
 			tasks: components['schemas']['Task'][];
@@ -606,6 +621,8 @@ export interface components {
 			/** Format: time */
 			work_end?: string;
 			work_weekdays?: number[];
+			date_order?: components['schemas']['DateOrderEnum'];
+			date_separator?: components['schemas']['DateSeparatorEnum'];
 		};
 		PatchedTask: {
 			readonly source?: components['schemas']['SourcePreview'] | null;
@@ -662,6 +679,8 @@ export interface components {
 			/** Format: time */
 			work_end?: string;
 			work_weekdays: number[];
+			date_order?: components['schemas']['DateOrderEnum'];
+			date_separator?: components['schemas']['DateSeparatorEnum'];
 		};
 		SourcePreview: {
 			/** Format: uri */

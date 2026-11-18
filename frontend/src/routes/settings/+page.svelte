@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { api, ApiError, message, write } from '$lib/api';
+	import { formatDate, formatDateInTimezone, formatDateTime } from '$lib/format';
 	import type { Settings, Task } from '$lib/types';
 	interface Device {
 		id: string;
@@ -73,14 +74,14 @@
 	</p>{/if}
 <div class="connection-grid">
 	{#if settings}<section class="panel">
-			<h2>Work hours</h2>
+			<h2>Preferences</h2>
 			<p class="muted">{settings.email}</p>
 			<form
 				onsubmit={(event) => {
 					event.preventDefault();
 					void action(async () => {
-						await write('/api/v1/settings/', settings, 'PATCH');
-						notice = 'Work hours saved.';
+						settings = await write<Settings>('/api/v1/settings/', settings, 'PATCH');
+						notice = 'Preferences saved.';
 					});
 				}}
 			>
@@ -105,7 +106,24 @@
 							/>{name}</label
 						>{/each}
 				</fieldset>
-				<button class="primary" disabled={pending}>Save work hours</button>
+				<div class="form-grid">
+					<label
+						>Date order<select bind:value={settings.date_order}>
+							<option value="ymd">Year, month, day</option>
+							<option value="dmy">Day, month, year</option>
+							<option value="mdy">Month, day, year</option>
+						</select></label
+					><label
+						>Date separator<select bind:value={settings.date_separator}>
+							<option value="-">Hyphen (-)</option>
+							<option value="/">Slash (/)</option>
+						</select></label
+					>
+				</div>
+				<p class="muted">
+					Preview: {formatDate('2026-11-18', settings.date_order, settings.date_separator)}
+				</p>
+				<button class="primary" disabled={pending}>Save preferences</button>
 			</form>
 		</section>{/if}
 	<section class="panel">
@@ -142,7 +160,15 @@
 				<p class="muted small">
 					{device.revoked_at
 						? 'Revoked'
-						: 'Expires ' + new Date(device.expires_at).toLocaleDateString()}
+						: settings
+							? 'Expires ' +
+								formatDateInTimezone(
+									device.expires_at,
+									settings.timezone,
+									settings.date_order,
+									settings.date_separator
+								)
+							: 'Expires soon'}
 				</p>
 				<button
 					disabled={pending || !!device.revoked_at}
@@ -178,9 +204,16 @@
 	{#if !jobs.length}<p class="muted">No Job runs recorded yet.</p>{/if}
 	<ul class="job-list">
 		{#each jobs as job (job.id)}<li class:error={job.outcome !== 'success'}>
-				<time>{new Date(job.started_at).toLocaleString()}</time><strong
-					>{job.kind} · {job.outcome}</strong
-				>{#if job.message}<span>{job.message}</span>{/if}
+				<time
+					>{settings
+						? formatDateTime(
+								job.started_at,
+								settings.timezone,
+								settings.date_order,
+								settings.date_separator
+							)
+						: job.started_at}</time
+				><strong>{job.kind} · {job.outcome}</strong>{#if job.message}<span>{job.message}</span>{/if}
 			</li>{/each}
 	</ul>
 </section>

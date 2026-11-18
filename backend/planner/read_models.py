@@ -6,6 +6,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.models import DATE_ORDER_CHOICES, DATE_SEPARATOR_CHOICES
 from integrations.models import Mount
 from integrations.serializers import CalendarEventSerializer
 from integrations.services import events_for_day
@@ -35,6 +36,8 @@ class FreshnessSerializer(serializers.Serializer):
 class DaySerializer(serializers.Serializer):
     date = serializers.DateField()
     timezone = serializers.CharField()
+    date_order = serializers.ChoiceField(choices=DATE_ORDER_CHOICES)
+    date_separator = serializers.ChoiceField(choices=DATE_SEPARATOR_CHOICES)
     fetched_at = serializers.DateTimeField()
     tasks = TaskSerializer(many=True)
     events = CalendarEventSerializer(many=True)
@@ -57,6 +60,8 @@ def day_summary(user, day):
     return {
         "date": day,
         "timezone": user.timezone,
+        "date_order": user.date_order,
+        "date_separator": user.date_separator,
         "fetched_at": timezone.now(),
         "tasks": tasks,
         "events": events,
