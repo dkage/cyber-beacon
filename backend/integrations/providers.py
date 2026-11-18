@@ -79,7 +79,7 @@ def authorize_url(provider, state):
     if provider == "notion":
         params["owner"] = "user"
         return "https://api.notion.com/v1/oauth/authorize?" + urlencode(params)
-    params.update(scope=GOOGLE_SCOPE, access_type="offline", prompt="consent")
+    params.update(scope=GOOGLE_SCOPE, access_type="offline", prompt="consent select_account")
     return "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params)
 
 
