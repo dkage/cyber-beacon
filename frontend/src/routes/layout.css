@@ -272,7 +272,7 @@ small {
 	align-items: start;
 }
 .today-view {
-	min-height: calc(100dvh - 5rem);
+	min-height: calc(100dvh - 6rem);
 	display: flex;
 	flex-direction: column;
 	gap: 0.8rem;
