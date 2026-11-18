@@ -128,31 +128,48 @@ def import_record(user, mount, external_id, day, key):
     previous = prior_import(user, key, fingerprint)
     if previous:
         return previous
+    provider = mount.connection.provider
     if (
-        mount.connection.provider != "notion"
+        provider not in {"notion", "github"}
         or mount.connection.status != "active"
         or not mount.enabled
     ):
-        raise ValidationError("Choose an active Notion Mount.")
-    raw = providers.page(mount.connection, external_id)
-    if raw.get("parent", {}).get("data_source_id", "").replace(
-        "-", ""
-    ) != mount.external_id.replace("-", ""):
-        raise ValidationError("This record does not belong to the selected data source.")
-    title = providers.notion_title(raw)
-    lines = []
-    for name, value in raw.get("properties", {}).items():
-        kind = value.get("type")
-        if kind == "rich_text":
-            text = "".join(part.get("plain_text", "") for part in value.get(kind, []))
-        elif kind in {"select", "status"}:
-            text = (value.get(kind) or {}).get("name", "")
-        elif kind in {"number", "checkbox", "url", "email"}:
-            text = str(value.get(kind) or "")
-        else:
-            continue
-        if text:
-            lines.append(f"{name}: {text}")
+        raise ValidationError("Choose an active worksheet source Mount.")
+    if provider == "notion":
+        raw = providers.page(mount.connection, external_id)
+        if raw.get("parent", {}).get("data_source_id", "").replace(
+            "-", ""
+        ) != mount.external_id.replace("-", ""):
+            raise ValidationError("This record does not belong to the selected data source.")
+        title = providers.notion_title(raw)
+        lines = []
+        for name, value in raw.get("properties", {}).items():
+            kind = value.get("type")
+            if kind == "rich_text":
+                text = "".join(part.get("plain_text", "") for part in value.get(kind, []))
+            elif kind in {"select", "status"}:
+                text = (value.get(kind) or {}).get("name", "")
+            elif kind in {"number", "checkbox", "url", "email"}:
+                text = str(value.get(kind) or "")
+            else:
+                continue
+            if text:
+                lines.append(f"{name}: {text}")
+    else:
+        if not external_id.isdigit():
+            raise ValidationError("Choose a valid GitHub issue.")
+        raw = providers.issue(mount, external_id)
+        repository = raw.get("repository_url", "").rsplit("/repos/", 1)[-1]
+        if (
+            "pull_request" in raw
+            or str(raw.get("number", "")) != external_id
+            or repository.casefold() != mount.external_id.casefold()
+        ):
+            raise ValidationError("This issue does not belong to the selected repository.")
+        title = f"#{external_id} {raw.get('title') or 'Untitled'}"[:500]
+        lines = [f"GitHub issue #{external_id} · {raw.get('state', 'open')}"]
+        if raw.get("body"):
+            lines.append(raw["body"])
     with transaction.atomic():
         lock_user(user)
         previous = prior_import(user, key, fingerprint)
@@ -163,13 +180,17 @@ def import_record(user, mount, external_id, day, key):
         ).exists():
             raise Conflict("The Connection changed while importing. Refresh and try again.")
         task = create_task(
-            user, {"title": title, "notes": "\n".join(lines)[:20000], "do_date": day}
+            user, {"title": title[:500], "notes": "\n".join(lines)[:20000], "do_date": day}
         )
         TaskSource.objects.create(
-            task=task, mount=mount, external_id=external_id, raw=raw, url=raw.get("url", "")[:2000]
+            task=task,
+            mount=mount,
+            external_id=external_id,
+            raw=raw,
+            url=(raw.get("url") or raw.get("html_url", ""))[:2000],
         )
         ImportCommand.objects.create(user=user, key=key, fingerprint=fingerprint, task=task)
-        activity(task, "imported", user, provider="notion", external_id=external_id)
+        activity(task, "imported", user, provider=provider, external_id=external_id)
         return task
 
 

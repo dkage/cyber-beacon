@@ -40,7 +40,7 @@ class OAuthCallback(APIView):
 
     @extend_schema(exclude=True)
     def get(self, request, provider):
-        if provider not in {"notion", "google", "microsoft"}:
+        if provider not in {"notion", "google", "microsoft", "github"}:
             raise ValidationError("Unknown Provider.")
         if request.query_params.get("error"):
             return HttpResponseRedirect("/connections?error=consent-denied")
@@ -119,30 +119,45 @@ class MountViewSet(viewsets.GenericViewSet):
     @action(detail=True, methods=["get"])
     def browse(self, request, pk=None):
         mount = self.get_object()
-        if mount.connection.provider != "notion" or not mount.enabled:
-            raise ValidationError("Choose an enabled Notion Mount.")
+        if mount.connection.provider not in {"notion", "github"} or not mount.enabled:
+            raise ValidationError("Choose an enabled worksheet source Mount.")
         query = BrowseQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         result = providers.browse(
             mount, query.validated_data["cursor"], query.validated_data["query"]
         )
         rows = result.get("results", [])
+        external_ids = [
+            str(row["id"]) if mount.connection.provider == "notion" else str(row["number"])
+            for row in rows
+        ]
         counts = {}
         for external_id in TaskSource.objects.filter(
             mount__connection=mount.connection,
             task__user=request.user,
             task__deleted_at=None,
-            external_id__in=[row["id"] for row in rows],
+            external_id__in=external_ids,
         ).values_list("external_id", flat=True):
             counts[external_id] = counts.get(external_id, 0) + 1
         return Response(
             {
                 "results": [
                     {
-                        "id": row["id"],
-                        "title": providers.notion_title(row),
-                        "url": row.get("url", ""),
-                        "imported_count": counts.get(row["id"], 0),
+                        "id": str(row["id"])
+                        if mount.connection.provider == "notion"
+                        else str(row["number"]),
+                        "title": providers.notion_title(row)
+                        if mount.connection.provider == "notion"
+                        else f"#{row['number']} {row.get('title') or 'Untitled'}",
+                        "url": row.get("url")
+                        if mount.connection.provider == "notion"
+                        else row.get("html_url", ""),
+                        "imported_count": counts.get(
+                            str(row["id"])
+                            if mount.connection.provider == "notion"
+                            else str(row["number"]),
+                            0,
+                        ),
                     }
                     for row in rows
                 ],
@@ -157,7 +172,7 @@ class MountViewSet(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         task = services.import_record(
-            request.user, self.get_object(), str(data["external_id"]), data["do_date"], data["key"]
+            request.user, self.get_object(), data["external_id"], data["do_date"], data["key"]
         )
         return Response(TaskSerializer(task).data, status=201)
 

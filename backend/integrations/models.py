@@ -16,6 +16,7 @@ class IntegrationConnection(models.Model):
             ("notion", "Notion"),
             ("google", "Google Calendar"),
             ("microsoft", "Outlook Calendar"),
+            ("github", "GitHub Issues"),
         ],
     )
     account_identity = models.CharField(max_length=255)

@@ -42,6 +42,10 @@ Their day windows are bounded and refreshed periodically. Pagination,
 rate limits, failed refreshes and reauthorization are visible; credentials never leave
 Django. OAuth uses expiring one-use state bound to the authenticated owner and session.
 Microsoft delegated OAuth requests Calendars.Read and offline_access for refresh tokens.
+GitHub App access lists repositories visible to the connected account, filters out pull
+requests, and imports an explicitly selected issue as a local worksheet. GitHub tokens
+are limited by the App's read-only Issues and Metadata permissions; task completion and
+edits remain local and never write to GitHub. Notion remains available as a source.
 
 ## Capacity and order
 

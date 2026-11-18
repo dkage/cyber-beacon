@@ -29,7 +29,7 @@ class ConnectionSerializer(serializers.ModelSerializer):
 
 
 class ProviderSerializer(serializers.Serializer):
-    provider = serializers.ChoiceField(choices=["notion", "google", "microsoft"])
+    provider = serializers.ChoiceField(choices=["notion", "google", "microsoft", "github"])
 
 
 class BrowseQuerySerializer(serializers.Serializer):
@@ -43,7 +43,7 @@ class CreateMountSerializer(serializers.Serializer):
 
 
 class ImportSerializer(serializers.Serializer):
-    external_id = serializers.UUIDField()
+    external_id = serializers.CharField(max_length=255)
     do_date = serializers.DateField(required=False, allow_null=True, default=None)
     key = serializers.UUIDField()
 

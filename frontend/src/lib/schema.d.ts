@@ -457,9 +457,10 @@ export interface components {
 		 * @description * `notion` - Notion
 		 *     * `google` - Google Calendar
 		 *     * `microsoft` - Outlook Calendar
+		 *     * `github` - GitHub Issues
 		 * @enum {string}
 		 */
-		ConnectionProviderEnum: 'notion' | 'google' | 'microsoft';
+		ConnectionProviderEnum: 'notion' | 'google' | 'microsoft' | 'github';
 		CreateMount: {
 			external_id: string;
 			label: string;
@@ -516,7 +517,6 @@ export interface components {
 			enabled: boolean;
 		};
 		Import: {
-			/** Format: uuid */
 			external_id: string;
 			/** Format: date */
 			do_date?: string | null;
@@ -663,9 +663,10 @@ export interface components {
 		 * @description * `notion` - notion
 		 *     * `google` - google
 		 *     * `microsoft` - microsoft
+		 *     * `github` - github
 		 * @enum {string}
 		 */
-		ProviderProviderEnum: 'notion' | 'google' | 'microsoft';
+		ProviderProviderEnum: 'notion' | 'google' | 'microsoft' | 'github';
 		Reorder: {
 			/** Format: date */
 			date: string;
