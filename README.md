@@ -6,9 +6,10 @@ Django owns the domain, identity, credentials and jobs; static SvelteKit is an A
 ## First usable day
 
 Phase 1 implements local Tasks/Today, versioned edits, estimates/order/capacity, one
-running timer, actual time, midnight carry-forward, Notion worksheet import, read-only
-Google Calendar events and paired kiosk access. AI briefing is a placeholder. Calendar
-projections, timeboxing and auto-scheduling are the next release (#20–#24).
+running timer, actual time, midnight carry-forward, Notion and GitHub worksheet import,
+read-only Google and Outlook Calendar events, and paired kiosk access. AI briefing is a
+placeholder. Calendar projections, timeboxing and auto-scheduling are the next release
+(#20–#24).
 
 [Release contract](docs/phase-one-contract.md) documents the bounded decisions.
 [Verification and limitations](docs/phase-one-delivery.md) records what was checked.
@@ -59,10 +60,13 @@ on port 8000. Use one browser hostname consistently so session and CSRF cookies 
 
 ## Connect Providers
 
-Create your own public Notion integration and Google OAuth web application. Configure
-client IDs, secrets and exact callback URLs in `.env`; see `.env.example`. For Google,
-enable the Calendar API and grant `calendar.readonly`. Notion needs read-content access
-to the data sources you select. These connections never become sign-in credentials.
+Create a Notion integration, Google OAuth web application, Microsoft Entra application
+and GitHub App. Configure client IDs, secrets and exact callback URLs in `.env`; see
+`.env.example`. For Google, enable Calendar API and grant `calendar.readonly`. Configure
+the Microsoft app for personal and organization accounts and delegated `Calendars.Read`.
+Grant the GitHub App repository permissions `Issues: read-only` and `Metadata: read-only`;
+repository browse/import never writes to GitHub. Notion needs read-content access to the
+data sources you select. These connections never become sign-in credentials.
 
 Generate a Fernet key once and save it as `FERNET_KEYS` in `.env`:
 
@@ -74,9 +78,9 @@ uv run python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_
 Back up this key separately from PostgreSQL. Rotation prepends a new comma-separated
 key while retaining older keys until credentials have been re-saved. After changing
 configuration, recreate the containers. In Connections, connect the Provider, attach a
-data source/calendar, then explicitly import Notion records or refresh meetings.
-Notion browsing/import and Calendar sync have automated provider fixtures; live OAuth
-consent still needs your credentials and acceptance check.
+data source/repository/calendar, then explicitly import Notion or GitHub Issues, or
+refresh calendar meetings. Provider browsing, import and sync have automated fixtures;
+live OAuth consent still needs your credentials and acceptance check.
 
 ## Kiosk
 

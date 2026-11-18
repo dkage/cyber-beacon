@@ -82,6 +82,8 @@
 	}
 	async function browse(mount: Mount, cursor = '') {
 		selectedMount = mount;
+		selectedConnection =
+			connections.find((connection) => connection.id === mount.connection) ?? selectedConnection;
 		candidates = await api<Page<Candidate>>(
 			`/api/v1/integrations/mounts/${mount.id}/browse/?cursor=${encodeURIComponent(cursor)}&query=${encodeURIComponent(recordSearch)}`
 		);
@@ -116,6 +118,7 @@
 		>
 		<button disabled={pending} onclick={() => connect('microsoft')}>Connect Outlook Calendar</button
 		>
+		<button disabled={pending} onclick={() => connect('github')}>Connect GitHub</button>
 	</div>
 </header>
 {#if error}<p class="error" role="alert">{error}</p>{/if}{#if notice}<p
@@ -126,7 +129,7 @@
 	</p>{/if}
 {#if loading}<p>Loading Connections…</p>{:else if !connections.length}<section class="panel empty">
 		<h2>Your work, gathered here.</h2>
-		<p>Connect Notion to choose worksheets, or Google or Outlook Calendar to see meetings.</p>
+		<p>Connect Notion or GitHub to choose worksheets, or a calendar to see meetings.</p>
 		<p class="muted">OAuth application credentials must be configured by the server operator.</p>
 	</section>{/if}
 <div class="connection-grid">
@@ -136,7 +139,9 @@
 					? 'NOTION'
 					: connection.provider === 'google'
 						? 'GOOGLE CALENDAR'
-						: 'OUTLOOK CALENDAR'}</span
+						: connection.provider === 'microsoft'
+							? 'OUTLOOK CALENDAR'
+							: 'GITHUB ISSUES'}</span
 			>
 			<h2>{connection.label}</h2>
 			<p class="muted">{connection.status}</p>
@@ -176,6 +181,9 @@
 					{#if connection.provider === 'notion'}<button
 							disabled={pending || connection.status !== 'active'}
 							onclick={() => action(() => browse(mount))}>Browse records</button
+						>{:else if connection.provider === 'github'}<button
+							disabled={pending || connection.status !== 'active'}
+							onclick={() => action(() => browse(mount))}>Browse issues</button
 						>{:else}<button
 							disabled={pending || connection.status !== 'active'}
 							onclick={() =>
@@ -189,8 +197,14 @@
 		</section>{/each}
 </div>
 {#if selectedConnection && resources}<section class="panel source">
-		<h2>Choose a {selectedConnection.provider === 'notion' ? 'Notion data source' : 'calendar'}</h2>
-		{#if selectedConnection.provider === 'notion'}<form
+		<h2>
+			Choose a {selectedConnection.provider === 'notion'
+				? 'Notion data source'
+				: selectedConnection.provider === 'github'
+					? 'GitHub repository'
+					: 'calendar'}
+		</h2>
+		{#if selectedConnection.provider === 'notion' || selectedConnection.provider === 'github'}<form
 				class="inline-form"
 				onsubmit={(event) => {
 					event.preventDefault();
@@ -241,8 +255,13 @@
 				void action(() => browse(selectedMount!));
 			}}
 		>
-			<label>Search records<input bind:value={recordSearch} maxlength="200" /></label><button
-				disabled={pending}>Search records</button
+			<label
+				>{selectedConnection?.provider === 'github' ? 'Search issues' : 'Search records'}<input
+					bind:value={recordSearch}
+					maxlength="200"
+				/></label
+			><button disabled={pending}
+				>{selectedConnection?.provider === 'github' ? 'Search issues' : 'Search records'}</button
 			>
 		</form>
 		{#if !candidates.results.length}<p>No records in this source.</p>{/if}

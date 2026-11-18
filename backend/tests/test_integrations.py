@@ -498,6 +498,191 @@ def test_microsoft_provider_rejects_untrusted_next_link(notion, settings):
         providers.request(conn, "GET", "https://attacker.example/steal")
 
 
+def test_github_app_oauth_and_repository_browser(notion, settings, monkeypatch):
+    from urllib.parse import parse_qs, urlsplit
+
+    settings.INTEGRATION_OAUTH["github"] = {
+        "client_id": "app-id",
+        "client_secret": "app-secret",
+        "redirect_uri": "http://localhost/github/callback",
+    }
+    url = providers.authorize_url("github", "state-token")
+    authorize_query = parse_qs(urlsplit(url).query)
+    assert authorize_query["state"] == ["state-token"]
+    assert "scope" not in authorize_query
+    calls = []
+
+    def request(connection, method, path, **kwargs):
+        calls.append((method, path, kwargs))
+        return [
+            {"full_name": "acme/one"},
+            {"full_name": "acme/two"},
+        ]
+
+    monkeypatch.setattr(providers, "request", request)
+    conn = notion.connection
+    conn.provider = "github"
+    conn.credentials = {"access_token": "token"}
+    conn.save(update_fields=["provider", "credentials"])
+    result = providers.resources(conn, query="two")
+    assert result == {"results": [{"id": "acme/two", "label": "acme/two"}], "next_cursor": None}
+    assert calls[0][1] == "user/repos"
+    assert calls[0][2]["params"]["affiliation"] == "owner,collaborator,organization_member"
+
+
+def test_github_user_token_exchange_and_refresh(notion, settings, monkeypatch):
+    import httpx
+
+    settings.INTEGRATION_OAUTH["github"] = {
+        "client_id": "app-id",
+        "client_secret": "app-secret",
+        "redirect_uri": "http://localhost/github/callback",
+    }
+    calls = []
+
+    def send(method, url, **kwargs):
+        calls.append((method, url, kwargs))
+        if url == "https://github.com/login/oauth/access_token":
+            if kwargs["data"].get("grant_type") == "refresh_token":
+                return httpx.Response(
+                    200,
+                    json={
+                        "access_token": "refreshed",
+                        "refresh_token": "rotated-refresh",
+                        "expires_in": 28800,
+                    },
+                )
+            return httpx.Response(
+                200,
+                json={
+                    "access_token": "initial",
+                    "refresh_token": "refresh",
+                    "expires_in": 28800,
+                },
+            )
+        if url == "https://api.github.com/user":
+            return httpx.Response(200, json={"id": 42, "login": "dev", "name": "Developer"})
+        assert kwargs["headers"]["Authorization"] == "Bearer refreshed"
+        return httpx.Response(200, json=[])
+
+    monkeypatch.setattr(httpx, "request", send)
+    credentials, identity, label, scopes = providers.exchange("github", "authorization-code")
+    assert (identity, label, scopes) == ("42", "Developer", [])
+    assert "grant_type" not in calls[0][2]["data"]
+    credentials["expires_at"] = "2000-01-01T00:00:00+00:00"
+    conn = notion.connection
+    conn.provider, conn.credentials = "github", credentials
+    conn.save(update_fields=["provider", "credentials"])
+    assert providers.request(conn, "GET", "user/repos") == []
+    conn.refresh_from_db()
+    assert conn.credentials["access_token"] == "refreshed"
+    assert conn.credentials["refresh_token"] == "rotated-refresh"
+
+
+def test_github_http_accepts_repository_array_responses(monkeypatch):
+    import httpx
+
+    monkeypatch.setattr(
+        httpx, "request", lambda *args, **kwargs: httpx.Response(200, json=[{"id": 1}])
+    )
+    assert providers.http("GET", "https://api.github.com/user/repos") == [{"id": 1}]
+
+
+def test_github_issue_search_filters_pull_requests_and_builds_query(notion, monkeypatch):
+    calls = []
+
+    def request(connection, method, path, **kwargs):
+        calls.append((method, path, kwargs))
+        return {
+            "total_count": 51,
+            "items": [
+                {"number": 12, "title": "Fix the bug"},
+                {"number": 13, "title": "A pull request", "pull_request": {}},
+            ],
+        }
+
+    monkeypatch.setattr(providers, "request", request)
+    notion.connection.provider = "github"
+    notion.external_id = "acme/planner"
+    page = providers.browse(notion, "1", "regression crash")
+    assert page["results"] == [{"number": 12, "title": "Fix the bug"}]
+    assert page["next_cursor"] == "2"
+    assert calls[0][1] == "search/issues"
+    assert calls[0][2]["params"]["q"] == "repo:acme/planner is:issue regression crash"
+
+
+def test_github_browse_uses_issue_number_as_import_identity(user, client, notion, monkeypatch):
+    notion.connection.provider = "github"
+    notion.connection.save(update_fields=["provider"])
+    notion.external_id = "acme/planner"
+    notion.save(update_fields=["external_id"])
+    task = create_task(user, {"title": "Existing issue worksheet"})
+    TaskSource.objects.create(
+        task=task,
+        mount=notion,
+        external_id="12",
+        raw={},
+        url="https://github.com/acme/planner/issues/12",
+    )
+    monkeypatch.setattr(
+        providers,
+        "browse",
+        lambda *args: {
+            "results": [
+                {
+                    "id": 987654,
+                    "number": 12,
+                    "title": "Fix regression",
+                    "html_url": "https://github.com/acme/planner/issues/12",
+                }
+            ],
+            "next_cursor": None,
+        },
+    )
+    client.force_login(user)
+    response = client.get(f"/api/v1/integrations/mounts/{notion.pk}/browse/")
+    assert response.status_code == 200
+    assert response.json()["results"] == [
+        {
+            "id": "12",
+            "title": "#12 Fix regression",
+            "url": "https://github.com/acme/planner/issues/12",
+            "imported_count": 1,
+        }
+    ]
+
+
+def test_github_issue_import_creates_local_worksheet_and_checks_repository(
+    user, notion, monkeypatch
+):
+    notion.connection.provider = "github"
+    notion.connection.save(update_fields=["provider"])
+    notion.external_id = "acme/planner"
+    notion.save(update_fields=["external_id"])
+    raw = {
+        "number": 12,
+        "title": "Repair the planner",
+        "body": "Steps to reproduce",
+        "state": "open",
+        "repository_url": "https://api.github.com/repos/acme/planner",
+        "html_url": "https://github.com/acme/planner/issues/12",
+    }
+    monkeypatch.setattr(providers, "issue", lambda mount, external_id: raw)
+    task = services.import_record(user, notion, "12", date(2026, 11, 18), uuid.uuid4())
+    task.refresh_from_db()
+    source = TaskSource.objects.get(task=task)
+    assert task.title == "#12 Repair the planner"
+    assert "Steps to reproduce" in task.notes
+    assert source.external_id == "12"
+    assert source.url == raw["html_url"]
+    assert source.raw == raw
+    assert task.activity.order_by("-occurred_at").first().payload["provider"] == "github"
+
+    raw["repository_url"] = "https://api.github.com/repos/acme/other"
+    with pytest.raises(services.ValidationError, match="does not belong"):
+        services.import_record(user, notion, "12", None, uuid.uuid4())
+
+
 def test_notion_record_search_uses_title_property_id(notion, monkeypatch):
     calls = []
 

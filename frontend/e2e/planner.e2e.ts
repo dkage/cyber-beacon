@@ -107,6 +107,67 @@ test('date preferences persist and format the planner day', async ({ page }) => 
 	await expect(page.getByLabel('Date separator')).toHaveValue('/');
 });
 
+test('GitHub repository issues can be searched and explicitly imported', async ({ page }) => {
+	const connectionId = '11111111-1111-4111-8111-111111111111';
+	const mountId = '22222222-2222-4222-8222-222222222222';
+	await page.route('**/api/v1/integrations/connections/', async (route) => {
+		await route.fulfill({
+			contentType: 'application/json',
+			body: JSON.stringify([
+				{
+					id: connectionId,
+					provider: 'github',
+					label: 'danilo',
+					status: 'active',
+					last_error: '',
+					mounts: [
+						{
+							id: mountId,
+							connection: connectionId,
+							external_id: 'acme/planner',
+							label: 'acme/planner',
+							enabled: true,
+							last_succeeded_at: null,
+							last_error: '',
+							consecutive_failures: 0
+						}
+					]
+				}
+			])
+		});
+	});
+	await page.route(`**/api/v1/integrations/mounts/${mountId}/browse/**`, async (route) => {
+		const query = new URL(route.request().url()).searchParams.get('query');
+		await route.fulfill({
+			contentType: 'application/json',
+			body: JSON.stringify({
+				results: [
+					{
+						id: '12',
+						title: query ? '#12 Fix parser regression' : '#12 Improve planner search',
+						url: 'https://github.com/acme/planner/issues/12',
+						imported_count: 0
+					}
+				],
+				next_cursor: null
+			})
+		});
+	});
+	await page.route(`**/api/v1/integrations/mounts/${mountId}/import/`, async (route) => {
+		expect(route.request().method()).toBe('POST');
+		expect(route.request().postDataJSON()).toMatchObject({ external_id: '12' });
+		await route.fulfill({ status: 201, contentType: 'application/json', body: '{}' });
+	});
+	await page.goto('/connections');
+	await page.getByRole('button', { name: 'Browse issues', exact: true }).click();
+	await expect(page.getByText('#12 Improve planner search')).toBeVisible();
+	await page.getByLabel('Search issues').fill('parser');
+	await page.getByRole('button', { name: 'Search issues', exact: true }).click();
+	await expect(page.getByText('#12 Fix parser regression')).toBeVisible();
+	await page.getByRole('button', { name: 'Import worksheet', exact: true }).click();
+	await expect(page.getByRole('status')).toContainText('Imported “#12 Fix parser regression”');
+});
+
 test('static deep links, mobile layout and retained rejected drafts', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/today?date=2026-11-18');
