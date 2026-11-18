@@ -11,6 +11,8 @@ installed macOS desktop **3.4.14**, build `2610024fcalyyd7`.
   meetings become work; field mapping, actions, completion and sync direction.
 - [Source manifest](./sources.md): all inspected manual URLs, article titles and
   REA capture identities; coverage and limitations.
+- [3.5.2 addendum](./evolution-3.5.2.md): post-audit desktop findings (coding-agent
+  host, native desktop shell, Apple Reminders); relevant to AI and client epics.
 - [Coverage audit](./coverage-audit.md): maps the twelve first-slice GitHub issues
   against the feature inventory and flags what is deferred vs critical.
 - [Sunsama parity planning map](../../../.plan/maps/sunsama-parity/map.md): the route

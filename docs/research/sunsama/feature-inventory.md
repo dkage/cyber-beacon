@@ -195,6 +195,9 @@ Sources: [Today](https://help.sunsama.com/docs/usage-guides/today-view),
 | F108 | All documented provider families, including Google Tasks, Microsoft tasks, CalDAV and Apple Reminders | Missing beyond initial connectors; inventory every family but stage by actual use | 12 |
 | F109 | Shared/private workspaces, invites, roles, teammate privacy and highlights feed | Deferred: multi-user structure is not a shared-workspace specification | 12 |
 | F110 | Enterprise SAML/SCIM/audit/policy controls; billing/referrals/onboarding courses/support roadmap | Missing, not parity-critical for self-hosted personal product; explicit disposition required | 12 |
+| F111 | Coding-agent host (installed 3.5.2): run Claude Code / Codex / pi as local agents that read and write planning data via ACP + device pairing + machine-scoped prefs | Missing: REA-new; distinct from Sunny/Autoplan and from external execution; needs parity 10 boundary | 10 |
+| F112 | Native desktop shell (installed 3.5.2): global add-task window, tray/mini focus bar, keep-running-in-tray, custom URL scheme, auto-update with relaunch toast and ShipIt/Squirrel guard | Missing: native shell not implied by SvelteKit; roadmap item | 11 |
+| F113 | Local-OS connector pattern (installed 3.5.2), e.g. native Apple Reminders Swift bridge: per-minute auto-import, destructive delete-on-import option, recurring-occurrence handling | Missing: macOS-local bridge incompatible with Linux server; cannot reuse server-owned token model as-is | 12, 11 |
 
 ## Cyber Beacon additions and intentional architecture differences
 
