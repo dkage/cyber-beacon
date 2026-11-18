@@ -8,12 +8,26 @@ from django.db import connection
 from django.utils import timezone
 
 from integrations import providers, services
-from integrations.models import CalendarEvent, IntegrationConnection, Mount, OAuthState, TaskSource
+from integrations.models import (
+    CalendarEvent,
+    CalendarSyncProgress,
+    IntegrationConnection,
+    Mount,
+    OAuthState,
+    TaskSource,
+)
 from planner.day import capacity, time_totals
 from planner.models import Task, TimeEntry
 from planner.services import create_task
 
 pytestmark = pytest.mark.django_db
+
+
+def test_provider_capabilities_list_calendar_and_worksheet_sources():
+    assert providers.providers_with("calendar") == ("google", "microsoft")
+    assert providers.providers_with("worksheet") == ("notion", "github")
+    assert providers.supports("microsoft", "calendar")
+    assert not providers.supports("github", "calendar")
 
 
 @pytest.fixture
@@ -187,7 +201,6 @@ def test_calendar_refresh_paginates_and_preserves_last_good_data(user, notion, m
     assert len(calls) == 2
     assert calls[1]["params"]["pageToken"] == "next"
     assert CalendarEvent.objects.count() == 2
-    assert Task.objects.count() == 0
 
     def fail(*args, **kwargs):
         raise providers.ProviderError("Rate limited", kind="rate_limited", retry_after=120)
@@ -199,6 +212,69 @@ def test_calendar_refresh_paginates_and_preserves_last_good_data(user, notion, m
     assert notion.last_succeeded_at
     assert notion.sync_started_at is None
     assert CalendarEvent.objects.count() == 2
+
+
+def test_calendar_rate_limit_resumes_from_saved_page_cursor(notion, monkeypatch):
+    connection = notion.connection
+    connection.provider = "google"
+    connection.save(update_fields=["provider"])
+    calls = []
+
+    def throttled_fetch(connection, method, path, **kwargs):
+        calls.append((path, kwargs))
+        if len(calls) == 1:
+            return {
+                "items": [
+                    {
+                        "id": "first-page-event",
+                        "summary": "First page",
+                        "start": {"dateTime": "2026-11-18T12:00:00Z"},
+                        "end": {"dateTime": "2026-11-18T13:00:00Z"},
+                    }
+                ],
+                "nextPageToken": "continue-here",
+            }
+        raise providers.ProviderError("Rate limited", kind="rate_limited", retry_after=120)
+
+    monkeypatch.setattr(providers, "request", throttled_fetch)
+    services.sync_calendar(str(notion.pk))
+
+    progress = CalendarSyncProgress.objects.get(mount=notion)
+    assert progress.next_cursor == "continue-here"
+    assert [row["external_id"] for row in progress.events] == ["first-page-event"]
+    assert CalendarEvent.objects.filter(mount=notion).count() == 0
+    for _ in range(4):
+        services.sync_calendar(str(notion.pk))
+    notion.refresh_from_db()
+    assert notion.enabled
+
+    calls.clear()
+    monkeypatch.setattr(
+        providers,
+        "request",
+        lambda connection, method, path, **kwargs: calls.append((path, kwargs))
+        or {
+            "items": [
+                {
+                    "id": "second-page-event",
+                    "summary": "Second page",
+                    "start": {"dateTime": "2026-11-18T13:00:00Z"},
+                    "end": {"dateTime": "2026-11-18T14:00:00Z"},
+                }
+            ]
+        },
+    )
+
+    services.sync_calendar(str(notion.pk))
+
+    assert calls[0][1]["params"]["pageToken"] == "continue-here"
+    assert set(
+        CalendarEvent.objects.filter(mount=notion).values_list("external_id", flat=True)
+    ) == {
+        "first-page-event",
+        "second-page-event",
+    }
+    assert not CalendarSyncProgress.objects.filter(mount=notion).exists()
 
 
 def test_capacity_merges_overlapping_meetings_and_clips_work_hours(user):

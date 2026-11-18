@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import DATE_ORDER_CHOICES, DATE_SEPARATOR_CHOICES
+from integrations import providers
 from integrations.models import Mount
 from integrations.serializers import CalendarEventSerializer
 from integrations.services import events_for_day
@@ -71,7 +72,8 @@ def day_summary(user, day):
         "timer": timer,
         "calendars": list(
             Mount.objects.filter(
-                connection__user=user, connection__provider__in=["google", "microsoft"]
+                connection__user=user,
+                connection__provider__in=providers.providers_with("calendar"),
             ).values("id", "label", "last_succeeded_at", "last_error", "enabled")
         ),
     }

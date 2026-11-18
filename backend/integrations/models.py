@@ -58,6 +58,17 @@ class Mount(models.Model):
         ]
 
 
+class CalendarSyncProgress(models.Model):
+    mount = models.OneToOneField(Mount, on_delete=models.PROTECT, related_name="sync_progress")
+    window_start = models.DateTimeField()
+    window_end = models.DateTimeField()
+    next_cursor = models.TextField(blank=True)
+    events = models.JSONField(default=list)
+    pages_fetched = models.PositiveSmallIntegerField(default=0)
+    complete = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
 class MountSnapshot(models.Model):
     mount = models.OneToOneField(Mount, primary_key=True, on_delete=models.PROTECT)
     value = models.JSONField(default=dict)
