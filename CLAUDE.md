@@ -37,8 +37,12 @@ working tree for subsequent progress.
 - Django owns users, authentication, authorization, credentials, integration state,
   migrations, domain rules and background jobs. The frontend renders state and handles
   interactions, including login UI, without owning an account system or database.
-- Every API consumer is first-class. Design for a future native client; building Swift
-  iOS, native desktop or general offline editing is not currently committed scope.
+- Every API consumer is first-class. Design for a future native mobile client from
+day one: keep session/refresh and API capabilities ready for a mobile app, and expect
+social login via allauth social accounts (Google, GitHub, Apple) in addition to the
+primary account flow. A mobile client is a planned roadmap item (stores and timing not
+yet decided, low priority); native desktop is a separate later/roadmap item, not
+committed scope. General offline editing is not currently committed scope.
 - Structure data and permissions per user from day one, even with one user in practice.
 - Signing in with a provider and connecting its services have separate scopes and
   lifecycles. A user can connect several accounts per Provider; disconnecting one must
