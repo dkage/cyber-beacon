@@ -67,36 +67,30 @@ affected policies must be reconciled before their first migrations.
 
 ## Getting Started
 
+### Backend
+
+Not yet scaffolded (`#8`). See [Django API conventions](./docs/agents/django.md) and
+[CLAUDE.md](./CLAUDE.md) for the planned backend stack and conventions.
+
 ### Frontend
 
 ```bash
 cd frontend
+bun install
 bun run dev --open
 ```
 
-Hit `Ctrl-C` to stop the dev server.
+Hit `Ctrl-C` to stop the dev server. Available frontend checks (see `frontend/package.json`):
 
-## Add-on Setup
-
-### Playwright
-- Run `npx playwright install` to download browsers
-- Visit `/demo/playwright` to see the demo page
-- Run `npm run test:e2e` to execute the example tests
-
-### Drizzle
-- Check `DATABASE_URL` in `.env` and adjust it to your needs
-- Run `bun run db:push` to update your database schema
-
-### Better Auth
-- Run `bun run auth:schema` to generate the auth schema
-- Run `bun run db:push` to update your database
-- Check `ORIGIN` & `BETTER_AUTH_SECRET` in `.env` and adjust to your needs
-- Visit `/demo/better-auth` to view the demo
+- `bun run check` — SvelteKit sync and TypeScript check
+- `bun run lint` — Prettier and ESLint
+- `bun run test:unit -- --run` — Vitest unit tests
+- `bun run test:e2e` — Playwright end-to-end tests (`npx playwright install` on first run)
+- `bun run storybook` — Storybook on port 6006
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for commit conventions and guidelines.
-
-Stuck? Visit https://svelte.dev/chat
+See [CONTRIBUTING.md](./CONTRIBUTING.md) and [COMMITS.md](./COMMITS.md) for commit
+conventions and guidelines.
