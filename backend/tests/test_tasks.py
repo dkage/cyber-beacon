@@ -54,6 +54,16 @@ def test_parent_cycle_is_rejected(client, user):
     assert parent.parent is None
 
 
+def test_parent_is_rechecked_inside_the_mutation_lock(user):
+    from django.utils import timezone as django_timezone
+    from rest_framework.exceptions import ValidationError
+
+    parent = create_task(user, {"title": "Parent"})
+    Task.objects.filter(pk=parent.pk).update(deleted_at=django_timezone.now())
+    with pytest.raises(ValidationError):
+        create_task(user, {"title": "Child", "parent": parent})
+
+
 def test_reorder_rejects_stale_membership_and_versions(client, user):
     a = create_task(user, {"title": "A", "do_date": date(2026, 11, 18)})
     b = create_task(user, {"title": "B", "do_date": date(2026, 11, 18)})

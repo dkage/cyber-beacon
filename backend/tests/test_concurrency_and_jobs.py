@@ -40,6 +40,8 @@ def test_two_clients_cannot_both_commit_the_same_version(user):
 
 @pytest.mark.django_db
 def test_schedules_recover_and_daily_tick_is_repeatable(user):
+    user.timezone = "UTC"
+    user.save(update_fields=["timezone"])
     ensure_schedules()
     ensure_schedules()
     assert Schedule.objects.filter(name__startswith="beacon-").count() == 2
@@ -53,8 +55,8 @@ def test_schedules_recover_and_daily_tick_is_repeatable(user):
     daily_tick()
     daily_tick()
     task.refresh_from_db()
-    assert task.do_date >= yesterday
-    assert task.activity.filter(kind="carried_forward").count() <= 1
+    assert task.do_date == timezone.localdate()
+    assert task.activity.filter(kind="carried_forward").count() == 1
     assert JobRun.objects.filter(user=user, outcome="success").count() == 2
 
 

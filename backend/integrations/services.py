@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 import secrets
 from datetime import timedelta
 from urllib.parse import quote
@@ -47,6 +48,7 @@ def begin_oauth(request, provider):
     providers.config(provider)
     if not request.session.session_key:
         request.session.save()
+    OAuthState.objects.filter(expires_at__lt=timezone.now()).delete()
     token = secrets.token_urlsafe(32)
     OAuthState.objects.create(
         digest=digest(token),
@@ -97,6 +99,8 @@ def finish_oauth(request, provider, state, code):
 
 @transaction.atomic
 def disconnect(user, connection):
+    if connection.user_id != user.pk:
+        raise NotFound()
     lock_user(user)
     connection.status = "disconnected"
     connection.credentials = None
@@ -118,6 +122,8 @@ def prior_import(user, key, fingerprint):
 
 
 def import_record(user, mount, external_id, day, key):
+    if mount.connection.user_id != user.pk:
+        raise NotFound()
     fingerprint = import_fingerprint(mount, external_id, day)
     previous = prior_import(user, key, fingerprint)
     if previous:
@@ -255,6 +261,7 @@ def sync_calendar(mount_id):
         run.outcome = "success"
         run.counts = {"events": len(rows)}
     except Exception as exc:
+        logging.getLogger(__name__).exception("Calendar refresh failed for Mount %s", mount.pk)
         error = (
             exc
             if isinstance(exc, providers.ProviderError)

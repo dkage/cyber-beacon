@@ -91,6 +91,9 @@ class ConnectionViewSet(viewsets.GenericViewSet):
             raise ValidationError("Reconnect this Provider first.")
         with transaction.atomic():
             lock_user(request.user)
+            connection.refresh_from_db(fields=["status"])
+            if connection.status != "active":
+                raise ValidationError("Reconnect this Provider first.")
             mount, _ = Mount.objects.get_or_create(
                 connection=connection,
                 external_id=data["external_id"],

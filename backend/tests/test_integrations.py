@@ -244,3 +244,124 @@ def test_day_read_model_serializes_tasks_sources_meetings_and_running_timer(clie
     assert result["tasks"][0]["source"]["raw"]["title"] == "Remote"
     assert result["events"][0]["mount"] == str(notion.pk)
     assert result["timer"]["task"] == str(task.pk)
+
+
+def test_notion_oauth_protocol_stays_separate_from_login(notion, monkeypatch):
+    import httpx
+
+    def send(method, url, **kwargs):
+        assert method == "POST"
+        assert url == "https://api.notion.com/v1/oauth/token"
+        assert kwargs["auth"] == ("id", "secret")
+        assert kwargs["json"]["grant_type"] == "authorization_code"
+        return httpx.Response(
+            200,
+            json={"access_token": "fresh", "workspace_id": "workspace", "workspace_name": "Work"},
+        )
+
+    monkeypatch.setattr(httpx, "request", send)
+    credentials, identity, label, scopes = providers.exchange("notion", "code")
+    assert credentials["access_token"] == "fresh"
+    assert (identity, label, scopes) == ("workspace", "Work", [])
+
+
+def test_google_exchange_refresh_and_readonly_scope(notion, settings, monkeypatch):
+    import httpx
+
+    settings.INTEGRATION_OAUTH["google"] = {
+        "client_id": "google-id",
+        "client_secret": "google-secret",
+        "redirect_uri": "http://localhost/google/callback",
+    }
+    calls = []
+
+    def send(method, url, **kwargs):
+        calls.append((method, url))
+        if url == "https://oauth2.googleapis.com/token":
+            if kwargs["data"]["grant_type"] == "refresh_token":
+                return httpx.Response(200, json={"access_token": "refreshed", "expires_in": 3600})
+            return httpx.Response(
+                200,
+                json={
+                    "access_token": "initial",
+                    "refresh_token": "refresh",
+                    "scope": providers.GOOGLE_SCOPE,
+                    "expires_in": 3600,
+                },
+            )
+        if url.endswith("calendars/primary"):
+            return httpx.Response(200, json={"id": "account@example.test", "summary": "Work"})
+        assert kwargs["headers"]["Authorization"] == "Bearer refreshed"
+        return httpx.Response(200, json={"items": []})
+
+    monkeypatch.setattr(httpx, "request", send)
+    credentials, identity, _, scopes = providers.exchange("google", "code")
+    assert scopes == [providers.GOOGLE_SCOPE]
+    assert identity == "account@example.test"
+    credentials["expires_at"] = "2000-01-01T00:00:00+00:00"
+    conn = notion.connection
+    conn.provider, conn.credentials = "google", credentials
+    conn.save(update_fields=["provider", "credentials"])
+    providers.request(conn, "GET", "users/me/calendarList")
+    conn.refresh_from_db()
+    assert conn.credentials["refresh_token"] == "refresh"
+    assert conn.credentials["access_token"] == "refreshed"
+    assert len(calls) == 4
+
+
+def test_dead_google_refresh_requires_reauthorization(notion, settings, monkeypatch):
+    import httpx
+
+    settings.INTEGRATION_OAUTH["google"] = {
+        "client_id": "id",
+        "client_secret": "secret",
+        "redirect_uri": "http://localhost/callback",
+    }
+    conn = notion.connection
+    conn.provider = "google"
+    conn.credentials = {
+        "access_token": "expired",
+        "refresh_token": "dead",
+        "expires_at": "2000-01-01T00:00:00+00:00",
+    }
+    conn.save(update_fields=["provider", "credentials"])
+    monkeypatch.setattr(
+        httpx,
+        "request",
+        lambda *args, **kwargs: httpx.Response(400, json={"error": "invalid_grant"}),
+    )
+    with pytest.raises(providers.ProviderError):
+        providers.request(conn, "GET", "users/me/calendarList")
+    conn.refresh_from_db()
+    assert conn.status == "needs_reauth"
+
+
+def test_notion_record_search_uses_title_property_id(notion, monkeypatch):
+    calls = []
+
+    def request(conn, method, path, **kwargs):
+        calls.append((method, path, kwargs))
+        if method == "GET":
+            return {"properties": {"Renamed title": {"type": "title", "id": "title-id"}}}
+        return {"results": [], "next_cursor": None}
+
+    monkeypatch.setattr(providers, "request", request)
+    providers.browse(notion, "cursor", "release")
+    assert calls[-1][2]["json"]["filter"] == {
+        "property": "title-id",
+        "title": {"contains": "release"},
+    }
+    assert calls[-1][2]["json"]["start_cursor"] == "cursor"
+    assert Task.objects.count() == 0
+
+
+def test_import_and_disconnect_enforce_service_ownership(other_user, notion):
+    from rest_framework.exceptions import NotFound
+
+    with pytest.raises(NotFound):
+        services.import_record(other_user, notion, "record", None, uuid.uuid4())
+    with pytest.raises(NotFound):
+        services.disconnect(other_user, notion.connection)
+    notion.connection.refresh_from_db()
+    assert notion.connection.status == "active"
+    assert Task.objects.count() == 0

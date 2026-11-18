@@ -1,5 +1,5 @@
-from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from django.utils import timezone
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -32,8 +32,6 @@ class KioskAuthentication(BaseAuthentication):
 
     def authenticate_header(self, request):
         return "Device"
-
-
 
 
 class KioskAuthenticationScheme(OpenApiAuthenticationExtension):

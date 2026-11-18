@@ -1,5 +1,11 @@
-from datetime import timedelta
+from __future__ import annotations
+
+from datetime import date, datetime, timedelta
+from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
+
+if TYPE_CHECKING:
+    from accounts.models import User
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -25,29 +31,29 @@ class PreconditionRequired(APIException):
     default_detail = 'Send If-Match: "<version>".'
 
 
-def lock_user(user):
+def lock_user(user: User) -> User:
     return get_user_model().objects.select_for_update().get(pk=user.pk)
 
 
-def require_version(task, version):
+def require_version(task: Task, version: int | None) -> None:
     if version is None:
         raise PreconditionRequired()
     if task.version != version:
         raise PreconditionFailed()
 
 
-def owned_task(user, task_id, *, deleted=False):
+def owned_task(user: User, task_id: str, *, deleted: bool = False) -> Task:
     try:
         return Task.objects.get(pk=task_id, user=user, deleted_at__isnull=not deleted)
     except Task.DoesNotExist as exc:
         raise NotFound() from exc
 
 
-def activity(task, kind, actor=None, **payload):
+def activity(task: Task, kind: str, actor: User | None = None, **payload: Any) -> None:
     TaskActivity.objects.create(task=task, actor=actor, kind=kind, payload=payload)
 
 
-def next_position(user, day):
+def next_position(user: User, day: date | None) -> int:
     return (
         Task.objects.filter(user=user, do_date=day, deleted_at=None).aggregate(p=Max("position"))[
             "p"
@@ -56,7 +62,12 @@ def next_position(user, day):
     ) + 1
 
 
-def validate_parent(user, task, parent):
+def validate_parent(user: User, task: Task | None, parent: Task | None) -> None:
+    if parent:
+        try:
+            parent = Task.objects.get(pk=parent.pk, user=user, deleted_at=None)
+        except Task.DoesNotExist as exc:
+            raise ValidationError({"parent": "Choose one of your active Tasks."}) from exc
     seen = {task.pk} if task else set()
     while parent:
         if parent.user_id != user.pk or parent.deleted_at:
@@ -68,7 +79,7 @@ def validate_parent(user, task, parent):
 
 
 @transaction.atomic
-def create_task(user, data):
+def create_task(user: User, data: dict[str, Any]) -> Task:
     lock_user(user)
     validate_parent(user, None, data.get("parent"))
     task = Task.objects.create(user=user, position=next_position(user, data.get("do_date")), **data)
@@ -76,7 +87,7 @@ def create_task(user, data):
     return task
 
 
-def stop_running(user, task=None, now=None):
+def stop_running(user: User, task: Task | None = None, now: datetime | None = None) -> None:
     now = now or timezone.now()
     query = TimeEntry.objects.filter(user=user, ended_at=None)
     if task:
@@ -88,7 +99,9 @@ def stop_running(user, task=None, now=None):
 
 
 @transaction.atomic
-def change_task(user, task_id, data, version, *, action="edit"):
+def change_task(
+    user: User, task_id: str, data: dict[str, Any], version: int | None, *, action: str = "edit"
+) -> Task:
     lock_user(user)
     task = owned_task(user, task_id, deleted=action == "restore")
     require_version(task, version)
@@ -129,7 +142,7 @@ def change_task(user, task_id, data, version, *, action="edit"):
 
 
 @transaction.atomic
-def reorder(user, day, items):
+def reorder(user: User, day: date, items: list[dict[str, Any]]) -> list[Task]:
     lock_user(user)
     tasks = list(Task.objects.filter(user=user, do_date=day, deleted_at=None))
     submitted = {str(item["id"]): item["version"] for item in items}
@@ -147,7 +160,7 @@ def reorder(user, day, items):
 
 
 @transaction.atomic
-def start_timer(user, task_id):
+def start_timer(user: User, task_id: str) -> TimeEntry:
     lock_user(user)
     task = owned_task(user, task_id)
     if task.completed_at:
@@ -163,7 +176,7 @@ def start_timer(user, task_id):
 
 
 @transaction.atomic
-def stop_timer(user, entry_id):
+def stop_timer(user: User, entry_id: str) -> TimeEntry:
     lock_user(user)
     try:
         entry = TimeEntry.objects.get(pk=entry_id, user=user)
@@ -176,7 +189,7 @@ def stop_timer(user, entry_id):
 
 
 @transaction.atomic
-def carry_forward(user, now=None):
+def carry_forward(user: User, now: datetime | None = None) -> int:
     user = lock_user(user)
     today = (now or timezone.now()).astimezone(ZoneInfo(user.timezone)).date()
     tasks = Task.objects.filter(user=user, deleted_at=None, completed_at=None, do_date__lt=today)
