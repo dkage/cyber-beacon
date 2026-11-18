@@ -10,22 +10,20 @@ are project choices rather than requirements imposed by Django.
    gates; a convention here does not settle missing product behavior.
 2. Inspect the actual backend, dependency lockfile and configuration. At the time this
    guide was introduced, `backend/` still held the abandoned Go scaffold. Resolve Python,
-   Django and dependency versions during the Django foundation work; use documentation
-   for the installed versions afterward.
+   Django and dependency versions during the Django foundation work (`#8`), and update this
+   guide with the concrete app layout and test/lint/schema commands once `#8` lands.
 3. Find the nearest implemented example of the same operation. Follow its conventions
    unless the task calls for changing them; explain any necessary departure.
 
-The stack and ownership boundaries live in [CLAUDE.md](../../CLAUDE.md#architecture).
-Django/DRF owns the domain and exposes versioned APIs to the SvelteKit client and future
-clients. Keep account state, integration credentials and authoritative business rules
-on the backend. Use django-allauth headless for identity and drf-spectacular for OpenAPI.
-Browser session/CSRF and static delivery details remain subject to
+Architecture boundaries and settled stack live in [CLAUDE.md](../../CLAUDE.md#architecture);
+browser session/CSRF and static delivery details remain subject to
 [backend ticket 12](../../.plan/maps/backend-architecture/tickets/12-static-frontend-and-packaging.md).
 
 ## Domain apps and placement of logic
 
-Keep Django apps aligned with cohesive domain responsibilities. Start with ordinary
-modules; turn a module into a package when its size or responsibilities justify it.
+Keep Django apps and models aligned with [`CONTEXT.md`](../../CONTEXT.md) vocabulary and
+cohesive domain responsibilities. Start with ordinary modules; turn a module into a
+package when its size or responsibilities justify it.
 
 | Location | Responsibility |
 |---|---|
@@ -63,14 +61,14 @@ model class is needed at runtime. In data migrations use historical models from
   actions or APIViews for domain commands; keep orchestration small in either case.
 - Use separate input/output serializers when their fields or validation differ; avoid
   multiplying classes without a concrete distinction.
-- Describe request/response serializers, parameters and material error responses in
-  drf-spectacular. Add annotations where inference is insufficient. Update the schema
-  with the endpoint so a client author can implement against it.
+- Describe request/response serializers, parameters, named enums/components and material
+  error responses in `drf-spectacular`. Use explicit `operation_id`s where needed and keep
+  schema generation warning-free so SvelteKit and future native clients generate cleanly.
 - Use bounded pagination and deterministic ordering with a tie-breaker on collection
   endpoints. Allowlist filters and ordering fields; bound expensive input sizes.
-- Return consistent DRF validation and permission errors. If a shared exception format
-  becomes necessary, define it centrally and document it rather than inventing a shape
-  per endpoint. Never return credentials or provider secrets in errors or logs.
+- Return consistent DRF validation and permission errors. Define any shared exception
+  shape centrally and document it in the schema. Sanitize errors and logs so credentials
+  and provider secrets are never exposed.
 - Keep GET/HEAD free of domain mutations. Enforce authoritative rules server-side even
   when Svelte supplies immediate client-side feedback.
 - Follow the domain distinction between local calendar dates and instants in
@@ -96,14 +94,22 @@ explicitly, such as sign-in flows or verified provider callbacks.
   pass stable IDs and load the authorized records rather than trusting client objects.
 - Preserve CSRF protection for browser cookie authentication, including login/logout
   as required by the chosen auth flow. Follow the proven allauth/session contract when
-  ticket 12 closes; do not bypass CSRF or broaden CORS to make development work.
+  ticket 12 closes rather than weakening CSRF or broadening CORS for local development.
 - Verify webhook authenticity according to the provider protocol before processing
   it. Limit any CSRF exemption to the endpoint that uses that alternative verification.
 
 For provider connections and credentials, read
 [ADR-0002](../adr/0002-integration-connections-separate-from-identity.md) and
-[ADR-0003](../adr/0003-credential-encryption-at-rest.md). Connecting a provider is distinct
-from signing in; credentials remain encrypted and server-side.
+[ADR-0003](../adr/0003-credential-encryption-at-rest.md) before changing auth or sync
+models:
+
+- **Connections vs identity (ADR-0002):** Implement provider connections on our own
+  connection model and OAuth client; keep `django-allauth` (`SocialApp`, `SocialAccount`,
+  `SocialToken`) strictly for user sign-in.
+- **Credentials at rest (ADR-0003):** Store provider tokens as an opaque JSON blob in the
+  project's `MultiFernet`-backed field (`settings.FERNET_KEYS`) rather than adding
+  third-party Fernet packages or `pgcrypto`. Keep searchable user content (`notes`,
+  `TaskSource.raw`) in plaintext.
 
 ## ORM, validation and transactions
 
@@ -129,7 +135,7 @@ from signing in; credentials remain encrypted and server-side.
 
 Use synchronous DRF and ORM workflows as the starting point. Introduce async only for
 a concrete benefit after checking the installed Django, DRF, middleware and driver
-support. In Django 5.2, transactional work must remain in a synchronous function.
+support (in Django 5.2, transactional work must remain synchronous).
 Choose features such as `GeneratedField` and `db_default` for a requirement, rather
 than because they are newer.
 
@@ -151,13 +157,18 @@ Follow [backend ticket 05](../../.plan/maps/backend-architecture/tickets/05-work
 for queue configuration and the applicable parity tickets for current behavior. Its
 older sweep/sync examples do not override the product baseline.
 
-- Route dispatch through the shared enqueue helper; keep task wrappers thin and pass
-  stable identifiers rather than requests or serialized model instances.
+- Route dispatch through the shared `enqueue()` helper to the `default` (`worker`) or
+  `ai` (`worker-ai`) cluster; keep task wrappers thin and pass stable identifiers rather
+  than requests or serialized model instances. Keep `retry > timeout` on every cluster.
+- Define periodic schedules in code (`ensure_schedules()`) rather than relying on Admin
+  edits, and derive recoverable work from PostgreSQL state. Record human-facing run
+  history in `JobRun` rather than Django-Q2 result tables.
 - Make repeated delivery safe. Persist progress and recoverable intent in PostgreSQL
   where work must survive worker crashes or dispatch failures.
-- Keep timeout, retry and rate-limit behavior explicit. A timed-out external write can
-  have succeeded remotely; reconcile or use provider idempotency support before retrying
-  when duplication matters. Avoid generic retries for every exception.
+- When rate-limited, checkpoint the cursor, advance `next_attempt_at` and exit to free
+  the worker slot—never sleep inside a throttled job. Keep timeout, retry and rate-limit
+  behavior explicit, and reconcile or use provider idempotency before retrying timed-out
+  external writes. Avoid generic retries for every exception.
 - Use explicit HTTP timeouts and classify provider failures. Keep credentials and raw
   sensitive payloads out of job arguments, exception messages and logs.
 
@@ -181,8 +192,10 @@ Test observable behavior at the relevant boundary:
 
 Use factories or small explicit builders when they clarify setup. Add tests proportional
 to behavior and risk; avoid tests that only mirror implementation or trivial delegation.
-Run focused tests, Django system checks, migration drift checks and OpenAPI validation
-as applicable to the change. Report commands run and any checks that remain unavailable.
+Run focused tests, Django system checks, migration drift checks (`makemigrations --check --dry-run`)
+and OpenAPI schema validation (`spectacular --validate --fail-on-warn`, or the repo's
+configured equivalents) before finishing. Report commands run and any checks that remain
+unavailable.
 
 ## References
 
