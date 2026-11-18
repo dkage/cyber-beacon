@@ -226,7 +226,13 @@
 											: minutes(task.estimated_minutes)}</span
 									>{#if task.due_date}<span class="attention"
 											>Due {formatDate(task.due_date, data.date_order, data.date_separator)}</span
-										>{/if}{#if task.source}<span class="external">↗ Notion</span>{/if}<span
+										>{/if}{#if task.source}<span class="external"
+											>↗ {task.source.provider === 'github'
+												? 'GitHub issue'
+												: task.source.provider === 'notion'
+													? 'Notion'
+													: task.source.provider}</span
+										>{/if}<span
 										>{minutes((data.task_actual_seconds[task.id] ?? 0) / 60)} actual</span
 									>
 								</div>

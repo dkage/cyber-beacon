@@ -20,7 +20,7 @@
 	let version = $state(initial.task?.version);
 	let title = $state(initial.task?.title ?? '');
 	let notes = $state(initial.task?.notes ?? '');
-	let doDate = $state(initial.task?.do_date ?? initial.day);
+	let doDate = $state(initial.task ? (initial.task.do_date ?? '') : initial.day);
 	let dueDate = $state(initial.task?.due_date ?? '');
 	let startDate = $state(initial.task?.start_date ?? '');
 	let estimate = $state<number | undefined>(initial.task?.estimated_minutes ?? undefined);

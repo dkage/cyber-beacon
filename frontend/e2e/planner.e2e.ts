@@ -43,6 +43,14 @@ test('first-task creation opens a modal and the empty day fits a desktop viewpor
 	await page.getByLabel('Do date', { exact: true }).fill('');
 	await page.getByRole('button', { name: 'Save Task', exact: true }).click();
 	await expect(firstTask).toHaveCount(0);
+	const backlog = page.locator('details').filter({ hasText: 'Backlog' });
+	await backlog.locator('summary').click();
+	await expect(backlog.getByText('First task from the modal', { exact: true })).toBeVisible();
+	await backlog.getByRole('button', { name: 'Edit Task' }).click();
+	await expect(page.getByLabel('Do date', { exact: true })).toHaveValue('');
+	await page.getByLabel('Title', { exact: true }).fill('Edited backlog task');
+	await page.getByRole('button', { name: 'Save Task', exact: true }).click();
+	await expect(backlog.getByText('Edited backlog task', { exact: true })).toBeVisible();
 });
 
 test('a real authenticated day: create, edit, order, time, complete, trash and restore', async ({
@@ -166,6 +174,135 @@ test('GitHub repository issues can be searched and explicitly imported', async (
 	await expect(page.getByText('#12 Fix parser regression')).toBeVisible();
 	await page.getByRole('button', { name: 'Import worksheet', exact: true }).click();
 	await expect(page.getByRole('status')).toContainText('Imported “#12 Fix parser regression”');
+	const dayResponse = await page.request.get('/api/v1/day/');
+	const day = await dayResponse.json();
+	day.tasks = [
+		{
+			source: {
+				provider: 'github',
+				url: 'https://github.com/acme/planner/issues/12',
+				raw: {},
+				imported_at: '2026-11-18T12:00:00Z'
+			},
+			id: '55555555-5555-4555-8555-555555555555',
+			parent: null,
+			title: '#12 Fix parser regression',
+			notes: '',
+			do_date: day.date,
+			due_date: null,
+			start_date: null,
+			priority: null,
+			estimated_minutes: null,
+			position: 0,
+			completed_at: null,
+			version: 1,
+			deleted_at: null,
+			created_at: '2026-11-18T12:00:00Z',
+			updated_at: '2026-11-18T12:00:00Z'
+		}
+	];
+	await page.route('**/api/v1/day/**', async (route) => {
+		await route.fulfill({ contentType: 'application/json', body: JSON.stringify(day) });
+	});
+	await page.goto('/today');
+	await expect(page.getByText('↗ GitHub issue')).toBeVisible();
+});
+
+test('failed resource and issue lookups clear results from the prior selection', async ({
+	page
+}) => {
+	const firstConnection = '11111111-1111-4111-8111-111111111111';
+	const secondConnection = '33333333-3333-4333-8333-333333333333';
+	const firstMount = '22222222-2222-4222-8222-222222222222';
+	const secondMount = '44444444-4444-4444-8444-444444444444';
+	const mount = (id: string, connection: string) => ({
+		id,
+		connection,
+		external_id: 'acme/planner',
+		label: 'acme/planner',
+		enabled: true,
+		last_succeeded_at: null,
+		last_error: '',
+		consecutive_failures: 0
+	});
+	await page.route('**/api/v1/integrations/connections/', async (route) => {
+		await route.fulfill({
+			contentType: 'application/json',
+			body: JSON.stringify([
+				{
+					id: firstConnection,
+					provider: 'github',
+					label: 'Personal GitHub',
+					status: 'active',
+					last_error: '',
+					mounts: [mount(firstMount, firstConnection)]
+				},
+				{
+					id: secondConnection,
+					provider: 'github',
+					label: 'Work GitHub',
+					status: 'active',
+					last_error: '',
+					mounts: [mount(secondMount, secondConnection)]
+				}
+			])
+		});
+	});
+	await page.route(
+		`**/api/v1/integrations/connections/${firstConnection}/resources/**`,
+		async (route) => {
+			await route.fulfill({
+				contentType: 'application/json',
+				body: JSON.stringify({
+					results: [{ id: 'acme/old', label: 'acme/old' }],
+					next_cursor: null
+				})
+			});
+		}
+	);
+	await page.route(
+		`**/api/v1/integrations/connections/${secondConnection}/resources/**`,
+		async (route) => {
+			await route.fulfill({
+				status: 503,
+				contentType: 'application/json',
+				body: '{"detail":"Offline"}'
+			});
+		}
+	);
+	await page.route(`**/api/v1/integrations/mounts/${firstMount}/browse/**`, async (route) => {
+		await route.fulfill({
+			contentType: 'application/json',
+			body: JSON.stringify({
+				results: [{ id: '12', title: '#12 Old account issue', url: '', imported_count: 0 }],
+				next_cursor: null
+			})
+		});
+	});
+	await page.route(`**/api/v1/integrations/mounts/${secondMount}/browse/**`, async (route) => {
+		await route.fulfill({
+			status: 503,
+			contentType: 'application/json',
+			body: '{"detail":"Offline"}'
+		});
+	});
+	await page.goto('/connections');
+	const cards = page.locator('.connection-grid > section');
+	await cards.nth(0).getByRole('button', { name: 'Choose resource' }).click();
+	await expect(page.getByText('acme/old', { exact: true })).toBeVisible();
+	await cards.nth(1).getByRole('button', { name: 'Choose resource' }).click();
+	await expect(page.getByText('acme/old', { exact: true })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Attach resource' })).toHaveCount(0);
+	await cards.nth(0).getByRole('button', { name: 'Browse issues' }).click();
+	await expect(page.getByText('#12 Old account issue')).toBeVisible();
+	await cards.nth(1).getByRole('button', { name: 'Browse issues' }).click();
+	await expect(page.getByText('#12 Old account issue')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Import worksheet' })).toHaveCount(0);
+});
+
+test('OAuth consent denial is shown on Connections', async ({ page }) => {
+	await page.goto('/connections?error=consent-denied');
+	await expect(page.getByRole('alert')).toContainText('Provider access was not granted');
 });
 
 test('static deep links, mobile layout and retained rejected drafts', async ({ page }) => {
