@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
@@ -33,6 +34,8 @@
 	let search = $state('');
 	let recordSearch = $state('');
 	let day = $state('');
+	let resourceRequest = 0;
+	let candidateRequest = 0;
 	const importKeys = new SvelteMap<string, string>();
 	async function load() {
 		try {
@@ -47,6 +50,9 @@
 		}
 	}
 	onMount(() => {
+		if (page.url.searchParams.get('error') === 'consent-denied') {
+			error = 'Provider access was not granted. You can try connecting again when ready.';
+		}
 		void load();
 	});
 	async function action(work: () => Promise<void>) {
@@ -73,20 +79,31 @@
 		});
 	}
 	async function browseResources(connection: Connection, cursor = '') {
+		const request = ++resourceRequest;
 		selectedConnection = connection;
 		selectedMount = null;
 		candidates = null;
-		resources = await api<Page<Resource>>(
+		resources = null;
+		const result = await api<Page<Resource>>(
 			`/api/v1/integrations/connections/${connection.id}/resources/?query=${encodeURIComponent(search)}&cursor=${encodeURIComponent(cursor)}`
 		);
+		if (request === resourceRequest && selectedConnection?.id === connection.id) {
+			resources = result;
+		}
 	}
 	async function browse(mount: Mount, cursor = '') {
+		const request = ++candidateRequest;
 		selectedMount = mount;
+		resources = null;
+		candidates = null;
 		selectedConnection =
 			connections.find((connection) => connection.id === mount.connection) ?? selectedConnection;
-		candidates = await api<Page<Candidate>>(
+		const result = await api<Page<Candidate>>(
 			`/api/v1/integrations/mounts/${mount.id}/browse/?cursor=${encodeURIComponent(cursor)}&query=${encodeURIComponent(recordSearch)}`
 		);
+		if (request === candidateRequest && selectedMount?.id === mount.id) {
+			candidates = result;
+		}
 	}
 	async function importCandidate(candidate: Candidate) {
 		if (!selectedMount) return;

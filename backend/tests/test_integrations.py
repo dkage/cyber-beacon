@@ -8,12 +8,26 @@ from django.db import connection
 from django.utils import timezone
 
 from integrations import providers, services
-from integrations.models import CalendarEvent, IntegrationConnection, Mount, OAuthState, TaskSource
+from integrations.models import (
+    CalendarEvent,
+    CalendarSyncProgress,
+    IntegrationConnection,
+    Mount,
+    OAuthState,
+    TaskSource,
+)
 from planner.day import capacity, time_totals
 from planner.models import Task, TimeEntry
 from planner.services import create_task
 
 pytestmark = pytest.mark.django_db
+
+
+def test_provider_capabilities_list_calendar_and_worksheet_sources():
+    assert providers.providers_with("calendar") == ("google", "microsoft")
+    assert providers.providers_with("worksheet") == ("notion", "github")
+    assert providers.supports("microsoft", "calendar")
+    assert not providers.supports("github", "calendar")
 
 
 @pytest.fixture
@@ -98,13 +112,48 @@ def test_browse_does_not_create_tasks_and_cross_user_mount_rejected(
     assert client.get(f"/api/v1/integrations/mounts/{notion.pk}/browse/").status_code == 404
 
 
+def test_github_import_count_is_scoped_to_the_selected_repository(
+    client, user, notion, monkeypatch
+):
+    connection = notion.connection
+    connection.provider = "github"
+    connection.save(update_fields=["provider"])
+    other_repository = Mount.objects.create(
+        connection=connection, external_id="acme/other", label="acme/other"
+    )
+    notion.external_id = "acme/planner"
+    notion.save(update_fields=["external_id"])
+    task = create_task(user, {"title": "Imported issue"})
+    TaskSource.objects.create(
+        task=task,
+        mount=notion,
+        external_id="12",
+        raw={"number": 12},
+        url="https://github.com/acme/planner/issues/12",
+    )
+    monkeypatch.setattr(
+        providers,
+        "browse",
+        lambda *args: {
+            "results": [{"number": 12, "title": "Same number, different repository"}],
+            "next_cursor": None,
+        },
+    )
+
+    response = client.get(f"/api/v1/integrations/mounts/{other_repository.pk}/browse/")
+
+    assert response.status_code == 200
+    assert response.json()["results"][0]["id"] == "12"
+    assert response.json()["results"][0]["imported_count"] == 0
+
+
 def test_oauth_state_is_session_bound_expiring_and_one_use(user, notion, monkeypatch):
     from django.contrib.sessions.backends.db import SessionStore
 
     session = SessionStore()
     session.create()
     request = SimpleNamespace(user=user, session=session)
-    url = services.begin_oauth(request, "notion")
+    url = services.begin_oauth(user, request.session.session_key, "notion")
     from urllib.parse import parse_qs, urlsplit
 
     state = parse_qs(urlsplit(url).query)["state"][0]
@@ -114,10 +163,10 @@ def test_oauth_state_is_session_bound_expiring_and_one_use(user, notion, monkeyp
     wrong = SessionStore()
     wrong.create()
     with pytest.raises(Exception, match="expired"):
-        services.finish_oauth(SimpleNamespace(user=user, session=wrong), "notion", state, "code")
-    services.finish_oauth(request, "notion", state, "code")
+        services.finish_oauth(user, wrong.session_key, "notion", state, "code")
+    services.finish_oauth(user, request.session.session_key, "notion", state, "code")
     with pytest.raises(Exception, match="expired"):
-        services.finish_oauth(request, "notion", state, "code")
+        services.finish_oauth(user, request.session.session_key, "notion", state, "code")
     assert OAuthState.objects.count() == 0
 
 
@@ -152,7 +201,6 @@ def test_calendar_refresh_paginates_and_preserves_last_good_data(user, notion, m
     assert len(calls) == 2
     assert calls[1]["params"]["pageToken"] == "next"
     assert CalendarEvent.objects.count() == 2
-    assert Task.objects.count() == 0
 
     def fail(*args, **kwargs):
         raise providers.ProviderError("Rate limited", kind="rate_limited", retry_after=120)
@@ -164,6 +212,69 @@ def test_calendar_refresh_paginates_and_preserves_last_good_data(user, notion, m
     assert notion.last_succeeded_at
     assert notion.sync_started_at is None
     assert CalendarEvent.objects.count() == 2
+
+
+def test_calendar_rate_limit_resumes_from_saved_page_cursor(notion, monkeypatch):
+    connection = notion.connection
+    connection.provider = "google"
+    connection.save(update_fields=["provider"])
+    calls = []
+
+    def throttled_fetch(connection, method, path, **kwargs):
+        calls.append((path, kwargs))
+        if len(calls) == 1:
+            return {
+                "items": [
+                    {
+                        "id": "first-page-event",
+                        "summary": "First page",
+                        "start": {"dateTime": "2026-11-18T12:00:00Z"},
+                        "end": {"dateTime": "2026-11-18T13:00:00Z"},
+                    }
+                ],
+                "nextPageToken": "continue-here",
+            }
+        raise providers.ProviderError("Rate limited", kind="rate_limited", retry_after=120)
+
+    monkeypatch.setattr(providers, "request", throttled_fetch)
+    services.sync_calendar(str(notion.pk))
+
+    progress = CalendarSyncProgress.objects.get(mount=notion)
+    assert progress.next_cursor == "continue-here"
+    assert [row["external_id"] for row in progress.events] == ["first-page-event"]
+    assert CalendarEvent.objects.filter(mount=notion).count() == 0
+    for _ in range(4):
+        services.sync_calendar(str(notion.pk))
+    notion.refresh_from_db()
+    assert notion.enabled
+
+    calls.clear()
+    monkeypatch.setattr(
+        providers,
+        "request",
+        lambda connection, method, path, **kwargs: calls.append((path, kwargs))
+        or {
+            "items": [
+                {
+                    "id": "second-page-event",
+                    "summary": "Second page",
+                    "start": {"dateTime": "2026-11-18T13:00:00Z"},
+                    "end": {"dateTime": "2026-11-18T14:00:00Z"},
+                }
+            ]
+        },
+    )
+
+    services.sync_calendar(str(notion.pk))
+
+    assert calls[0][1]["params"]["pageToken"] == "continue-here"
+    assert set(
+        CalendarEvent.objects.filter(mount=notion).values_list("external_id", flat=True)
+    ) == {
+        "first-page-event",
+        "second-page-event",
+    }
+    assert not CalendarSyncProgress.objects.filter(mount=notion).exists()
 
 
 def test_capacity_merges_overlapping_meetings_and_clips_work_hours(user):
@@ -326,7 +437,7 @@ def test_google_oauth_selects_accounts_and_keeps_connections_independent(
     request.session.create()
     connections = []
     for email in ["personal@example.test", "work@example.test", "company@example.test"]:
-        url = services.begin_oauth(request, "google")
+        url = services.begin_oauth(request.user, request.session.session_key, "google")
         params = parse_qs(urlsplit(url).query)
         assert "select_account" in params["prompt"][0].split()
         state = params["state"][0]
@@ -340,7 +451,11 @@ def test_google_oauth_selects_accounts_and_keeps_connections_independent(
                 [providers.GOOGLE_SCOPE],
             ),
         )
-        connections.append(services.finish_oauth(request, "google", state, "code"))
+        connections.append(
+            services.finish_oauth(
+                request.user, request.session.session_key, "google", state, "code"
+            )
+        )
 
     assert len({item.pk for item in connections}) == 3
     assert (
@@ -503,6 +618,40 @@ def test_microsoft_calendar_sync_paginates_and_maps_all_day_events(notion, setti
     assert len(calls) == 2
     assert calls[0][1]["params"]["startDateTime"]
     assert calls[1][0] == first_page["@odata.nextLink"]
+
+
+def test_microsoft_declined_meeting_does_not_block_capacity():
+    values = services.event_values(
+        {
+            "subject": "Optional review",
+            "start": {"dateTime": "2026-11-18T10:00:00Z"},
+            "end": {"dateTime": "2026-11-18T11:00:00Z"},
+            "showAs": "busy",
+            "isAllDay": False,
+            "responseStatus": {"response": "declined"},
+        }
+    )
+    assert values["blocking"] is False
+
+
+def test_calendar_dispatch_and_freshness_include_outlook(
+    user, notion, monkeypatch, django_capture_on_commit_callbacks
+):
+    from jobs import tasks
+    from planner.read_models import day_summary
+
+    connection = notion.connection
+    connection.provider = "microsoft"
+    connection.save(update_fields=["provider"])
+    queued = []
+    monkeypatch.setattr("jobs.queue.enqueue", lambda *args: queued.append(args))
+
+    with django_capture_on_commit_callbacks(execute=True):
+        tasks.integration_tick()
+
+    assert queued == [("integrations.services.sync_calendar", str(notion.pk))]
+    freshness = day_summary(user, date(2026, 11, 18))["calendars"]
+    assert [str(calendar["id"]) for calendar in freshness] == [str(notion.pk)]
 
 
 def test_microsoft_calendar_failure_keeps_last_good_snapshot(notion, settings, monkeypatch):

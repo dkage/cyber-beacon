@@ -85,7 +85,10 @@ class TaskViewSet(viewsets.GenericViewSet):
         services.change_task(request.user, pk, {}, precondition(request), action="delete")
         return Response(status=204)
 
-    @extend_schema(request=None)
+    @extend_schema(
+        request=None,
+        parameters=[OpenApiParameter("If-Match", str, OpenApiParameter.HEADER, required=True)],
+    )
     @action(detail=True, methods=["post"])
     def restore(self, request, pk=None):
         task = services.change_task(request.user, pk, {}, precondition(request), action="restore")

@@ -94,7 +94,7 @@ paths:
       security:
       - cookieAuth: []
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
@@ -131,8 +131,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: {}
+                $ref: '#/components/schemas/ResourcePage'
           description: ''
   /api/v1/integrations/mounts/{id}/browse/:
     get:
@@ -165,8 +164,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: {}
+                $ref: '#/components/schemas/BrowsePage'
           description: ''
   /api/v1/integrations/mounts/{id}/import/:
     post:
@@ -390,8 +388,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: {}
+                $ref: '#/components/schemas/KioskSummary'
           description: ''
   /api/v1/settings/:
     get:
@@ -613,6 +610,11 @@ paths:
     post:
       operationId: tasks_restore_create
       parameters:
+      - in: header
+        name: If-Match
+        schema:
+          type: string
+        required: true
       - in: path
         name: id
         schema:
@@ -763,6 +765,36 @@ components:
       required:
       - code
       - label
+    BrowseItem:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        url:
+          type: string
+        imported_count:
+          type: integer
+          minimum: 0
+      required:
+      - id
+      - imported_count
+      - title
+      - url
+    BrowsePage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BrowseItem'
+        next_cursor:
+          type: string
+          nullable: true
+      required:
+      - next_cursor
+      - results
     CalendarEvent:
       type: object
       properties:
@@ -1039,6 +1071,95 @@ components:
       required:
       - id
       - kind
+    KioskEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        end_date:
+          type: string
+          format: date
+          nullable: true
+      required:
+      - end_date
+      - ends_at
+      - id
+      - start_date
+      - starts_at
+      - title
+    KioskSummary:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        timezone:
+          type: string
+        date_order:
+          $ref: '#/components/schemas/DateOrderEnum'
+        date_separator:
+          $ref: '#/components/schemas/DateSeparatorEnum'
+        fetched_at:
+          type: string
+          format: date-time
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/KioskTask'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/KioskEvent'
+        calendars:
+          type: array
+          items:
+            $ref: '#/components/schemas/Freshness'
+        briefing:
+          type: string
+      required:
+      - briefing
+      - calendars
+      - date
+      - date_order
+      - date_separator
+      - events
+      - fetched_at
+      - tasks
+      - timezone
+    KioskTask:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        estimated_minutes:
+          type: integer
+          nullable: true
+      required:
+      - completed_at
+      - estimated_minutes
+      - id
+      - title
     Mount:
       type: object
       properties:
@@ -1324,6 +1445,29 @@ components:
       required:
       - date
       - items
+    ResourceItem:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+      required:
+      - id
+      - label
+    ResourcePage:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceItem'
+        next_cursor:
+          type: string
+          nullable: true
+      required:
+      - next_cursor
+      - results
     Settings:
       type: object
       properties:

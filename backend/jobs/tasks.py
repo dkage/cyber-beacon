@@ -34,6 +34,7 @@ def daily_tick():
 
 
 def integration_tick():
+    from integrations import providers
     from integrations.models import Mount
 
     from .queue import enqueue
@@ -46,7 +47,7 @@ def integration_tick():
         mounts = Mount.objects.select_for_update(skip_locked=True).filter(
             enabled=True,
             connection__status="active",
-            connection__provider="google",
+            connection__provider__in=providers.providers_with("calendar"),
             next_attempt_at__lte=now,
         )[:100]
         for mount in mounts:

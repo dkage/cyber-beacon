@@ -16,12 +16,14 @@ from planner.services import lock_user
 from . import providers, services
 from .models import Mount, TaskSource
 from .serializers import (
+    BrowsePageSerializer,
     BrowseQuerySerializer,
     ConnectionSerializer,
     CreateMountSerializer,
     ImportSerializer,
     MountSerializer,
     ProviderSerializer,
+    ResourcePageSerializer,
 )
 
 
@@ -30,8 +32,14 @@ class OAuthStart(APIView):
     def post(self, request):
         serializer = ProviderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        if not request.session.session_key:
+            request.session.save()
         return Response(
-            {"url": services.begin_oauth(request, serializer.validated_data["provider"])}
+            {
+                "url": services.begin_oauth(
+                    request.user, request.session.session_key, serializer.validated_data["provider"]
+                )
+            }
         )
 
 
@@ -45,7 +53,8 @@ class OAuthCallback(APIView):
         if request.query_params.get("error"):
             return HttpResponseRedirect("/connections?error=consent-denied")
         services.finish_oauth(
-            request,
+            request.user,
+            request.session.session_key,
             provider,
             request.query_params.get("state", "")[:500],
             request.query_params.get("code", "")[:4000],
@@ -73,14 +82,14 @@ class ConnectionViewSet(viewsets.GenericViewSet):
         services.disconnect(request.user, self.get_object())
         return Response(status=204)
 
-    @extend_schema(parameters=[BrowseQuerySerializer], responses=OpenApiTypes.OBJECT)
+    @extend_schema(parameters=[BrowseQuerySerializer], responses=ResourcePageSerializer)
     @action(detail=True, methods=["get"])
     def resources(self, request, pk=None):
         query = BrowseQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         return Response(providers.resources(self.get_object(), **query.validated_data))
 
-    @extend_schema(request=CreateMountSerializer, responses=MountSerializer)
+    @extend_schema(request=CreateMountSerializer, responses={201: MountSerializer})
     @action(detail=True, methods=["post"])
     def mounts(self, request, pk=None):
         connection = self.get_object()
@@ -101,7 +110,7 @@ class ConnectionViewSet(viewsets.GenericViewSet):
             )
             mount.enabled = True
             mount.save(update_fields=["enabled"])
-        if connection.provider in {"google", "microsoft"}:
+        if providers.supports(connection.provider, "calendar"):
             transaction.on_commit(
                 lambda: enqueue("integrations.services.sync_calendar", str(mount.pk))
             )
@@ -115,11 +124,11 @@ class MountViewSet(viewsets.GenericViewSet):
     def get_queryset(self):
         return Mount.objects.filter(connection__user=self.request.user).select_related("connection")
 
-    @extend_schema(parameters=[BrowseQuerySerializer], responses=OpenApiTypes.OBJECT)
+    @extend_schema(parameters=[BrowseQuerySerializer], responses=BrowsePageSerializer)
     @action(detail=True, methods=["get"])
     def browse(self, request, pk=None):
         mount = self.get_object()
-        if mount.connection.provider not in {"notion", "github"} or not mount.enabled:
+        if not providers.supports(mount.connection.provider, "worksheet") or not mount.enabled:
             raise ValidationError("Choose an enabled worksheet source Mount.")
         query = BrowseQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
@@ -133,7 +142,7 @@ class MountViewSet(viewsets.GenericViewSet):
         ]
         counts = {}
         for external_id in TaskSource.objects.filter(
-            mount__connection=mount.connection,
+            mount=mount,
             task__user=request.user,
             task__deleted_at=None,
             external_id__in=external_ids,
@@ -181,7 +190,7 @@ class MountViewSet(viewsets.GenericViewSet):
     def refresh(self, request, pk=None):
         mount = self.get_object()
         if (
-            mount.connection.provider not in {"google", "microsoft"}
+            not providers.supports(mount.connection.provider, "calendar")
             or mount.connection.status != "active"
         ):
             raise ValidationError("Choose an active Calendar Mount.")

@@ -18,6 +18,7 @@ from planner.read_models import DaySerializer, day_summary
 
 from .auth import KioskAuthentication
 from .models import DevicePairing, KioskDevice
+from .serializers import KioskSummarySerializer
 
 
 class PairingThrottle(AnonRateThrottle):
@@ -137,7 +138,7 @@ class RevokeDevice(APIView):
 class KioskSummary(APIView):
     authentication_classes = [KioskAuthentication]
 
-    @extend_schema(responses=OpenApiTypes.OBJECT)
+    @extend_schema(responses=KioskSummarySerializer)
     def get(self, request):
         day = timezone.now().astimezone(ZoneInfo(request.user.timezone)).date()
         full = DaySerializer(day_summary(request.user, day)).data
