@@ -679,6 +679,19 @@ small {
 		flex-wrap: wrap;
 	}
 }
+
+@media (min-width: 681px) and (max-height: 800px) {
+	main {
+		padding-block: 1rem;
+	}
+	.today-view {
+		min-height: 0;
+		gap: 0.5rem;
+	}
+	.today-view .planner-grid {
+		min-height: 0;
+	}
+}
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
