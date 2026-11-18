@@ -46,6 +46,12 @@ test('a real authenticated day: create, edit, order, time, complete, trash and r
 	await expect(page).toHaveURL(/\/login$/);
 });
 
+test('the login screen hides app navigation, including with a trailing slash', async ({ page }) => {
+	await page.goto('/login/');
+	await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible();
+	await expect(page.getByRole('navigation', { name: 'Main navigation' })).toHaveCount(0);
+});
+
 test('static deep links, mobile layout and retained rejected drafts', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/today?date=2026-11-18');

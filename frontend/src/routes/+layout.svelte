@@ -9,6 +9,7 @@
 	let { children } = $props();
 	let logoutError = $state('');
 	let pending = $state(false);
+	let isLoginPage = $derived(page.url.pathname.replace(/\/+$/, '') === '/login');
 	async function logout() {
 		pending = true;
 		try {
@@ -30,33 +31,36 @@
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 {#if page.url.pathname !== '/kiosk'}
 	<a class="skip-link" href="#main">Skip to content</a>
-	<div class="app-shell">
-		<aside class="sidebar">
-			<a class="brand" href={resolve('/today')}
-				><span class="brand-symbol">◈</span><span
-					>CYBER<br />BEACON<span class="brand-subtitle">YOUR DAY, WITH INTENTION</span></span
-				></a
-			>
-			<nav aria-label="Main navigation">
-				<a class:active={page.url.pathname === '/today'} href={resolve('/today')}
-					><span>◎</span> Today</a
-				><a class:active={page.url.pathname === '/connections'} href={resolve('/connections')}
-					><span>↗</span> Connections</a
-				><a class:active={page.url.pathname === '/settings'} href={resolve('/settings')}
-					><span>⚙</span> Settings</a
-				><a href={resolve('/kiosk')}><span>▣</span> Kiosk display</a>
-			</nav>
-			<div class="sidebar-bottom">
-				<span class="status-dot"></span><span>SELF-HOSTED / PERSONAL</span
-				>{#if page.url.pathname !== '/login'}<button
+	{#if !isLoginPage}
+		<div class="app-shell">
+			<aside class="sidebar">
+				<a class="brand" href={resolve('/today')}
+					><span class="brand-symbol">◈</span><span
+						>CYBER<br />BEACON<span class="brand-subtitle">YOUR DAY, WITH INTENTION</span></span
+					></a
+				>
+				<nav aria-label="Main navigation">
+					<a class:active={page.url.pathname === '/today'} href={resolve('/today')}
+						><span>◎</span> Today</a
+					><a class:active={page.url.pathname === '/connections'} href={resolve('/connections')}
+						><span>↗</span> Connections</a
+					><a class:active={page.url.pathname === '/settings'} href={resolve('/settings')}
+						><span>⚙</span> Settings</a
+					><a href={resolve('/kiosk')}><span>▣</span> Kiosk display</a>
+				</nav>
+				<div class="sidebar-bottom">
+					<span class="status-dot"></span><span>SELF-HOSTED / PERSONAL</span><button
 						class="quiet"
 						disabled={pending}
 						onclick={logout}>Sign out</button
-					>{/if}
-			</div>
-		</aside>
-		<main id="main">
-			{#if logoutError}<p class="error" role="alert">{logoutError}</p>{/if}{@render children()}
-		</main>
-	</div>
+					>
+				</div>
+			</aside>
+			<main id="main">
+				{#if logoutError}<p class="error" role="alert">{logoutError}</p>{/if}{@render children()}
+			</main>
+		</div>
+	{:else}
+		{@render children()}
+	{/if}
 {:else}{@render children()}{/if}
