@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     "allauth.headless",
     "django_q",
     "accounts",
+    "planner",
     "jobs",
 ]
 MIDDLEWARE = [
@@ -81,7 +82,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    "DEFAULT_PAGINATION_CLASS": "config.pagination.BoundedPagination",
     "PAGE_SIZE": 100,
 }
 SPECTACULAR_SETTINGS = {
