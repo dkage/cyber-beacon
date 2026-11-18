@@ -1,0 +1,1461 @@
+openapi: 3.0.3
+info:
+  title: Cyber Beacon API
+  version: 1.0.0
+paths:
+  /api/v1/day/:
+    get:
+      operationId: day_retrieve
+      parameters:
+      - in: query
+        name: date
+        schema:
+          type: string
+          format: date
+      tags:
+      - day
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Day'
+          description: ''
+  /api/v1/integrations/connections/:
+    get:
+      operationId: integrations_connections_list
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - integrations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedConnectionList'
+          description: ''
+  /api/v1/integrations/connections/{id}/disconnect/:
+    post:
+      operationId: integrations_connections_disconnect_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      tags:
+      - integrations
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/integrations/connections/{id}/mounts/:
+    post:
+      operationId: integrations_connections_mounts_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      tags:
+      - integrations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMount'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CreateMount'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateMount'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mount'
+          description: ''
+  /api/v1/integrations/connections/{id}/resources/:
+    get:
+      operationId: integrations_connections_resources_retrieve
+      parameters:
+      - in: query
+        name: cursor
+        schema:
+          type: string
+          default: ''
+          maxLength: 2000
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      - in: query
+        name: query
+        schema:
+          type: string
+          default: ''
+          maxLength: 200
+      tags:
+      - integrations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/integrations/mounts/{id}/browse/:
+    get:
+      operationId: integrations_mounts_browse_retrieve
+      parameters:
+      - in: query
+        name: cursor
+        schema:
+          type: string
+          default: ''
+          maxLength: 2000
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      - in: query
+        name: query
+        schema:
+          type: string
+          default: ''
+          maxLength: 200
+      tags:
+      - integrations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/integrations/mounts/{id}/import/:
+    post:
+      operationId: integrations_mounts_import_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      tags:
+      - integrations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Import'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Import'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Import'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+  /api/v1/integrations/mounts/{id}/refresh/:
+    post:
+      operationId: integrations_mounts_refresh_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      tags:
+      - integrations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/integrations/oauth/start/:
+    post:
+      operationId: integrations_oauth_start_create
+      tags:
+      - integrations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Provider'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Provider'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Provider'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/jobs/:
+    get:
+      operationId: jobs_list
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - jobs
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedJobRunList'
+          description: ''
+  /api/v1/kiosk/devices/:
+    get:
+      operationId: kiosk_devices_list
+      tags:
+      - kiosk
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Device'
+          description: ''
+  /api/v1/kiosk/devices/{device_id}/revoke/:
+    post:
+      operationId: kiosk_devices_revoke_create
+      parameters:
+      - in: path
+        name: device_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - kiosk
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/kiosk/pair/:
+    post:
+      operationId: kiosk_pair_create
+      tags:
+      - kiosk
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/kiosk/pair/approve/:
+    post:
+      operationId: kiosk_pair_approve_create
+      tags:
+      - kiosk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Approve'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Approve'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Approve'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+          description: ''
+  /api/v1/kiosk/pair/poll/:
+    post:
+      operationId: kiosk_pair_poll_create
+      tags:
+      - kiosk
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Poll'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Poll'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Poll'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/kiosk/summary/:
+    get:
+      operationId: kiosk_summary_retrieve
+      tags:
+      - kiosk
+      security:
+      - deviceAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/settings/:
+    get:
+      operationId: settings_retrieve
+      tags:
+      - settings
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+          description: ''
+    patch:
+      operationId: settings_partial_update
+      tags:
+      - settings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSettings'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSettings'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSettings'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+          description: ''
+  /api/v1/tasks/:
+    get:
+      operationId: tasks_list
+      parameters:
+      - in: query
+        name: backlog
+        schema:
+          type: boolean
+          default: false
+      - in: query
+        name: date
+        schema:
+          type: string
+          format: date
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - in: query
+        name: trash
+        schema:
+          type: boolean
+          default: false
+      tags:
+      - tasks
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTaskList'
+          description: ''
+    post:
+      operationId: tasks_create
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Task'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Task'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Task'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+  /api/v1/tasks/{id}/:
+    get:
+      operationId: tasks_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      tags:
+      - tasks
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+    patch:
+      operationId: tasks_partial_update
+      parameters:
+      - in: header
+        name: If-Match
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTask'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTask'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTask'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+    delete:
+      operationId: tasks_destroy
+      parameters:
+      - in: header
+        name: If-Match
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      tags:
+      - tasks
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/tasks/{id}/activity/:
+    get:
+      operationId: tasks_activity_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - tasks
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedActivityList'
+          description: ''
+  /api/v1/tasks/{id}/restore/:
+    post:
+      operationId: tasks_restore_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      tags:
+      - tasks
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+          description: ''
+  /api/v1/tasks/reorder/:
+    post:
+      operationId: tasks_reorder_create
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      tags:
+      - tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reorder'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Reorder'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Reorder'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTaskList'
+          description: ''
+  /api/v1/timers/{id}/stop/:
+    post:
+      operationId: timers_stop_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-f-]{36}$
+        required: true
+      tags:
+      - timers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeEntry'
+          description: ''
+  /api/v1/timers/current/:
+    get:
+      operationId: timers_current_retrieve
+      tags:
+      - timers
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeEntry'
+          description: ''
+  /api/v1/timers/start/:
+    post:
+      operationId: timers_start_create
+      tags:
+      - timers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartTimer'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StartTimer'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StartTimer'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeEntry'
+          description: ''
+components:
+  schemas:
+    Activity:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        kind:
+          type: string
+          maxLength: 40
+        occurred_at:
+          type: string
+          format: date-time
+          readOnly: true
+        payload: {}
+      required:
+      - id
+      - kind
+      - occurred_at
+    Approve:
+      type: object
+      properties:
+        code:
+          type: string
+          maxLength: 8
+          minLength: 8
+        label:
+          type: string
+          maxLength: 100
+      required:
+      - code
+      - label
+    CalendarEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        mount:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 500
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        blocking:
+          type: boolean
+        url:
+          type: string
+          format: uri
+          maxLength: 2000
+      required:
+      - id
+      - mount
+      - title
+    Capacity:
+      type: object
+      properties:
+        work_minutes:
+          type: integer
+        meeting_minutes:
+          type: integer
+        available_minutes:
+          type: integer
+        estimated_minutes:
+          type: integer
+        remaining_minutes:
+          type: integer
+        unestimated_tasks:
+          type: integer
+      required:
+      - available_minutes
+      - estimated_minutes
+      - meeting_minutes
+      - remaining_minutes
+      - unestimated_tasks
+      - work_minutes
+    Connection:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        provider:
+          allOf:
+          - $ref: '#/components/schemas/ConnectionProviderEnum'
+          readOnly: true
+        label:
+          type: string
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        last_error:
+          type: string
+          readOnly: true
+        mounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Mount'
+          readOnly: true
+      required:
+      - id
+      - label
+      - last_error
+      - mounts
+      - provider
+      - status
+    ConnectionProviderEnum:
+      enum:
+      - notion
+      - google
+      type: string
+      description: |-
+        * `notion` - Notion
+        * `google` - Google Calendar
+    CreateMount:
+      type: object
+      properties:
+        external_id:
+          type: string
+          maxLength: 255
+        label:
+          type: string
+          maxLength: 255
+      required:
+      - external_id
+      - label
+    Day:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        timezone:
+          type: string
+        fetched_at:
+          type: string
+          format: date-time
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalendarEvent'
+        capacity:
+          $ref: '#/components/schemas/Capacity'
+        task_actual_seconds:
+          type: object
+          additionalProperties:
+            type: integer
+        day_actual_seconds:
+          type: integer
+        timer:
+          allOf:
+          - $ref: '#/components/schemas/TimeEntry'
+          nullable: true
+        calendars:
+          type: array
+          items:
+            $ref: '#/components/schemas/Freshness'
+      required:
+      - calendars
+      - capacity
+      - date
+      - day_actual_seconds
+      - events
+      - fetched_at
+      - task_actual_seconds
+      - tasks
+      - timer
+      - timezone
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        label:
+          type: string
+          maxLength: 100
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - created_at
+      - expires_at
+      - id
+      - label
+    Freshness:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        last_succeeded_at:
+          type: string
+          format: date-time
+          nullable: true
+        last_error:
+          type: string
+        enabled:
+          type: boolean
+      required:
+      - enabled
+      - id
+      - label
+      - last_error
+      - last_succeeded_at
+    Import:
+      type: object
+      properties:
+        external_id:
+          type: string
+          format: uuid
+        do_date:
+          type: string
+          format: date
+          nullable: true
+        key:
+          type: string
+          format: uuid
+      required:
+      - external_id
+      - key
+    JobRun:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        kind:
+          type: string
+          maxLength: 40
+        started_at:
+          type: string
+          format: date-time
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+        outcome:
+          type: string
+          maxLength: 30
+        message:
+          type: string
+          maxLength: 500
+        counts: {}
+      required:
+      - id
+      - kind
+    Mount:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        connection:
+          type: string
+          format: uuid
+          readOnly: true
+        external_id:
+          type: string
+          readOnly: true
+        label:
+          type: string
+          readOnly: true
+        enabled:
+          type: boolean
+          readOnly: true
+        last_succeeded_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        last_error:
+          type: string
+          readOnly: true
+        consecutive_failures:
+          type: integer
+          readOnly: true
+      required:
+      - connection
+      - consecutive_failures
+      - enabled
+      - external_id
+      - id
+      - label
+      - last_error
+      - last_succeeded_at
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - id
+      - version
+    PaginatedActivityList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Activity'
+    PaginatedConnectionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Connection'
+    PaginatedJobRunList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobRun'
+    PaginatedTaskList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+    PatchedSettings:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        timezone:
+          type: string
+        work_start:
+          type: string
+          format: time
+        work_end:
+          type: string
+          format: time
+        work_weekdays:
+          type: array
+          items:
+            type: integer
+            maximum: 6
+            minimum: 0
+          maxItems: 7
+    PatchedTask:
+      type: object
+      properties:
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourcePreview'
+          readOnly: true
+          nullable: true
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        parent:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+          maxLength: 500
+        notes:
+          type: string
+          maxLength: 20000
+        do_date:
+          type: string
+          format: date
+          nullable: true
+        due_date:
+          type: string
+          format: date
+          nullable: true
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        priority:
+          type: integer
+          maximum: 5
+          minimum: 0
+          nullable: true
+        estimated_minutes:
+          type: integer
+          maximum: 10080
+          minimum: 0
+          nullable: true
+        position:
+          type: integer
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed:
+          type: boolean
+          writeOnly: true
+        version:
+          type: integer
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    Poll:
+      type: object
+      properties:
+        secret:
+          type: string
+          maxLength: 100
+          minLength: 40
+      required:
+      - secret
+    Provider:
+      type: object
+      properties:
+        provider:
+          $ref: '#/components/schemas/ProviderProviderEnum'
+      required:
+      - provider
+    ProviderProviderEnum:
+      enum:
+      - notion
+      - google
+      type: string
+      description: |-
+        * `notion` - notion
+        * `google` - google
+    Reorder:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+      required:
+      - date
+      - items
+    Settings:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        timezone:
+          type: string
+        work_start:
+          type: string
+          format: time
+        work_end:
+          type: string
+          format: time
+        work_weekdays:
+          type: array
+          items:
+            type: integer
+            maximum: 6
+            minimum: 0
+          maxItems: 7
+      required:
+      - email
+      - id
+      - timezone
+      - work_weekdays
+    SourcePreview:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        raw: {}
+        imported_at:
+          type: string
+          format: date-time
+        provider:
+          type: string
+      required:
+      - imported_at
+      - provider
+      - raw
+      - url
+    StartTimer:
+      type: object
+      properties:
+        task:
+          type: string
+          format: uuid
+      required:
+      - task
+    Task:
+      type: object
+      properties:
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourcePreview'
+          readOnly: true
+          nullable: true
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        parent:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+          maxLength: 500
+        notes:
+          type: string
+          maxLength: 20000
+        do_date:
+          type: string
+          format: date
+          nullable: true
+        due_date:
+          type: string
+          format: date
+          nullable: true
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        priority:
+          type: integer
+          maximum: 5
+          minimum: 0
+          nullable: true
+        estimated_minutes:
+          type: integer
+          maximum: 10080
+          minimum: 0
+          nullable: true
+        position:
+          type: integer
+          readOnly: true
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        completed:
+          type: boolean
+          writeOnly: true
+        version:
+          type: integer
+          readOnly: true
+        deleted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - completed_at
+      - created_at
+      - deleted_at
+      - id
+      - position
+      - source
+      - title
+      - updated_at
+      - version
+    TimeEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        task:
+          type: string
+          format: uuid
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+        ended_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - ended_at
+      - id
+      - started_at
+      - task
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    deviceAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: Device <opaque token>; read-only kiosk summary only.

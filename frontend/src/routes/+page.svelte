@@ -1,2 +1,10 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script lang="ts">
+	import { resolve } from '$app/paths';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+	onMount(() => {
+		void goto(resolve('/today'), { replaceState: true });
+	});
+</script>
+
+<p>Opening your day… <a href={resolve('/today')}>Go to Today</a></p>
