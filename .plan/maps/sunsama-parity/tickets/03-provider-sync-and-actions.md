@@ -40,3 +40,11 @@ Local completion is decided: completing a Task here does not write back by defau
 - Pass resolved-PR-still-open, partial mail automation, offline Notion completion and export timeout scenarios.
 
 - Amend backend 02/03/07/08, relevant glossary and any affected ADR with explicit approval; unchanged infrastructure policies remain ours, not alleged Sunsama internals.
+
+## Phase 1 implementation disposition (2026-11-18)
+
+The developer authorized autonomous implementation of the entire First usable day.
+[The bounded release contract](../../../../docs/phase-one-contract.md) resolves this
+ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
+Broader release/parity questions above remain open. Verification and any limitations
+are recorded with the implementation; the packaging proof is not claimed in advance.

@@ -55,3 +55,11 @@ or what it may read.
 - The credential type, its first-time provisioning and its revocation are decided.
 - The kiosk's permission scope is stated as a rule a route author can apply.
 - Any new model or setting is named, so the first auth migration is complete.
+
+## Phase 1 implementation disposition (2026-11-18)
+
+The developer authorized autonomous implementation of the entire First usable day.
+[The bounded release contract](../../../../docs/phase-one-contract.md) resolves this
+ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
+Broader release/parity questions above remain open. Verification and any limitations
+are recorded with the implementation; the packaging proof is not claimed in advance.

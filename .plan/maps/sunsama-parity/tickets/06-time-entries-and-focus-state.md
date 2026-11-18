@@ -36,3 +36,11 @@ below are starting points for confirmation, not silently approved schema decisio
 - Test two clients starting/stopping, same command retry, sleep/reboot, DST/midnight, subtask roll-up, Parallel overlap and inferred actual distinction.
 
 - Add settled terms/models to CONTEXT.md and glossary and remove the relevant backend 02 deferral only with approval.
+
+## Phase 1 implementation disposition (2026-11-18)
+
+The developer authorized autonomous implementation of the entire First usable day.
+[The bounded release contract](../../../../docs/phase-one-contract.md) resolves this
+ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
+Broader release/parity questions above remain open. Verification and any limitations
+are recorded with the implementation; the packaging proof is not claimed in advance.

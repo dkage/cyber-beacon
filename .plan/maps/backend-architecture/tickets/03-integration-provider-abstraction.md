@@ -420,3 +420,11 @@ Recorded in ADR-0002 in those terms.
 - **Bulk backfill of historical data.** Every sync path here is "changes since a cursor"
   or "everything currently visible." Importing three years of closed Notion rows is a
   different job with a different budget profile.
+
+## Phase 1 implementation disposition (2026-11-18)
+
+The developer authorized autonomous implementation of the entire First usable day.
+[The bounded release contract](../../../../docs/phase-one-contract.md) resolves this
+ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
+Broader release/parity questions above remain open. Verification and any limitations
+are recorded with the implementation; the packaging proof is not claimed in advance.

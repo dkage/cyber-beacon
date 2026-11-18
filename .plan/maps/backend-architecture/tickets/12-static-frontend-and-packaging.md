@@ -57,3 +57,11 @@ The [parity map](../../sunsama-parity/map.md) adds an interactive planner beside
   link refresh, and a `docker compose up` bringing up web, worker and Postgres.
 - The session and CSRF behaviour is written down as a rule a frontend author can follow.
 - The ADR-0001 change is named, with the reason the BFF was or was not kept.
+
+## Phase 1 implementation disposition (2026-11-18)
+
+The developer authorized autonomous implementation of the entire First usable day.
+[The bounded release contract](../../../../docs/phase-one-contract.md) resolves this
+ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
+Broader release/parity questions above remain open. Verification and any limitations
+are recorded with the implementation; the packaging proof is not claimed in advance.

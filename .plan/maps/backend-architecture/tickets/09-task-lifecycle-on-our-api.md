@@ -66,3 +66,11 @@ The original “already settled” bullets remain history while these parity dec
   interaction.
 - Any new columns on `Task` and `TimeBlock` are named, so the first migration is complete.
 - Reconcile with parity 02/03/04/05/06; specify stale undo, intentional re-import, suppressed meeting import and timer/order mutations with concrete examples. The kiosk's stale cache must not imply editable offline support.
+
+## Phase 1 implementation disposition (2026-11-18)
+
+The developer authorized autonomous implementation of the entire First usable day.
+[The bounded release contract](../../../../docs/phase-one-contract.md) resolves this
+ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
+Broader release/parity questions above remain open. Verification and any limitations
+are recorded with the implementation; the packaging proof is not claimed in advance.

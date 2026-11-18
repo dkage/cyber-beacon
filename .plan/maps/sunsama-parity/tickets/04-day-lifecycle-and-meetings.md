@@ -40,3 +40,11 @@ Midnight carry-forward is decided: unfinished work moves to the next day at midn
 - Test midnight/DST/travel/weekends/gaps, recurring occurrence collision, cancelled meeting and deletion/restore across clients.
 
 - Amend backend 02/05/06/08/09, CONTEXT.md and glossary together after confirmation; replace the unsupported 'like Sunsama' premise without erasing history.
+
+## Phase 1 implementation disposition (2026-11-18)
+
+The developer authorized autonomous implementation of the entire First usable day.
+[The bounded release contract](../../../../docs/phase-one-contract.md) resolves this
+ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
+Broader release/parity questions above remain open. Verification and any limitations
+are recorded with the implementation; the packaging proof is not claimed in advance.

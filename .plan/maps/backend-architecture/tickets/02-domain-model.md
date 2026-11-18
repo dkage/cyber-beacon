@@ -291,3 +291,11 @@ arbitrary user-defined properties, so *which property is the due date* and *whic
 is the priority* is *per-connection configuration*. Everything settled here still
 holds; it means `TaskSource`'s field promotion is config-driven for Notion, and
 that is ticket 03's problem to solve rather than this one's.
+
+## Phase 1 implementation disposition (2026-11-18)
+
+The developer authorized autonomous implementation of the entire First usable day.
+[The bounded release contract](../../../../docs/phase-one-contract.md) resolves this
+ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
+Broader release/parity questions above remain open. Verification and any limitations
+are recorded with the implementation; the packaging proof is not claimed in advance.

@@ -198,3 +198,10 @@ thirty days. Activity says what happened to a Task; a Job run says what happened
 machinery. Never call a background job a "task": that word is reserved for the thing
 you intend to do, even though the queue library uses it.
 _Avoid_: Task run, sync log, run log, audit log.
+
+## First usable day implementation boundary
+
+[Phase 1 contract](docs/phase-one-contract.md) specifies versioned local writes,
+retained trash, independent worksheet provenance, single running Time entry, local-day
+actual totals, basic capacity and read-only paired kiosk access. Disconnection retains
+worksheets. Broader parity remains with its planning tickets.
