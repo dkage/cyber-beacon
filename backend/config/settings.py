@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from .credentials import load_fernet_keys
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.environ.get("DEBUG", "false").lower() == "true"
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
@@ -125,7 +127,7 @@ CACHES = {
         "LOCATION": "beacon_cache",
     }
 }
-FERNET_KEYS = [key for key in os.environ.get("FERNET_KEYS", "").split(",") if key]
+FERNET_KEYS = load_fernet_keys()
 
 INTEGRATION_OAUTH = {
     provider: {
