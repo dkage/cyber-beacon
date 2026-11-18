@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, date, datetime, time
+from datetime import UTC, date, datetime, time, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -448,7 +448,15 @@ def test_microsoft_calendar_sync_paginates_and_maps_all_day_events(notion, setti
                 "isAllDay": False,
                 "showAs": "busy",
                 "webLink": "https://outlook.office.com/event/1",
-            }
+            },
+            {
+                "id": "series-occurrence-1",
+                "subject": "Weekly planning",
+                "start": {"dateTime": "2026-11-18T14:00:00Z", "timeZone": "UTC"},
+                "end": {"dateTime": "2026-11-18T14:30:00Z", "timeZone": "UTC"},
+                "isAllDay": False,
+                "showAs": "busy",
+            },
         ],
         "@odata.nextLink": "https://graph.microsoft.com/v1.0/me/calendars/cal/calendarView?$skip=1",
     }
@@ -462,7 +470,15 @@ def test_microsoft_calendar_sync_paginates_and_maps_all_day_events(notion, setti
                 "isAllDay": True,
                 "showAs": "free",
                 "isCancelled": False,
-            }
+            },
+            {
+                "id": "series-occurrence-2",
+                "subject": "Weekly planning",
+                "start": {"dateTime": "2026-11-25T14:00:00Z", "timeZone": "UTC"},
+                "end": {"dateTime": "2026-11-25T14:30:00Z", "timeZone": "UTC"},
+                "isAllDay": False,
+                "showAs": "busy",
+            },
         ]
     }
 
@@ -473,7 +489,11 @@ def test_microsoft_calendar_sync_paginates_and_maps_all_day_events(notion, setti
     monkeypatch.setattr(httpx, "request", send)
     services.sync_calendar(str(notion.pk))
     events = list(CalendarEvent.objects.filter(mount=notion).order_by("external_id"))
-    assert len(events) == 2
+    assert len(events) == 4
+    assert {event.external_id for event in events if event.title == "Weekly planning"} == {
+        "series-occurrence-1",
+        "series-occurrence-2",
+    }
     all_day = next(event for event in events if event.external_id == "allday")
     assert (all_day.start_date, all_day.end_date, all_day.blocking) == (
         date(2026, 11, 19),
@@ -483,6 +503,35 @@ def test_microsoft_calendar_sync_paginates_and_maps_all_day_events(notion, setti
     assert len(calls) == 2
     assert calls[0][1]["params"]["startDateTime"]
     assert calls[1][0] == first_page["@odata.nextLink"]
+
+
+def test_microsoft_calendar_failure_keeps_last_good_snapshot(notion, settings, monkeypatch):
+    settings.INTEGRATION_OAUTH["microsoft"] = {
+        "client_id": "id",
+        "client_secret": "secret",
+        "redirect_uri": "http://localhost/callback",
+    }
+    conn = notion.connection
+    conn.provider = "microsoft"
+    conn.credentials = {"access_token": "token"}
+    conn.save(update_fields=["provider", "credentials"])
+    prior = CalendarEvent.objects.create(
+        mount=notion,
+        external_id="kept",
+        title="Last good event",
+        starts_at=timezone.now(),
+        ends_at=timezone.now() + timedelta(hours=1),
+    )
+
+    def fail(*args, **kwargs):
+        raise providers.ProviderError("Calendar refresh failed.", kind="retryable")
+
+    monkeypatch.setattr(providers, "request", fail)
+    services.sync_calendar(str(notion.pk))
+    assert CalendarEvent.objects.filter(pk=prior.pk, title="Last good event").exists()
+    notion.refresh_from_db()
+    assert notion.last_error == "Calendar refresh failed."
+    assert notion.sync_started_at is None
 
 
 def test_microsoft_provider_rejects_untrusted_next_link(notion, settings):
