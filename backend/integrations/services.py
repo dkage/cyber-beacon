@@ -45,31 +45,31 @@ def owned_mount(user, pk):
         raise NotFound() from exc
 
 
-def begin_oauth(request, provider):
+def begin_oauth(user, session_key, provider):
     providers.config(provider)
-    if not request.session.session_key:
-        request.session.save()
+    if not session_key:
+        raise ValueError("OAuth state requires a persisted browser session.")
     OAuthState.objects.filter(expires_at__lt=timezone.now()).delete()
     token = secrets.token_urlsafe(32)
     OAuthState.objects.create(
         digest=digest(token),
-        user=request.user,
+        user=user,
         provider=provider,
-        session_digest=digest(request.session.session_key),
+        session_digest=digest(session_key),
         expires_at=timezone.now() + timedelta(minutes=10),
     )
     return providers.authorize_url(provider, token)
 
 
-def finish_oauth(request, provider, state, code):
+def finish_oauth(user, session_key, provider, state, code):
     with transaction.atomic():
         row = (
             OAuthState.objects.select_for_update()
             .filter(
                 digest=digest(state),
                 provider=provider,
-                user=request.user,
-                session_digest=digest(request.session.session_key or ""),
+                user=user,
+                session_digest=digest(session_key or ""),
                 expires_at__gt=timezone.now(),
             )
             .first()
@@ -81,9 +81,9 @@ def finish_oauth(request, provider, state, code):
         row.delete()
     credentials, identity, label, scopes = providers.exchange(provider, code)
     with transaction.atomic():
-        lock_user(request.user)
+        lock_user(user)
         connection, _ = IntegrationConnection.objects.get_or_create(
-            user=request.user,
+            user=user,
             provider=provider,
             account_identity=identity,
             defaults={"label": label},

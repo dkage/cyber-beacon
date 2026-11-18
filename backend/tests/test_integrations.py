@@ -139,7 +139,7 @@ def test_oauth_state_is_session_bound_expiring_and_one_use(user, notion, monkeyp
     session = SessionStore()
     session.create()
     request = SimpleNamespace(user=user, session=session)
-    url = services.begin_oauth(request, "notion")
+    url = services.begin_oauth(user, request.session.session_key, "notion")
     from urllib.parse import parse_qs, urlsplit
 
     state = parse_qs(urlsplit(url).query)["state"][0]
@@ -149,10 +149,10 @@ def test_oauth_state_is_session_bound_expiring_and_one_use(user, notion, monkeyp
     wrong = SessionStore()
     wrong.create()
     with pytest.raises(Exception, match="expired"):
-        services.finish_oauth(SimpleNamespace(user=user, session=wrong), "notion", state, "code")
-    services.finish_oauth(request, "notion", state, "code")
+        services.finish_oauth(user, wrong.session_key, "notion", state, "code")
+    services.finish_oauth(user, request.session.session_key, "notion", state, "code")
     with pytest.raises(Exception, match="expired"):
-        services.finish_oauth(request, "notion", state, "code")
+        services.finish_oauth(user, request.session.session_key, "notion", state, "code")
     assert OAuthState.objects.count() == 0
 
 
@@ -361,7 +361,7 @@ def test_google_oauth_selects_accounts_and_keeps_connections_independent(
     request.session.create()
     connections = []
     for email in ["personal@example.test", "work@example.test", "company@example.test"]:
-        url = services.begin_oauth(request, "google")
+        url = services.begin_oauth(request.user, request.session.session_key, "google")
         params = parse_qs(urlsplit(url).query)
         assert "select_account" in params["prompt"][0].split()
         state = params["state"][0]
@@ -375,7 +375,11 @@ def test_google_oauth_selects_accounts_and_keeps_connections_independent(
                 [providers.GOOGLE_SCOPE],
             ),
         )
-        connections.append(services.finish_oauth(request, "google", state, "code"))
+        connections.append(
+            services.finish_oauth(
+                request.user, request.session.session_key, "google", state, "code"
+            )
+        )
 
     assert len({item.pk for item in connections}) == 3
     assert (
