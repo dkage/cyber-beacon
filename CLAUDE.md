@@ -136,6 +136,10 @@ when a missing contract is resolved.
 - **Issue operations:** use `gh` for `dkage/cyber-beacon`; follow
   [issue-tracker conventions](docs/agents/issue-tracker.md). For triage, read
   [label conventions](docs/agents/triage-labels.md).
+- **Pull requests:** use the shared [PR template](.github/pull_request_template.md).
+  Include linked issues, before/after evidence, exact validation, reversibility, blast
+  radius and rollout requirements. Use GitHub closing keywords only for issues the PR
+  fully completes.
 - **Commits:** before writing any commit message, read [COMMITS.md](COMMITS.md).
   Its format applies to all commits in this repository.
 - **Navigation:** [docs/README.md](docs/README.md) indexes the documentation. Inspect
