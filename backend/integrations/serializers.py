@@ -37,6 +37,28 @@ class BrowseQuerySerializer(serializers.Serializer):
     query = serializers.CharField(required=False, default="", max_length=200, allow_blank=True)
 
 
+class ResourceItemSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    label = serializers.CharField()
+
+
+class ResourcePageSerializer(serializers.Serializer):
+    results = ResourceItemSerializer(many=True)
+    next_cursor = serializers.CharField(allow_null=True)
+
+
+class BrowseItemSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    title = serializers.CharField()
+    url = serializers.CharField(allow_blank=True)
+    imported_count = serializers.IntegerField(min_value=0)
+
+
+class BrowsePageSerializer(serializers.Serializer):
+    results = BrowseItemSerializer(many=True)
+    next_cursor = serializers.CharField(allow_null=True)
+
+
 class CreateMountSerializer(serializers.Serializer):
     external_id = serializers.CharField(max_length=255)
     label = serializers.CharField(max_length=255)

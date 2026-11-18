@@ -16,12 +16,14 @@ from planner.services import lock_user
 from . import providers, services
 from .models import Mount, TaskSource
 from .serializers import (
+    BrowsePageSerializer,
     BrowseQuerySerializer,
     ConnectionSerializer,
     CreateMountSerializer,
     ImportSerializer,
     MountSerializer,
     ProviderSerializer,
+    ResourcePageSerializer,
 )
 
 
@@ -73,14 +75,14 @@ class ConnectionViewSet(viewsets.GenericViewSet):
         services.disconnect(request.user, self.get_object())
         return Response(status=204)
 
-    @extend_schema(parameters=[BrowseQuerySerializer], responses=OpenApiTypes.OBJECT)
+    @extend_schema(parameters=[BrowseQuerySerializer], responses=ResourcePageSerializer)
     @action(detail=True, methods=["get"])
     def resources(self, request, pk=None):
         query = BrowseQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         return Response(providers.resources(self.get_object(), **query.validated_data))
 
-    @extend_schema(request=CreateMountSerializer, responses=MountSerializer)
+    @extend_schema(request=CreateMountSerializer, responses={201: MountSerializer})
     @action(detail=True, methods=["post"])
     def mounts(self, request, pk=None):
         connection = self.get_object()
@@ -115,7 +117,7 @@ class MountViewSet(viewsets.GenericViewSet):
     def get_queryset(self):
         return Mount.objects.filter(connection__user=self.request.user).select_related("connection")
 
-    @extend_schema(parameters=[BrowseQuerySerializer], responses=OpenApiTypes.OBJECT)
+    @extend_schema(parameters=[BrowseQuerySerializer], responses=BrowsePageSerializer)
     @action(detail=True, methods=["get"])
     def browse(self, request, pk=None):
         mount = self.get_object()
