@@ -11,6 +11,7 @@ Desktop.ini
 
 # Editors
 .idea/
+.openidea/
 *.swp
 *.swo
 *~
