@@ -11,3 +11,14 @@ def ensure_schedules():
             "cluster": "default",
         },
     )
+
+    Schedule.objects.update_or_create(
+        name="beacon-integration-tick",
+        defaults={
+            "func": "jobs.tasks.integration_tick",
+            "schedule_type": Schedule.MINUTES,
+            "minutes": 1,
+            "repeats": -1,
+            "cluster": "default",
+        },
+    )

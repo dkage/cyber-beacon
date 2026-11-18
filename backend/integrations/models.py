@@ -10,7 +10,9 @@ from .fields import EncryptedJSONField
 class IntegrationConnection(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
-    provider = models.CharField(max_length=20, choices=[("notion", "Notion"), ("google", "Google Calendar")])
+    provider = models.CharField(
+        max_length=20, choices=[("notion", "Notion"), ("google", "Google Calendar")]
+    )
     account_identity = models.CharField(max_length=255)
     label = models.CharField(max_length=255)
     credentials = EncryptedJSONField(null=True)
@@ -21,12 +23,18 @@ class IntegrationConnection(models.Model):
     budget_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["user", "provider", "account_identity"], name="unique_provider_account")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "provider", "account_identity"], name="unique_provider_account"
+            )
+        ]
 
 
 class Mount(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    connection = models.ForeignKey(IntegrationConnection, on_delete=models.PROTECT, related_name="mounts")
+    connection = models.ForeignKey(
+        IntegrationConnection, on_delete=models.PROTECT, related_name="mounts"
+    )
     external_id = models.CharField(max_length=255)
     label = models.CharField(max_length=255)
     enabled = models.BooleanField(default=True)
@@ -37,7 +45,11 @@ class Mount(models.Model):
     consecutive_failures = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["connection", "external_id"], name="unique_mount_resource")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["connection", "external_id"], name="unique_mount_resource"
+            )
+        ]
 
 
 class MountSnapshot(models.Model):
@@ -62,7 +74,9 @@ class ImportCommand(models.Model):
     task = models.ForeignKey("planner.Task", on_delete=models.PROTECT)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["user", "key"], name="unique_import_command")]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "key"], name="unique_import_command")
+        ]
 
 
 class OAuthState(models.Model):
@@ -86,6 +100,24 @@ class CalendarEvent(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["mount", "external_id"], name="unique_event_occurrence"),
-            models.CheckConstraint(condition=(models.Q(starts_at__isnull=False, ends_at__gt=models.F("starts_at"), start_date__isnull=True, end_date__isnull=True) | models.Q(starts_at__isnull=True, ends_at__isnull=True, start_date__isnull=False, end_date__gt=models.F("start_date"))), name="event_valid_interval"),
+            models.UniqueConstraint(
+                fields=["mount", "external_id"], name="unique_event_occurrence"
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        starts_at__isnull=False,
+                        ends_at__gt=models.F("starts_at"),
+                        start_date__isnull=True,
+                        end_date__isnull=True,
+                    )
+                    | models.Q(
+                        starts_at__isnull=True,
+                        ends_at__isnull=True,
+                        start_date__isnull=False,
+                        end_date__gt=models.F("start_date"),
+                    )
+                ),
+                name="event_valid_interval",
+            ),
         ]

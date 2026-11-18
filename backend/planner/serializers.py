@@ -3,7 +3,15 @@ from rest_framework import serializers
 from .models import Task, TaskActivity, TimeEntry
 
 
+class SourcePreviewSerializer(serializers.Serializer):
+    url = serializers.URLField()
+    raw = serializers.JSONField()
+    imported_at = serializers.DateTimeField()
+    provider = serializers.CharField(source="mount.connection.provider")
+
+
 class TaskSerializer(serializers.ModelSerializer):
+    source = SourcePreviewSerializer(read_only=True, allow_null=True)
     completed = serializers.BooleanField(write_only=True, required=False)
     parent = serializers.PrimaryKeyRelatedField(
         queryset=Task.objects.none(), allow_null=True, required=False
@@ -12,6 +20,7 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = [
+            "source",
             "id",
             "parent",
             "title",

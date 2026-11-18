@@ -31,3 +31,27 @@ def daily_tick():
         ended_at=timezone.now(),
         message="Worker stopped before recording an outcome.",
     )
+
+
+def integration_tick():
+    from integrations.models import Mount
+
+    from .queue import enqueue
+
+    now = timezone.now()
+    # Move dispatch time forward in a transaction; missed dispatch is retried next minute.
+    from django.db import transaction
+
+    with transaction.atomic():
+        mounts = Mount.objects.select_for_update(skip_locked=True).filter(
+            enabled=True,
+            connection__status="active",
+            connection__provider="google",
+            next_attempt_at__lte=now,
+        )[:100]
+        for mount in mounts:
+            mount.next_attempt_at = now + timedelta(minutes=1)
+            mount.save(update_fields=["next_attempt_at"])
+            transaction.on_commit(
+                lambda pk=str(mount.pk): enqueue("integrations.services.sync_calendar", pk)
+            )

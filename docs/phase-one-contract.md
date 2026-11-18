@@ -80,9 +80,9 @@ Kiosk uses a device-pairing code approved by a signed-in planner. The device rec
 an opaque 90-day read-only credential; only a hash is stored server-side. It can call
 only the kiosk summary endpoint: date, task titles/completion/estimates, meeting titles
 and times, freshness, never notes/raw Sources/credentials. Owners can revoke devices.
-Poll failure retains the last summary in memory with stale time; revoked/expired
+Poll failure retains the last redacted summary in browser storage with stale time; revoked/expired
 credentials clear data and require pairing. A service worker caches only the app shell,
-never authenticated API responses. Passive summary persistence and richer privacy
+never authenticated API responses. The passive summary survives reloads and is cleared on an observed revocation. Richer privacy
 controls remain follow-up work; no editable offline planner.
 
 ## Validation boundaries

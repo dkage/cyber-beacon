@@ -22,6 +22,8 @@ INSTALLED_APPS = [
     "django_q",
     "accounts",
     "planner",
+    "integrations",
+    "kiosk",
     "jobs",
 ]
 MIDDLEWARE = [
@@ -102,7 +104,7 @@ SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_TRUSTED_ORIGINS = os.environ.get(
-    "CSRF_TRUSTED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    "CSRF_TRUSTED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:4173"
 ).split(",")
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
@@ -124,3 +126,12 @@ CACHES = {
     }
 }
 FERNET_KEYS = [key for key in os.environ.get("FERNET_KEYS", "").split(",") if key]
+
+INTEGRATION_OAUTH = {
+    provider: {
+        "client_id": os.environ.get(f"{provider.upper()}_CLIENT_ID", ""),
+        "client_secret": os.environ.get(f"{provider.upper()}_CLIENT_SECRET", ""),
+        "redirect_uri": os.environ.get(f"{provider.upper()}_REDIRECT_URI", ""),
+    }
+    for provider in ["notion", "google"]
+}

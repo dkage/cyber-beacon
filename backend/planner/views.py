@@ -31,6 +31,7 @@ def precondition(request):
 
 
 class TaskViewSet(viewsets.GenericViewSet):
+    lookup_value_regex = "[0-9a-f-]{36}"
     serializer_class = TaskSerializer
     queryset = Task.objects.none()
 
@@ -107,6 +108,7 @@ class TaskViewSet(viewsets.GenericViewSet):
 
 
 class TimerViewSet(viewsets.GenericViewSet):
+    lookup_value_regex = "[0-9a-f-]{36}"
     serializer_class = TimeEntrySerializer
     queryset = TimeEntry.objects.none()
 
