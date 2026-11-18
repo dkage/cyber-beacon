@@ -179,7 +179,7 @@ def exchange(provider, code):
     return (
         result,
         account["id"],
-        account.get("summary") or account["id"],
+        account["id"],
         result.get("scope", "").split(),
     )
 

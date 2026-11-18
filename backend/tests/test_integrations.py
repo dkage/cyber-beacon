@@ -295,9 +295,10 @@ def test_google_exchange_refresh_and_readonly_scope(notion, settings, monkeypatc
         return httpx.Response(200, json={"items": []})
 
     monkeypatch.setattr(httpx, "request", send)
-    credentials, identity, _, scopes = providers.exchange("google", "code")
+    credentials, identity, label, scopes = providers.exchange("google", "code")
     assert scopes == [providers.GOOGLE_SCOPE]
     assert identity == "account@example.test"
+    assert label == "account@example.test"
     credentials["expires_at"] = "2000-01-01T00:00:00+00:00"
     conn = notion.connection
     conn.provider, conn.credentials = "google", credentials
