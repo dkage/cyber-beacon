@@ -16,6 +16,24 @@ GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.readonly"
 MICROSOFT_SCOPES = "User.Read Calendars.Read offline_access"
 MICROSOFT_AUTH = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 MICROSOFT_TOKEN = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+PROVIDER_CAPABILITIES = {
+    "notion": frozenset({"worksheet"}),
+    "google": frozenset({"calendar"}),
+    "microsoft": frozenset({"calendar"}),
+    "github": frozenset({"worksheet"}),
+}
+
+
+def providers_with(capability):
+    return tuple(
+        provider
+        for provider, capabilities in PROVIDER_CAPABILITIES.items()
+        if capability in capabilities
+    )
+
+
+def supports(provider, capability):
+    return capability in PROVIDER_CAPABILITIES.get(provider, ())
 
 
 class ProviderError(APIException):

@@ -18,6 +18,7 @@ from planner.services import Conflict, activity, create_task, lock_user
 from . import providers
 from .models import (
     CalendarEvent,
+    CalendarSyncProgress,
     ImportCommand,
     IntegrationConnection,
     Mount,
@@ -131,7 +132,7 @@ def import_record(user, mount, external_id, day, key):
         return previous
     provider = mount.connection.provider
     if (
-        provider not in {"notion", "github"}
+        not providers.supports(provider, "worksheet")
         or mount.connection.status != "active"
         or not mount.enabled
     ):
@@ -247,6 +248,25 @@ def event_values(raw, timezone_name=None):
     }
 
 
+def _checkpoint_event(raw, timezone_name):
+    values = {"external_id": raw["id"], **event_values(raw, timezone_name)}
+    for field in ("starts_at", "ends_at", "start_date", "end_date"):
+        if values[field] is not None:
+            values[field] = values[field].isoformat()
+    return values
+
+
+def _calendar_event(mount, values):
+    event_values_for_model = dict(values)
+    for field in ("starts_at", "ends_at"):
+        if event_values_for_model[field] is not None:
+            event_values_for_model[field] = parse_datetime(event_values_for_model[field])
+    for field in ("start_date", "end_date"):
+        if event_values_for_model[field] is not None:
+            event_values_for_model[field] = parse_date(event_values_for_model[field])
+    return CalendarEvent(mount=mount, **event_values_for_model)
+
+
 def sync_calendar(mount_id):
     """Lease, fetch without database locks, then replace a complete bounded window."""
     now = timezone.now()
@@ -254,23 +274,36 @@ def sync_calendar(mount_id):
         mount = Mount.objects.select_for_update().select_related("connection").get(pk=mount_id)
         if not mount.enabled or mount.connection.status != "active":
             return
+        if not providers.supports(mount.connection.provider, "calendar"):
+            return
         if mount.sync_started_at and mount.sync_started_at > now - timedelta(minutes=3):
             return
         mount.sync_started_at = now
         mount.save(update_fields=["sync_started_at"])
     run = JobRun.objects.create(user=mount.connection.user, kind="calendar_sync")
-    start, end = now - timedelta(days=30), now + timedelta(days=90)
     try:
-        rows, cursor = [], None
-        for _ in range(50):
+        progress, _ = CalendarSyncProgress.objects.get_or_create(
+            mount=mount,
+            defaults={
+                "window_start": now - timedelta(days=30),
+                "window_end": now + timedelta(days=90),
+            },
+        )
+        start, end = progress.window_start, progress.window_end
+        while not progress.complete:
+            if progress.pages_fetched >= 50:
+                raise providers.ProviderError(
+                    "Calendar is too large for one refresh. Narrow the resource or retry later.",
+                    kind="fatal",
+                )
+            cursor = progress.next_cursor or None
             if mount.connection.provider == "microsoft":
                 params = {
                     "startDateTime": start.isoformat(),
                     "endDateTime": end.isoformat(),
                     "$top": 250,
                     "$select": (
-                        "id,subject,start,end,isAllDay,showAs,isCancelled,webLink,"
-                        "attendees,responseStatus"
+                        "id,subject,start,end,isAllDay,showAs,isCancelled,webLink,responseStatus"
                     ),
                 }
                 path = cursor or f"me/calendars/{quote(mount.external_id, safe='')}/calendarView"
@@ -292,19 +325,27 @@ def sync_calendar(mount_id):
                 params={} if mount.connection.provider == "microsoft" and cursor else params,
             )
             if mount.connection.provider == "microsoft":
-                rows.extend(row for row in result.get("value", []) if not row.get("isCancelled"))
+                page_rows = [row for row in result.get("value", []) if not row.get("isCancelled")]
                 cursor = result.get("@odata.nextLink")
             else:
-                rows.extend(
+                page_rows = [
                     row for row in result.get("items", []) if row.get("status") != "cancelled"
-                )
+                ]
                 cursor = result.get("nextPageToken")
-            if not cursor:
-                break
-        else:
-            raise providers.ProviderError(
-                "Calendar is too large for one refresh. Narrow the resource or retry later.",
-                kind="fatal",
+            progress.events.extend(
+                _checkpoint_event(row, mount.connection.user.timezone) for row in page_rows
+            )
+            progress.next_cursor = cursor or ""
+            progress.pages_fetched += 1
+            progress.complete = not bool(cursor)
+            progress.save(
+                update_fields=[
+                    "events",
+                    "next_cursor",
+                    "pages_fetched",
+                    "complete",
+                    "updated_at",
+                ]
             )
         with transaction.atomic():
             locked = Mount.objects.select_for_update().get(pk=mount.pk)
@@ -320,17 +361,12 @@ def sync_calendar(mount_id):
             # No partial replacement on provider or database failure.
             CalendarEvent.objects.filter(mount=mount).delete()
             CalendarEvent.objects.bulk_create(
-                [
-                    CalendarEvent(
-                        mount=mount,
-                        external_id=row["id"],
-                        **event_values(row, mount.connection.user.timezone),
-                    )
-                    for row in rows
-                ]
+                [_calendar_event(mount, row) for row in progress.events]
             )
+            event_count = len(progress.events)
+            progress.delete()
             MountSnapshot.objects.update_or_create(
-                mount=mount, defaults={"value": {"count": len(rows)}, "fetched_at": now}
+                mount=mount, defaults={"value": {"count": event_count}, "fetched_at": now}
             )
             locked.last_succeeded_at = now
             locked.last_error = ""
@@ -339,7 +375,7 @@ def sync_calendar(mount_id):
             locked.next_attempt_at = now + timedelta(minutes=5)
             locked.save()
         run.outcome = "success"
-        run.counts = {"events": len(rows)}
+        run.counts = {"events": event_count}
     except Exception as exc:
         logging.getLogger(__name__).exception("Calendar refresh failed for Mount %s", mount.pk)
         error = (
@@ -357,7 +393,7 @@ def sync_calendar(mount_id):
                     error.retry_after, min(3600, 60 * 2 ** min(locked.consecutive_failures, 6))
                 )
             )
-            if locked.consecutive_failures >= 5:
+            if error.kind != "rate_limited" and locked.consecutive_failures >= 5:
                 locked.enabled = False
             locked.save()
         run.outcome, run.message = error.kind, str(error.detail)

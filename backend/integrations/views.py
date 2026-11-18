@@ -110,7 +110,7 @@ class ConnectionViewSet(viewsets.GenericViewSet):
             )
             mount.enabled = True
             mount.save(update_fields=["enabled"])
-        if connection.provider in {"google", "microsoft"}:
+        if providers.supports(connection.provider, "calendar"):
             transaction.on_commit(
                 lambda: enqueue("integrations.services.sync_calendar", str(mount.pk))
             )
@@ -128,7 +128,7 @@ class MountViewSet(viewsets.GenericViewSet):
     @action(detail=True, methods=["get"])
     def browse(self, request, pk=None):
         mount = self.get_object()
-        if mount.connection.provider not in {"notion", "github"} or not mount.enabled:
+        if not providers.supports(mount.connection.provider, "worksheet") or not mount.enabled:
             raise ValidationError("Choose an enabled worksheet source Mount.")
         query = BrowseQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
@@ -190,7 +190,7 @@ class MountViewSet(viewsets.GenericViewSet):
     def refresh(self, request, pk=None):
         mount = self.get_object()
         if (
-            mount.connection.provider not in {"google", "microsoft"}
+            not providers.supports(mount.connection.provider, "calendar")
             or mount.connection.status != "active"
         ):
             raise ValidationError("Choose an active Calendar Mount.")
