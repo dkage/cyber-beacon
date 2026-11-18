@@ -1,0 +1,10 @@
+.git
+.env
+**/.env
+**/node_modules
+**/.venv
+**/__pycache__
+**/staticfiles
+frontend/.svelte-kit
+frontend/build
+frontend/test-results
