@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { api, ApiError, message, write } from '$lib/api';
 	import type { Task } from '$lib/types';
 	import { safeUrl } from '$lib/format';
@@ -27,6 +27,19 @@
 	let priority = $state<number | undefined>(initial.task?.priority ?? undefined);
 	let error = $state('');
 	let pending = $state(false);
+	let dialog: HTMLDialogElement;
+	let titleInput: HTMLInputElement;
+	onMount(() => {
+		dialog.showModal();
+		titleInput.focus();
+		return () => {
+			if (dialog.open) dialog.close();
+		};
+	});
+	function dismiss(event: Event) {
+		event.preventDefault();
+		if (!pending) oncancel();
+	}
 	async function save(event: SubmitEvent) {
 		event.preventDefault();
 		if (pending) return;
@@ -74,32 +87,50 @@
 	}
 </script>
 
-<section class="panel editor" aria-label={task ? 'Edit Task' : 'New Task'}>
-	<div class="section-heading">
-		<h2>{task ? 'Edit Task' : 'New Task'}</h2>
-		<button type="button" class="quiet" disabled={pending} onclick={oncancel}>Close editor</button>
-	</div>
-	<form onsubmit={save}>
-		<label>Title<input bind:value={title} required maxlength="500" /></label>
-		<label>Notes<textarea bind:value={notes} rows="4" maxlength="20000"></textarea></label>
-		<div class="form-grid">
-			<label>Do date<input type="date" bind:value={doDate} /></label><label
-				>Due date<input type="date" bind:value={dueDate} /></label
-			><label>Start date<input type="date" bind:value={startDate} /></label>
-			<label
-				>Estimate (minutes)<input type="number" min="0" max="10080" bind:value={estimate} /></label
-			><label>Priority (0–5)<input type="number" min="0" max="5" bind:value={priority} /></label>
+<dialog
+	class="task-dialog"
+	bind:this={dialog}
+	aria-labelledby="task-editor-title"
+	oncancel={dismiss}
+	onclick={(event) => {
+		if (event.target === dialog && !pending) oncancel();
+	}}
+>
+	<section class="panel editor">
+		<div class="section-heading">
+			<h2 id="task-editor-title">{task ? 'Edit Task' : 'New Task'}</h2>
+			<button type="button" class="quiet" disabled={pending} onclick={oncancel}>Close editor</button
+			>
 		</div>
-		{#if task?.source}<details class="source">
-				<summary>Source preview · {task.source.provider}</summary>{#if safeUrl(task.source.url)}<a
-						href={safeUrl(task.source.url)}
-						target="_blank"
-						rel="external noreferrer">Open source</a
-					>{/if}
-				<pre>{JSON.stringify(task.source.raw, null, 2)}</pre>
-				<p>Your edits belong to this worksheet.</p>
-			</details>{/if}
-		{#if error}<p class="error" role="alert">{error}</p>{/if}
-		<button class="primary" disabled={pending}>{pending ? 'Saving…' : 'Save Task'}</button>
-	</form>
-</section>
+		<form onsubmit={save}>
+			<label
+				>Title<input bind:this={titleInput} bind:value={title} required maxlength="500" /></label
+			>
+			<label>Notes<textarea bind:value={notes} rows="4" maxlength="20000"></textarea></label>
+			<div class="form-grid">
+				<label>Do date<input type="date" bind:value={doDate} /></label><label
+					>Due date<input type="date" bind:value={dueDate} /></label
+				><label>Start date<input type="date" bind:value={startDate} /></label>
+				<label
+					>Estimate (minutes)<input
+						type="number"
+						min="0"
+						max="10080"
+						bind:value={estimate}
+					/></label
+				><label>Priority (0–5)<input type="number" min="0" max="5" bind:value={priority} /></label>
+			</div>
+			{#if task?.source}<details class="source">
+					<summary>Source preview · {task.source.provider}</summary>{#if safeUrl(task.source.url)}<a
+							href={safeUrl(task.source.url)}
+							target="_blank"
+							rel="external noreferrer">Open source</a
+						>{/if}
+					<pre>{JSON.stringify(task.source.raw, null, 2)}</pre>
+					<p>Your edits belong to this worksheet.</p>
+				</details>{/if}
+			{#if error}<p class="error" role="alert">{error}</p>{/if}
+			<button class="primary" disabled={pending}>{pending ? 'Saving…' : 'Save Task'}</button>
+		</form>
+	</section>
+</dialog>
