@@ -32,8 +32,14 @@ class OAuthStart(APIView):
     def post(self, request):
         serializer = ProviderSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        if not request.session.session_key:
+            request.session.save()
         return Response(
-            {"url": services.begin_oauth(request, serializer.validated_data["provider"])}
+            {
+                "url": services.begin_oauth(
+                    request.user, request.session.session_key, serializer.validated_data["provider"]
+                )
+            }
         )
 
 
@@ -47,7 +53,8 @@ class OAuthCallback(APIView):
         if request.query_params.get("error"):
             return HttpResponseRedirect("/connections?error=consent-denied")
         services.finish_oauth(
-            request,
+            request.user,
+            request.session.session_key,
             provider,
             request.query_params.get("state", "")[:500],
             request.query_params.get("code", "")[:4000],
