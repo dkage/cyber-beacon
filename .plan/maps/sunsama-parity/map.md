@@ -82,3 +82,11 @@ No committed document may depend on a private scratch path.
 - Production implementation, automated changes to the developer's Sunsama records, and
   destructive/send-mail runtime experiments without a separately scoped test plan.
 - A promise to build a native desktop shell, mobile app, team SaaS or every connector in v1.
+
+## First usable day implementation (2026-11-18)
+
+The developer authorized autonomous Phase 1 implementation. Its bounded contracts
+are in [the release contract](../../../docs/phase-one-contract.md); local evidence
+and remaining operator acceptance are in [the delivery report](../../../docs/phase-one-delivery.md).
+These supersede conflicting historical premises only for the Phase 1 slice. Broader
+parity decisions and Calendar planning remain open.

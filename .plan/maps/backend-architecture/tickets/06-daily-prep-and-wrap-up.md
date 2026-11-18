@@ -155,3 +155,10 @@ One idempotent periodic sweep (about every 15 minutes: auto-skip wrap-ups past t
 - **Not specified:** a timezone change during a pending gap (travel), and an offline client replaying a ritual call; the latter is already fog on the map. How the AI briefing consumes the prep-finish hook, and notification delivery for the two alerts, belong to their own tickets.
 - A month-by-month **daily log** view was raised and parked in the developer's private notes; the stored fields above already support it.
 
+
+## First usable day implementation disposition (2026-11-18)
+
+[The Phase 1 contract](../../../../docs/phase-one-contract.md), authorized through
+autonomous release implementation, supplies midnight carry-forward without ritual
+gating. It supersedes the old Bump/Pending day rules for Phase 1. Rituals and journal
+features remain with the broader parity map.

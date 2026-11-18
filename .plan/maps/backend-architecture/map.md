@@ -60,3 +60,11 @@ Decided before this map existed — the premise of the route, not steps along it
 - **Frontend design and build.** The existing brief covers the **dashboard only** — tokens, five viewport profiles, widget catalog and mock data. It explicitly excludes the planner and does not specify Today/Board/Calendar/Focus/source panels or ritual interactions. Those missing surfaces now belong to [parity ticket 09](../sunsama-parity/tickets/09-planner-surfaces-and-dashboard.md), with dashboard identity constraints summarized in that map. Do not assume a private dashboard brief is a complete planner spec.
 - **The Swift iOS app.** The API is designed so it can exist; building it is a separate effort and is not confirmed.
 - **Kiosk hardware setup.** TV mounting, orientation, and Pi provisioning.
+
+## First usable day implementation (2026-11-18)
+
+The developer authorized autonomous Phase 1 implementation. Its bounded contracts
+are in [the release contract](../../../docs/phase-one-contract.md); local evidence
+and remaining operator acceptance are in [the delivery report](../../../docs/phase-one-delivery.md).
+These supersede conflicting historical premises only for the Phase 1 slice. Broader
+parity decisions and Calendar planning remain open.

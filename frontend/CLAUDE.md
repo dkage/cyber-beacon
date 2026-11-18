@@ -2,7 +2,9 @@
 
 - **Language**: TypeScript
 - **Package Manager**: bun
-- **Add-ons**: mcp, storybook, better-auth, tailwindcss, playwright, vitest, prettier, eslint, drizzle
+- **Add-ons**: mcp, storybook, tailwindcss, playwright, vitest, prettier, eslint
+- **Runtime**: static SvelteKit API client; Django owns identity, persistence and jobs
+- **Contracts**: read `../docs/phase-one-contract.md` before changing planner behavior
 
 ---
 

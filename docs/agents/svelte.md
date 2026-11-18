@@ -15,8 +15,7 @@ conventions; the linked framework documentation supplies mechanics.
    not evidence of approved architecture or implemented product behavior.
 
 Architecture and release sequencing live in [CLAUDE.md](../../CLAUDE.md). The frontend
-cleanup is [issue #9](https://github.com/dkage/cyber-beacon/issues/9); until it lands,
-the scaffold's Better Auth, Drizzle, SQLite and server modules are removal targets.
+cleanup is [issue #9](https://github.com/dkage/cyber-beacon/issues/9); the generated server stack has been removed.
 Follow the static API client direction. Keep production behavior independent of a
 SvelteKit server: Django handles persistence, authorization and domain commands.
 
@@ -102,7 +101,8 @@ replace current results with an older response.
   an older rollback cannot erase a newer edit. Follow backend 09 for stale-write rules
   and the owning ticket for undo/idempotency rather than inventing client-only replay.
 
-Static delivery still needs the packaging proof. Keep browser-only APIs behind browser
+The Phase 1 packaging proof covers Django and the Vite proxy; Zoraxy remains an
+operator check. Keep browser-only APIs behind browser
 lifecycle boundaries, since build tooling can evaluate imports. Prove fallback behavior
 on the actual serving stack; unknown API routes and missing assets must retain their
 proper responses. API writes go to Django rather than SvelteKit form actions or server

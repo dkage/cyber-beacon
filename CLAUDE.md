@@ -15,11 +15,11 @@ and record actual time. Calendar timeboxing follows the first usable day. AI bri
 plan drafting and agent execution have separate, unresolved boundaries; AI is not a
 prerequisite for using the planner.
 
-**Implementation is still at the scaffold stage.** `backend/` contains abandoned Go
-code, not the planned Django backend. `frontend/` contains the generated SvelteKit app
-with Better Auth, Drizzle and SQLite still awaiting removal. Scaffold code and installed
-add-ons describe what exists, not the intended architecture. Inspect the working tree
-and live issues before reporting implementation progress.
+**First usable day is implemented.** `backend/` is the Django modular monolith;
+`frontend/` is a static SvelteKit API client. Read [the release contract](docs/phase-one-contract.md)
+before changing Phase 1 behavior and [delivery verification](docs/phase-one-delivery.md)
+before claiming deployment or live Provider acceptance. Inspect live issues and the
+working tree for subsequent progress.
 
 ## Architecture
 
@@ -47,12 +47,10 @@ and live issues before reporting implementation progress.
   [ADR-0002](docs/adr/0002-integration-connections-separate-from-identity.md) and
   [ADR-0003](docs/adr/0003-credential-encryption-at-rest.md) before integration work.
 
-**Static web delivery is the implementation target, with validation outstanding.**
-Issues #9 and #12 cover the static build and browser session/CSRF flow.
-[Backend ticket 12](.plan/maps/backend-architecture/tickets/12-static-frontend-and-packaging.md)
-owns the packaging proof, deep-link refresh and development proxy behavior.
-[ADR-0001](docs/adr/0001-django-owns-identity.md) retains older SvelteKit BFF wording;
-reconcile it when that proof lands rather than treating either approach as implemented.
+**Static web delivery uses one image.** Django serves the SvelteKit build on the same
+origin as `/api` and `/_allauth`; Vite proxies these paths in development. Browser
+sessions, CSRF rotation, deep links and Compose have executable checks. ADR-0001 records
+this direction; Zoraxy/TrueNAS and live OAuth checks remain operator acceptance.
 
 ## Planning and implementation
 
@@ -108,17 +106,17 @@ read live issue status and acceptance criteria when choosing work.
 | First usable day | #8–#19 | Django foundation, static client, auth, local Tasks/Today, Notion import, read-only Calendar meetings, estimates/order/capacity, timer, carry-forward and kiosk |
 | Calendar planning | #20–#24 | Internal calendar, projections, pin-to-commit with undo, calendar semantics/channel routing, auto-scheduling |
 
-Start with the backend scaffold (#8) and frontend cleanup (#9), then establish the
-authenticated local task loop (#10–#13). Calendar planning is the next release and a
+The Phase 1 implementation covers #8–#19; issues remain subject to review and
+operator acceptance. Read their current status before starting new work. Calendar planning is the next release and a
 high priority once that foundation can support it; its design gate is parity ticket 05.
 Capacity in #16 also depends on that ticket. Priority labels alone do not override
 dependencies or open design gates.
 
-Before Task migrations/API work, consult backend ticket 09 for unresolved stale-write
-and deletion rules. Before import/sync, consult parity 02/03; for day lifecycle, 04;
+Before Task migrations/API work, consult backend ticket 09 and the implemented
+[Phase 1 contract](docs/phase-one-contract.md) for version preconditions and retained trash. Before import/sync, consult parity 02/03; for day lifecycle, 04;
 for timers, 06; for planner surfaces, 09. Kiosk authentication remains backend ticket 11.
-Check issue blockers and linked planning gates: an open issue is not proof its design
-is ready. Keep changes within the settled slice and update its acceptance criteria
+Check issue blockers and linked planning gates. The bounded Phase 1 answers in the
+release contract do not close the broader parity tickets. Keep changes within the settled slice and update its acceptance criteria
 when a missing contract is resolved.
 
 ## Documentation and delivery

@@ -2,10 +2,9 @@
 
 Model names and the fields that carry a decision. Not a schema.
 
-**Migration readiness:** explicit import, local worksheets, local completion and midnight
-carry-forward are decided (parity ticket 13). Meeting representation, calendar routing and
-TimeEntry/timer storage still require the linked [parity decisions](../../.plan/maps/sunsama-parity/map.md)
-before affected first migrations. [Translation/status](./sunsama-reference.md).
+**Migration readiness:** the bounded Phase 1 schema is implemented under
+[the release contract](../phase-one-contract.md). Broader meeting checklist, calendar
+routing and timer changes remain with the [parity map](../../.plan/maps/sunsama-parity/map.md).
 
 ## Work and time (ticket 02)
 

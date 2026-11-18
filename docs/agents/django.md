@@ -8,10 +8,9 @@ are project choices rather than requirements imposed by Django.
 
 1. Read `CLAUDE.md` and the relevant issue, ADR and planning ticket. Follow its design
    gates; a convention here does not settle missing product behavior.
-2. Inspect the actual backend, dependency lockfile and configuration. At the time this
-   guide was introduced, `backend/` still held the abandoned Go scaffold. Resolve Python,
-   Django and dependency versions during the Django foundation work (`#8`), and update this
-   guide with the concrete app layout and test/lint/schema commands once `#8` lands.
+2. Inspect the actual backend, dependency lockfile and configuration. The backend uses Python 3.13 and Django 5.2 LTS, locked in `backend/uv.lock`.
+   Apps are `accounts`, `planner`, `integrations`, `jobs` and `kiosk`; `config` owns
+   settings and root routes. Commands and setup are in the root README.
 3. Find the nearest implemented example of the same operation. Follow its conventions
    unless the task calls for changing them; explain any necessary departure.
 
@@ -74,7 +73,8 @@ model class is needed at runtime. In data migrations use historical models from
 - Follow the domain distinction between local calendar dates and instants in
   `CONTEXT.md`; serialize dates and timezone-aware datetimes consistently in the schema.
 
-Before Task migrations or mutation contracts, resolve the applicable gates in
+Before Task migrations or mutation contracts, read the bounded Phase 1 answer in
+[the release contract](../phase-one-contract.md), then the applicable broader gates in
 [backend ticket 09](../../.plan/maps/backend-architecture/tickets/09-task-lifecycle-on-our-api.md).
 This guide does not select stale-write, deletion, undo or offline replay semantics.
 
@@ -174,8 +174,8 @@ older sweep/sync examples do not override the product baseline.
 
 ## Verification and delivery
 
-Discover executable commands from backend configuration, scripts and CI. Until the
-Django foundation exists, proposed commands are setup work rather than working tooling.
+Discover executable commands from backend configuration, scripts and CI. Use `uv run --env-file ../.env` from `backend/`; the root README lists verified
+commands for tests, lint, migration drift and OpenAPI validation.
 Use the configured test runner, formatter and linter; add type hints to service,
 selector and utility interfaces without introducing a new toolchain incidentally.
 

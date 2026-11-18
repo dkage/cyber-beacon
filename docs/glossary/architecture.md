@@ -9,7 +9,7 @@ Source: `CLAUDE.md`, [ADR-0001](../adr/0001-django-owns-identity.md), ticket 04,
 | Backend | Python, Django modular monolith, DRF, drf-spectacular (OpenAPI from day one) |
 | Auth | django-allauth headless, the sole account system |
 | Database | PostgreSQL |
-| Frontend | SvelteKit + TypeScript, Bun, Tailwind. A **pure API client** with login UI; Django owns identity, persistence and domain rules. Static delivery/session handling still needs the backend ticket 12 proof |
+| Frontend | SvelteKit + TypeScript, Bun, Tailwind. A **pure API client** with login UI; Django owns identity, persistence and domain rules. Static delivery/session handling has local Django/Vite/browser proof; see the Phase 1 delivery report |
 | Background work | Django-Q2 on the Postgres ORM broker. See [background-work.md](./background-work.md) |
 
 ## Principles
@@ -38,11 +38,11 @@ Source: `CLAUDE.md`, [ADR-0001](../adr/0001-django-owns-identity.md), ticket 04,
 |---|---|
 | **Homelab** | 64GB Xeon TrueNAS box. Hosts the backend and Postgres in containers, 24/7 |
 | **Pi** | Raspberry Pi 5, 8GB. Thin kiosk, runs only Chromium |
-| **Prod services** | `web` (gunicorn), `worker`, `worker-ai`, `postgres`, `vault-sync`, `frontend` (nginx static). No Redis. Ticket 05 amended this list |
+| **Prod services** | `web` (gunicorn + static frontend), `worker`, `worker-ai`, `postgres` in Phase 1. `vault-sync` is future work. No Redis |
 | **Dev** | Only Postgres in Docker. Django and Bun run natively on the Mac |
-| **Zoraxy** | Shared TLS terminator outside the stack. Routes `/api` to Django and `/` to the frontend on one hostname, so cookies stay same-origin |
+| **Zoraxy** | Shared TLS terminator outside the stack. Routes the shared hostname to Django, including static pages, `/api` and `/_allauth`, so cookies stay same-origin |
 | **Access** | WireGuard only. Nothing is public. TLS from Let's Encrypt DNS-01 via Cloudflare |
-| **Stale banner** | The TV's service worker keeps the last good data and shows "stale since HH:MM" when the homelab is down |
+| **Stale banner** | The TV keeps a redacted last summary; its service worker caches only the app shell and shows "stale since HH:MM" when the homelab is down |
 | **`vault-sync`** | Own container running Obsidian Headless Sync. The only read-write holder of the vault. The backend gets the vault read-only plus a writable `Journal/` |
 | **Uploads** | A ZFS dataset through Django local storage, with a relative key |
 | **Backups** | Hourly ZFS snapshots, a nightly encrypted `pg_dump` to S3, Cloud Sync for uploads. 24h off-box loss accepted |
@@ -58,3 +58,9 @@ field-encrypted. Disk-level encryption is the deployment's job.
 
 Planning decisions live in `.plan/maps/` (chartr). Anything with a diff is a GitHub
 issue on `dkage/cyber-beacon`.
+
+## Implemented boundary
+
+[Phase 1 contract](../phase-one-contract.md) supersedes the historical ritual gate
+examples above for First usable day. The implemented day read model is `/api/v1/day/`;
+ritual resources and their old gating examples are not part of this release.
