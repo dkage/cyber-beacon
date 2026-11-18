@@ -1,0 +1,112 @@
+name: Checks
+on:
+  pull_request:
+  push:
+    branches: [master]
+permissions:
+  contents: read
+jobs:
+  phase-one:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: beacon
+          POSTGRES_USER: beacon
+          POSTGRES_PASSWORD: beacon-local
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U beacon -d beacon"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DJANGO_SECRET_KEY: ci-only-not-a-production-secret
+      DEBUG: "true"
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: beacon
+      POSTGRES_USER: beacon
+      POSTGRES_PASSWORD: beacon-local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - run: cp .env.example .env
+      - run: uv sync --frozen
+        working-directory: backend
+      - name: Backend verification
+        working-directory: backend
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run ruff check ../scripts
+          uv run ruff format --check ../scripts
+          uv run python manage.py check
+          uv run python manage.py collectstatic --noinput
+          uv run pytest
+          uv run python manage.py makemigrations --check --dry-run
+          uv run python manage.py spectacular --validate --fail-on-warn --file openapi.yaml
+      - run: bun install --frozen-lockfile
+        working-directory: frontend
+      - run: bunx playwright install --with-deps chromium
+        working-directory: frontend
+      - name: Frontend verification
+        working-directory: frontend
+        run: |
+          bun run generate:api
+          bunx prettier --write src/lib/schema.d.ts
+          git diff --exit-code -- ../backend/openapi.yaml src/lib/schema.d.ts
+          bun run check
+          bun run lint
+          bun run test:unit --run
+          bun run test:e2e
+          bun run build-storybook
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failures
+          path: frontend/test-results
+      - name: Build production image
+        run: docker build -t cyber-beacon:ci .
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: phase-one
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+      - run: bun install --frozen-lockfile
+        working-directory: frontend
+      - name: Release after passing checks
+        working-directory: frontend
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bunx semantic-release
+  sonar:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: SonarSource/sonarqube-scan-action@v6
+        if: env.SONAR_TOKEN != '' && env.SONAR_HOST_URL != ''
