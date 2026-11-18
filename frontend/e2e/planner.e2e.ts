@@ -8,6 +8,43 @@ test.beforeEach(async ({ page }) => {
 	await expect(page.getByRole('heading', { name: 'Your day' })).toBeVisible();
 });
 
+test('first-task creation opens a modal and the empty day fits a desktop viewport', async ({
+	page
+}) => {
+	await page.setViewportSize({ width: 1366, height: 768 });
+	const createFirstTask = page.getByRole('button', { name: 'Create your first Task' });
+	await expect(createFirstTask).toBeVisible();
+	expect(
+		await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)
+	).toBe(true);
+
+	await createFirstTask.click();
+	await expect(page.getByRole('dialog')).toBeVisible();
+	await expect(page.getByLabel('Title', { exact: true })).toBeFocused();
+	await page.getByRole('button', { name: 'Close editor' }).click();
+	await expect(page.getByRole('dialog')).toHaveCount(0);
+	await createFirstTask.click();
+	await page.keyboard.press('Escape');
+	await expect(page.getByRole('dialog')).toHaveCount(0);
+
+	await createFirstTask.click();
+	await page.getByLabel('Title', { exact: true }).fill('First task from the modal');
+	await page.getByRole('button', { name: 'Save Task', exact: true }).click();
+	const firstTask = page.getByRole('button', { name: 'First task from the modal', exact: true });
+	await expect(firstTask).toBeVisible();
+	await page.setViewportSize({ width: 390, height: 844 });
+	await firstTask.click();
+	const editor = page.getByRole('dialog');
+	await expect(editor).toBeVisible();
+	expect(await editor.evaluate((element) => element.clientHeight <= window.innerHeight)).toBe(true);
+	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+		true
+	);
+	await page.getByLabel('Do date', { exact: true }).fill('');
+	await page.getByRole('button', { name: 'Save Task', exact: true }).click();
+	await expect(firstTask).toHaveCount(0);
+});
+
 test('a real authenticated day: create, edit, order, time, complete, trash and restore', async ({
 	page
 }) => {
