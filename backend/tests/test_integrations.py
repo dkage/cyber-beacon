@@ -895,6 +895,60 @@ def test_microsoft_calendar_failure_keeps_last_good_snapshot(client, notion, set
     assert not client.get("/api/v1/day/", {"date": day.isoformat()}).json()["events"]
 
 
+@pytest.mark.parametrize("provider_fails", [True, False])
+def test_calendar_refresh_after_disconnect_and_reconnect_keeps_mount_hidden(
+    client, notion, monkeypatch, provider_fails
+):
+    conn = notion.connection
+    conn.provider = "microsoft"
+    conn.save(update_fields=["provider"])
+    notion.consecutive_failures = 4
+    notion.save(update_fields=["consecutive_failures"])
+    now = datetime(2026, 11, 18, 12, tzinfo=UTC)
+    monkeypatch.setattr(timezone, "now", lambda: now)
+    day = now.astimezone(ZoneInfo(conn.user.timezone)).date()
+    CalendarEvent.objects.create(
+        mount=notion,
+        external_id="kept",
+        title="Last good event",
+        start_date=day,
+        end_date=day + timedelta(days=1),
+    )
+    OAuthState.objects.create(
+        digest=services.digest("state"),
+        user=conn.user,
+        provider="microsoft",
+        session_digest=services.digest("session"),
+        expires_at=now + timedelta(minutes=10),
+    )
+    monkeypatch.setattr(
+        providers,
+        "exchange",
+        lambda *_: ({"access_token": "new-token"}, conn.account_identity, conn.label, []),
+    )
+
+    def fetch(*args, **kwargs):
+        services.disconnect(conn.user, conn)
+        services.finish_oauth(conn.user, "session", "microsoft", "state", "code")
+        if provider_fails:
+            raise providers.ProviderError("Old refresh failed.")
+        return {"value": []}
+
+    monkeypatch.setattr(providers, "request", fetch)
+    services.sync_calendar(notion.pk)
+
+    response = client.get("/api/v1/day/", {"date": day.isoformat()})
+    assert response.status_code == 200
+    assert response.json()["events"] == []
+    notion.refresh_from_db()
+    assert not notion.enabled
+    assert notion.consecutive_failures == 0
+    assert notion.last_error == ""
+    assert notion.sync_started_at is None
+    assert notion.calendarevent_set.filter(external_id="kept").exists()
+    assert not CalendarSyncProgress.objects.filter(mount=notion).exists()
+
+
 def test_microsoft_provider_rejects_untrusted_next_link(notion, settings):
     settings.INTEGRATION_OAUTH["microsoft"] = {
         "client_id": "id",

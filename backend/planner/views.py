@@ -91,6 +91,14 @@ class TaskViewSet(viewsets.GenericViewSet):
         parameters=[OpenApiParameter("If-Match", str, OpenApiParameter.HEADER, required=True)],
         responses={
             200: TaskSerializer,
+            400: OpenApiResponse(
+                response={
+                    "type": "object",
+                    "properties": {"If-Match": {"type": "string"}},
+                    "required": ["If-Match"],
+                },
+                description="The If-Match header is malformed.",
+            ),
             412: OpenApiResponse(PreconditionErrorSerializer, "The Task version is stale."),
             428: OpenApiResponse(PreconditionErrorSerializer, "The If-Match header is required."),
         },

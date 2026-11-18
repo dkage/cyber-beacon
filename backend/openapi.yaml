@@ -391,6 +391,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/PairingPending'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                anyOf:
+                - type: array
+                  items:
+                    type: string
+                - type: object
+                  properties:
+                    detail:
+                      type: string
+                    secret:
+                      type: array
+                      items:
+                        type: string
+                    non_field_errors:
+                      type: array
+                      items:
+                        type: string
+          description: Invalid request or an expired, claimed, or revoked pairing.
   /api/v1/kiosk/summary/:
     get:
       operationId: kiosk_summary_retrieve
@@ -647,6 +668,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Task'
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  If-Match:
+                    type: string
+                required:
+                - If-Match
+          description: The If-Match header is malformed.
         '412':
           content:
             application/json:

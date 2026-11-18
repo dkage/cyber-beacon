@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 from django.db import transaction
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import generics, serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
@@ -92,7 +92,26 @@ class PairPoll(APIView):
 
     @extend_schema(
         request=PollSerializer,
-        responses={200: PairingClaimedSerializer, 202: PairingPendingSerializer},
+        responses={
+            200: PairingClaimedSerializer,
+            202: PairingPendingSerializer,
+            400: OpenApiResponse(
+                response={
+                    "anyOf": [
+                        {"type": "array", "items": {"type": "string"}},
+                        {
+                            "type": "object",
+                            "properties": {
+                                "detail": {"type": "string"},
+                                "secret": {"type": "array", "items": {"type": "string"}},
+                                "non_field_errors": {"type": "array", "items": {"type": "string"}},
+                            },
+                        },
+                    ]
+                },
+                description="Invalid request or an expired, claimed, or revoked pairing.",
+            ),
+        },
     )
     @transaction.atomic
     def post(self, request):

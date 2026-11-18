@@ -1186,6 +1186,21 @@ export interface operations {
 					'application/json': components['schemas']['PairingPending'];
 				};
 			};
+			/** @description Invalid request or an expired, claimed, or revoked pairing. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json':
+						| string[]
+						| {
+								detail?: string;
+								secret?: string[];
+								non_field_errors?: string[];
+						  };
+				};
+			};
 		};
 	};
 	kiosk_summary_retrieve: {
@@ -1420,6 +1435,17 @@ export interface operations {
 				};
 				content: {
 					'application/json': components['schemas']['Task'];
+				};
+			};
+			/** @description The If-Match header is malformed. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						'If-Match': string;
+					};
 				};
 			};
 			/** @description The Task version is stale. */

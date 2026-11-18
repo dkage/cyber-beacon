@@ -36,6 +36,8 @@ def test_api_schema_describes_integration_and_kiosk_contracts(client):
             restore["responses"][code]["content"]["application/json"]["schema"]["$ref"]
             == "#/components/schemas/PreconditionError"
         )
+    restore_error = restore["responses"]["400"]["content"]["application/json"]["schema"]
+    assert restore_error["required"] == ["If-Match"]
 
     pair_start = paths["/api/v1/kiosk/pair/"]["post"]["responses"]
     assert (
@@ -51,6 +53,8 @@ def test_api_schema_describes_integration_and_kiosk_contracts(client):
         pair_poll["202"]["content"]["application/json"]["schema"]["$ref"]
         == "#/components/schemas/PairingPending"
     )
+    poll_error = pair_poll["400"]["content"]["application/json"]["schema"]
+    assert {"type": "array", "items": {"type": "string"}} in poll_error["anyOf"]
 
     kiosk = paths["/api/v1/kiosk/summary/"]["get"]
     assert (

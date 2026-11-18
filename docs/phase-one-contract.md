@@ -41,8 +41,9 @@ and never create Tasks. Each connected account can select its own calendar Mount
 Their day windows are bounded and refreshed periodically. A refresh publishes only a
 complete window and keeps the last good events visible in Today and the kiosk while
 it retries and after repeated failures pause refresh. Disconnecting the account hides
-its events. Checkpoints expire one hour after the window was opened and must still be
-valid at publication. Calendar freshness shows when that window was opened. Manual
+its events, invalidates in-flight refresh leases, and discards unfinished checkpoints.
+Checkpoints expire one hour after the window was opened and must still be valid at
+publication. Calendar freshness shows when that window was opened. Manual
 refresh honors the Provider's rate-limit deadline, and throttling
 does not count toward pausing a Mount. Failed refreshes and reauthorization are
 visible; credentials never leave Django. OAuth uses expiring one-use state bound to

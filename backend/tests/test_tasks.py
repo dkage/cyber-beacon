@@ -26,6 +26,9 @@ def test_task_lifecycle_and_stale_write(client, user):
     assert client.delete(url, HTTP_IF_MATCH='"3"').status_code == 204
     assert client.get(url).status_code == 404
     assert Task.objects.get(pk=task["id"]).activity.filter(kind="trashed").exists()
+    malformed = client.post(url + "restore/", HTTP_IF_MATCH="4")
+    assert malformed.status_code == 400
+    assert malformed.json() == {"If-Match": 'Expected "<integer version>".'}
     missing = client.post(url + "restore/")
     assert missing.status_code == 428
     assert "detail" in missing.json()

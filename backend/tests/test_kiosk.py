@@ -29,10 +29,12 @@ def test_pairing_redaction_scope_and_revocation(client, user, settings):
     assert claimed.status_code == 200
     assert claimed.json()["expires_at"]
     token = claimed.json()["token"]
-    assert (
-        device_client.post("/api/v1/kiosk/pair/poll/", {"secret": pair["secret"]}).status_code
-        == 400
-    )
+    claimed_again = device_client.post("/api/v1/kiosk/pair/poll/", {"secret": pair["secret"]})
+    assert claimed_again.status_code == 400
+    assert claimed_again.json() == ["Pairing expired or was already claimed. Start again."]
+    invalid = device_client.post("/api/v1/kiosk/pair/poll/", {})
+    assert invalid.status_code == 400
+    assert isinstance(invalid.json()["secret"], list)
     device_client.credentials(HTTP_AUTHORIZATION="Device " + token)
     summary = device_client.get("/api/v1/kiosk/summary/")
     assert summary.status_code == 200
