@@ -309,6 +309,50 @@ def test_google_exchange_refresh_and_readonly_scope(notion, settings, monkeypatc
     assert len(calls) == 4
 
 
+def test_google_oauth_selects_accounts_and_keeps_connections_independent(
+    notion, settings, monkeypatch
+):
+    from urllib.parse import parse_qs, urlsplit
+
+    from django.contrib.sessions.backends.db import SessionStore
+
+    settings.INTEGRATION_OAUTH["google"] = {
+        "client_id": "google-id",
+        "client_secret": "google-secret",
+        "redirect_uri": "http://localhost/google/callback",
+    }
+    request = SimpleNamespace(user=notion.connection.user, session=SessionStore())
+    request.session.create()
+    connections = []
+    for email in ["personal@example.test", "work@example.test", "company@example.test"]:
+        url = services.begin_oauth(request, "google")
+        params = parse_qs(urlsplit(url).query)
+        assert "select_account" in params["prompt"][0].split()
+        state = params["state"][0]
+        monkeypatch.setattr(
+            providers,
+            "exchange",
+            lambda *args, email=email: (
+                {"access_token": email},
+                email,
+                email,
+                [providers.GOOGLE_SCOPE],
+            ),
+        )
+        connections.append(services.finish_oauth(request, "google", state, "code"))
+
+    assert len({item.pk for item in connections}) == 3
+    assert (
+        IntegrationConnection.objects.filter(user=notion.connection.user, provider="google").count()
+        == 3
+    )
+    assert [item.credentials["access_token"] for item in connections] == [
+        "personal@example.test",
+        "work@example.test",
+        "company@example.test",
+    ]
+
+
 def test_dead_google_refresh_requires_reauthorization(notion, settings, monkeypatch):
     import httpx
 
