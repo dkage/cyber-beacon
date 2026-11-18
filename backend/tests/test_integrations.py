@@ -505,6 +505,40 @@ def test_microsoft_calendar_sync_paginates_and_maps_all_day_events(notion, setti
     assert calls[1][0] == first_page["@odata.nextLink"]
 
 
+def test_microsoft_declined_meeting_does_not_block_capacity():
+    values = services.event_values(
+        {
+            "subject": "Optional review",
+            "start": {"dateTime": "2026-11-18T10:00:00Z"},
+            "end": {"dateTime": "2026-11-18T11:00:00Z"},
+            "showAs": "busy",
+            "isAllDay": False,
+            "responseStatus": {"response": "declined"},
+        }
+    )
+    assert values["blocking"] is False
+
+
+def test_calendar_dispatch_and_freshness_include_outlook(
+    user, notion, monkeypatch, django_capture_on_commit_callbacks
+):
+    from jobs import tasks
+    from planner.read_models import day_summary
+
+    connection = notion.connection
+    connection.provider = "microsoft"
+    connection.save(update_fields=["provider"])
+    queued = []
+    monkeypatch.setattr("jobs.queue.enqueue", lambda *args: queued.append(args))
+
+    with django_capture_on_commit_callbacks(execute=True):
+        tasks.integration_tick()
+
+    assert queued == [("integrations.services.sync_calendar", str(notion.pk))]
+    freshness = day_summary(user, date(2026, 11, 18))["calendars"]
+    assert [str(calendar["id"]) for calendar in freshness] == [str(notion.pk)]
+
+
 def test_microsoft_calendar_failure_keeps_last_good_snapshot(notion, settings, monkeypatch):
     settings.INTEGRATION_OAUTH["microsoft"] = {
         "client_id": "id",

@@ -46,7 +46,7 @@ def integration_tick():
         mounts = Mount.objects.select_for_update(skip_locked=True).filter(
             enabled=True,
             connection__status="active",
-            connection__provider="google",
+            connection__provider__in=["google", "microsoft"],
             next_attempt_at__lte=now,
         )[:100]
         for mount in mounts:

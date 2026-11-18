@@ -197,6 +197,7 @@ def import_record(user, mount, external_id, day, key):
 
 def event_values(raw, timezone_name=None):
     if "isAllDay" in raw:
+        declined = (raw.get("responseStatus") or {}).get("response") == "declined"
         start, end = raw.get("start", {}), raw.get("end", {})
         if raw.get("isAllDay"):
             start_value, end_value = start.get("dateTime", ""), end.get("dateTime", "")
@@ -216,7 +217,9 @@ def event_values(raw, timezone_name=None):
                 "ends_at": None,
                 "start_date": local_date(start_value),
                 "end_date": local_date(end_value),
-                "blocking": raw.get("showAs") != "free" and not raw.get("isCancelled"),
+                "blocking": raw.get("showAs") != "free"
+                and not raw.get("isCancelled")
+                and not declined,
                 "url": raw.get("webLink", "")[:2000],
             }
         return {
@@ -225,7 +228,7 @@ def event_values(raw, timezone_name=None):
             "ends_at": parse_datetime(end.get("dateTime")),
             "start_date": None,
             "end_date": None,
-            "blocking": raw.get("showAs") != "free" and not raw.get("isCancelled"),
+            "blocking": raw.get("showAs") != "free" and not raw.get("isCancelled") and not declined,
             "url": raw.get("webLink", "")[:2000],
         }
     start, end = raw.get("start", {}), raw.get("end", {})
@@ -265,7 +268,10 @@ def sync_calendar(mount_id):
                     "startDateTime": start.isoformat(),
                     "endDateTime": end.isoformat(),
                     "$top": 250,
-                    "$select": "id,subject,start,end,isAllDay,showAs,isCancelled,webLink,attendees",
+                    "$select": (
+                        "id,subject,start,end,isAllDay,showAs,isCancelled,webLink,"
+                        "attendees,responseStatus"
+                    ),
                 }
                 path = cursor or f"me/calendars/{quote(mount.external_id, safe='')}/calendarView"
             else:

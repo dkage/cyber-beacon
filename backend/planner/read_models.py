@@ -70,9 +70,9 @@ def day_summary(user, day):
         "day_actual_seconds": seconds,
         "timer": timer,
         "calendars": list(
-            Mount.objects.filter(connection__user=user, connection__provider="google").values(
-                "id", "label", "last_succeeded_at", "last_error", "enabled"
-            )
+            Mount.objects.filter(
+                connection__user=user, connection__provider__in=["google", "microsoft"]
+            ).values("id", "label", "last_succeeded_at", "last_error", "enabled")
         ),
     }
 
