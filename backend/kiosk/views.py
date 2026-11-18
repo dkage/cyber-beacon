@@ -4,7 +4,6 @@ from zoneinfo import ZoneInfo
 
 from django.db import transaction
 from django.utils import timezone
-from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, serializers
 from rest_framework.exceptions import ValidationError
@@ -18,7 +17,12 @@ from planner.read_models import DaySerializer, day_summary
 
 from .auth import KioskAuthentication
 from .models import DevicePairing, KioskDevice
-from .serializers import KioskSummarySerializer
+from .serializers import (
+    KioskSummarySerializer,
+    PairingClaimedSerializer,
+    PairingPendingSerializer,
+    PairingStartedSerializer,
+)
 
 
 class PairingThrottle(AnonRateThrottle):
@@ -45,7 +49,7 @@ class PairStart(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [PairingThrottle]
 
-    @extend_schema(request=None, responses=OpenApiTypes.OBJECT)
+    @extend_schema(request=None, responses={201: PairingStartedSerializer})
     def post(self, request):
         code = "".join(secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(8))
         secret = secrets.token_urlsafe(32)
@@ -58,7 +62,7 @@ class PairStart(APIView):
 
 
 class PairApprove(APIView):
-    @extend_schema(request=ApproveSerializer, responses=DeviceSerializer)
+    @extend_schema(request=ApproveSerializer, responses={201: DeviceSerializer})
     @transaction.atomic
     def post(self, request):
         serializer = ApproveSerializer(data=request.data)
@@ -86,7 +90,10 @@ class PairPoll(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [PairingThrottle]
 
-    @extend_schema(request=PollSerializer, responses=OpenApiTypes.OBJECT)
+    @extend_schema(
+        request=PollSerializer,
+        responses={200: PairingClaimedSerializer, 202: PairingPendingSerializer},
+    )
     @transaction.atomic
     def post(self, request):
         serializer = PollSerializer(data=request.data)

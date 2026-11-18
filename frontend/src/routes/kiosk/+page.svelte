@@ -4,7 +4,8 @@
 	import { message } from '$lib/api';
 	import type { components } from '$lib/schema';
 
-	type Summary = components['schemas']['KioskSummary'];
+	type Schema = components['schemas'];
+	type Summary = Schema['KioskSummary'];
 	let summary = $state<Summary | null>(null);
 	let code = $state('');
 	let secret = '';
@@ -58,13 +59,16 @@
 				remember('beacon-summary', JSON.stringify(summary));
 				stale = false;
 			} else if (!secret) {
-				const pairing = await request<{ code: string; secret: string }>('pair/', {});
+				const pairing = await request<Schema['PairingStarted']>('pair/', {});
 				code = pairing.code;
 				secret = pairing.secret;
 			} else {
 				try {
-					const result = await request<{ token?: string }>('pair/poll/', { secret });
-					if (result.token) {
+					const result = await request<Schema['PairingClaimed'] | Schema['PairingPending']>(
+						'pair/poll/',
+						{ secret } satisfies Schema['Poll']
+					);
+					if ('token' in result) {
 						token = result.token;
 						secret = '';
 						code = '';

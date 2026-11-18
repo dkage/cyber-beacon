@@ -4,13 +4,9 @@
 	import { goto } from '$app/navigation';
 	import { api, ApiError, message, write } from '$lib/api';
 	import { formatDate, formatDateInTimezone, formatDateTime } from '$lib/format';
+	import type { components } from '$lib/schema';
 	import type { Settings, Task } from '$lib/types';
-	interface Device {
-		id: string;
-		label: string;
-		expires_at: string;
-		revoked_at: string | null;
-	}
+	type Schema = components['schemas'];
 	interface Job {
 		id: number;
 		kind: string;
@@ -19,7 +15,7 @@
 		started_at: string;
 	}
 	let settings = $state<Settings | null>(null);
-	let devices = $state<Device[]>([]);
+	let devices = $state<Schema['Device'][]>([]);
 	let jobs = $state<Job[]>([]);
 	let trash = $state<Task[]>([]);
 	let error = $state('');
@@ -32,7 +28,7 @@
 		try {
 			settings = await api<Settings>('/api/v1/settings/');
 			if (!settings.work_weekdays.length) settings.work_weekdays = [0, 1, 2, 3, 4];
-			devices = await api<Device[]>('/api/v1/kiosk/devices/');
+			devices = await api<Schema['Device'][]>('/api/v1/kiosk/devices/');
 			jobs = (await api<{ results: Job[] }>('/api/v1/jobs/?limit=20')).results;
 			trash = (await api<{ results: Task[] }>('/api/v1/tasks/?trash=true&limit=100')).results;
 		} catch (cause) {
@@ -136,7 +132,10 @@
 			onsubmit={(event) => {
 				event.preventDefault();
 				void action(async () => {
-					await write('/api/v1/kiosk/pair/approve/', { code: code.toUpperCase(), label });
+					await write('/api/v1/kiosk/pair/approve/', {
+						code: code.toUpperCase(),
+						label
+					} satisfies Schema['Approve']);
 					code = '';
 					await load();
 					notice = 'Display approved.';

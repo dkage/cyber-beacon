@@ -4,6 +4,21 @@ from accounts.models import DATE_ORDER_CHOICES, DATE_SEPARATOR_CHOICES
 from planner.read_models import FreshnessSerializer
 
 
+class PairingStartedSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    secret = serializers.CharField()
+    expires_at = serializers.DateTimeField()
+
+
+class PairingPendingSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=["pending"])
+
+
+class PairingClaimedSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    expires_at = serializers.DateTimeField()
+
+
 class KioskTaskSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     title = serializers.CharField()

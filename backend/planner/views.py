@@ -1,5 +1,5 @@
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -8,6 +8,7 @@ from . import services
 from .models import Task, TimeEntry
 from .serializers import (
     ActivitySerializer,
+    PreconditionErrorSerializer,
     ReorderSerializer,
     StartTimerSerializer,
     TaskListQuerySerializer,
@@ -88,6 +89,11 @@ class TaskViewSet(viewsets.GenericViewSet):
     @extend_schema(
         request=None,
         parameters=[OpenApiParameter("If-Match", str, OpenApiParameter.HEADER, required=True)],
+        responses={
+            200: TaskSerializer,
+            412: OpenApiResponse(PreconditionErrorSerializer, "The Task version is stale."),
+            428: OpenApiResponse(PreconditionErrorSerializer, "The If-Match header is required."),
+        },
     )
     @action(detail=True, methods=["post"])
     def restore(self, request, pk=None):

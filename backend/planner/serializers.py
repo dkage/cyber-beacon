@@ -3,6 +3,10 @@ from rest_framework import serializers
 from .models import Task, TaskActivity, TimeEntry
 
 
+class PreconditionErrorSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+
+
 class SourcePreviewSerializer(serializers.Serializer):
     url = serializers.URLField()
     raw = serializers.JSONField()

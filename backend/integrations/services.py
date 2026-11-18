@@ -31,6 +31,7 @@ CALENDAR_LOOKBACK = timedelta(days=30)
 CALENDAR_LOOKAHEAD = timedelta(days=90)
 CALENDAR_CHECKPOINT_MAX_AGE = timedelta(hours=1)
 CALENDAR_PAGE_LIMIT = 50
+CALENDAR_FAILURE_PAUSE_THRESHOLD = 5
 
 
 def digest(value):
@@ -95,6 +96,11 @@ def finish_oauth(user, session_key, provider, state, code):
             defaults={"label": label},
         )
         previous = connection.credentials or {}
+        if connection.status == "disconnected":
+            # A disconnected Mount must be selected again, even if refresh had been paused.
+            connection.mounts.filter(
+                enabled=False, consecutive_failures__gte=CALENDAR_FAILURE_PAUSE_THRESHOLD
+            ).update(consecutive_failures=0)
         connection.credentials = {**previous, **credentials}
         connection.scopes = scopes
         connection.status = "active"
@@ -376,6 +382,7 @@ def sync_calendar(mount_id):
                     "updated_at",
                 ]
             )
+        fetched_at = progress.window_start + CALENDAR_LOOKBACK
         with transaction.atomic():
             locked = Mount.objects.select_for_update().get(pk=mount.pk)
             if (
@@ -387,13 +394,16 @@ def sync_calendar(mount_id):
                 raise providers.ProviderError(
                     "Connection was disabled during refresh.", kind="fatal"
                 )
+            if fetched_at <= timezone.now() - CALENDAR_CHECKPOINT_MAX_AGE:
+                raise providers.ProviderError(
+                    "Calendar refresh window expired. Previous data has been kept."
+                )
             # No partial replacement on provider or database failure.
             CalendarEvent.objects.filter(mount=mount).delete()
             CalendarEvent.objects.bulk_create(
                 [_calendar_event(mount, row) for row in progress.events]
             )
             event_count = len(progress.events)
-            fetched_at = progress.window_start + CALENDAR_LOOKBACK
             progress.delete()
             MountSnapshot.objects.update_or_create(
                 mount=mount, defaults={"value": {"count": event_count}, "fetched_at": fetched_at}
@@ -417,6 +427,10 @@ def sync_calendar(mount_id):
         )
         with transaction.atomic():
             locked = Mount.objects.select_for_update().get(pk=mount.pk)
+            CalendarSyncProgress.objects.filter(
+                mount=locked,
+                window_start__lte=failed_at - CALENDAR_LOOKBACK - CALENDAR_CHECKPOINT_MAX_AGE,
+            ).delete()
             locked.last_error = str(error.detail)
             locked.sync_started_at = None
             if error.kind == "rate_limited":
@@ -429,7 +443,7 @@ def sync_calendar(mount_id):
                 locked.next_attempt_at = failed_at + timedelta(
                     seconds=min(3600, 60 * 2 ** min(locked.consecutive_failures, 6))
                 )
-                if locked.consecutive_failures >= 5:
+                if locked.consecutive_failures >= CALENDAR_FAILURE_PAUSE_THRESHOLD:
                     locked.enabled = False
             locked.save()
         run.outcome, run.message = error.kind, str(error.detail)
@@ -443,8 +457,9 @@ def events_for_day(user, day):
     start, end = day_bounds(user, day)
     return (
         CalendarEvent.objects.filter(
+            Q(mount__enabled=True)
+            | Q(mount__consecutive_failures__gte=CALENDAR_FAILURE_PAUSE_THRESHOLD),
             mount__connection__user=user,
-            mount__enabled=True,
             mount__connection__status__in=["active", "needs_reauth"],
         )
         .filter(Q(starts_at__lt=end, ends_at__gt=start) | Q(start_date__lte=day, end_date__gt=day))

@@ -1,11 +1,13 @@
 import uuid
 from datetime import UTC, date, datetime, time, timedelta
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 import pytest
 from cryptography.fernet import Fernet
 from django.db import connection
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from integrations import providers, services
 from integrations.models import (
@@ -13,9 +15,11 @@ from integrations.models import (
     CalendarSyncProgress,
     IntegrationConnection,
     Mount,
+    MountSnapshot,
     OAuthState,
     TaskSource,
 )
+from kiosk.models import KioskDevice
 from planner.day import capacity, time_totals
 from planner.models import Task, TimeEntry
 from planner.services import create_task
@@ -326,6 +330,49 @@ def test_calendar_recovers_unusable_checkpoint(notion, monkeypatch, checkpoint):
 
     assert calls == (["old", None] if checkpoint == "rejected" else [None])
     assert list(notion.calendarevent_set.values_list("external_id", flat=True)) == ["fresh"]
+    assert not CalendarSyncProgress.objects.filter(mount=notion).exists()
+
+
+def test_calendar_checkpoint_expiring_during_fetch_cannot_replace_snapshot(notion, monkeypatch):
+    conn = notion.connection
+    conn.provider = "google"
+    conn.save(update_fields=["provider"])
+    now = timezone.now()
+    monkeypatch.setattr(timezone, "now", lambda: now)
+    opened_at = now - timedelta(minutes=59)
+    previous_fetch = now - timedelta(hours=2)
+    notion.last_succeeded_at = previous_fetch
+    notion.save(update_fields=["last_succeeded_at"])
+    MountSnapshot.objects.create(mount=notion, value={"count": 1}, fetched_at=previous_fetch)
+    CalendarEvent.objects.create(
+        mount=notion,
+        external_id="last-good",
+        title="Last good",
+        starts_at=now,
+        ends_at=now + timedelta(hours=1),
+    )
+    CalendarSyncProgress.objects.create(
+        mount=notion,
+        window_start=opened_at - timedelta(days=30),
+        window_end=opened_at + timedelta(days=90),
+        pages_fetched=1,
+        next_cursor="next",
+    )
+
+    def fetch(_connection, _method, _path, *, params):
+        nonlocal now
+        assert params["pageToken"] == "next"
+        now += timedelta(minutes=1)
+        return {"items": []}
+
+    monkeypatch.setattr(providers, "request", fetch)
+    services.sync_calendar(notion.pk)
+
+    notion.refresh_from_db()
+    assert list(notion.calendarevent_set.values_list("external_id", flat=True)) == ["last-good"]
+    assert MountSnapshot.objects.get(mount=notion).fetched_at == previous_fetch
+    assert notion.last_succeeded_at == previous_fetch
+    assert notion.sync_started_at is None
     assert not CalendarSyncProgress.objects.filter(mount=notion).exists()
 
 
@@ -778,7 +825,7 @@ def test_calendar_dispatch_and_freshness_include_outlook(
     assert [str(calendar["id"]) for calendar in freshness] == [str(notion.pk)]
 
 
-def test_microsoft_calendar_failure_keeps_last_good_snapshot(notion, settings, monkeypatch):
+def test_microsoft_calendar_failure_keeps_last_good_snapshot(client, notion, settings, monkeypatch):
     settings.INTEGRATION_OAUTH["microsoft"] = {
         "client_id": "id",
         "client_secret": "secret",
@@ -788,23 +835,64 @@ def test_microsoft_calendar_failure_keeps_last_good_snapshot(notion, settings, m
     conn.provider = "microsoft"
     conn.credentials = {"access_token": "token"}
     conn.save(update_fields=["provider", "credentials"])
+    now = datetime(2026, 11, 18, 12, tzinfo=UTC)
+    monkeypatch.setattr(timezone, "now", lambda: now)
+    day = now.astimezone(ZoneInfo(conn.user.timezone)).date()
     prior = CalendarEvent.objects.create(
         mount=notion,
         external_id="kept",
         title="Last good event",
-        starts_at=timezone.now(),
-        ends_at=timezone.now() + timedelta(hours=1),
+        start_date=day,
+        end_date=day + timedelta(days=1),
     )
 
     def fail(*args, **kwargs):
         raise providers.ProviderError("Calendar refresh failed.", kind="retryable")
 
     monkeypatch.setattr(providers, "request", fail)
-    services.sync_calendar(str(notion.pk))
+    for _ in range(5):
+        services.sync_calendar(str(notion.pk))
+        notion.refresh_from_db()
+        now = notion.next_attempt_at
     assert CalendarEvent.objects.filter(pk=prior.pk, title="Last good event").exists()
-    notion.refresh_from_db()
+    assert not notion.enabled
+    assert notion.consecutive_failures == 5
     assert notion.last_error == "Calendar refresh failed."
     assert notion.sync_started_at is None
+
+    KioskDevice.objects.create(
+        user=conn.user,
+        label="Display",
+        token_digest=services.digest("test-device-token"),
+        expires_at=now + timedelta(days=1),
+    )
+    kiosk = APIClient()
+    kiosk.credentials(HTTP_AUTHORIZATION="Device test-device-token")
+    for response in (
+        client.get("/api/v1/day/", {"date": day.isoformat()}),
+        kiosk.get("/api/v1/kiosk/summary/"),
+    ):
+        assert response.status_code == 200
+        assert [event["id"] for event in response.json()["events"]] == [prior.pk]
+        assert not response.json()["calendars"][0]["enabled"]
+
+    services.disconnect(conn.user, conn)
+    assert not client.get("/api/v1/day/", {"date": day.isoformat()}).json()["events"]
+
+    OAuthState.objects.create(
+        digest=services.digest("state"),
+        user=conn.user,
+        provider="microsoft",
+        session_digest=services.digest("session"),
+        expires_at=now + timedelta(minutes=10),
+    )
+    monkeypatch.setattr(
+        providers,
+        "exchange",
+        lambda *_: ({"access_token": "new-token"}, conn.account_identity, conn.label, []),
+    )
+    services.finish_oauth(conn.user, "session", "microsoft", "state", "code")
+    assert not client.get("/api/v1/day/", {"date": day.isoformat()}).json()["events"]
 
 
 def test_microsoft_provider_rejects_untrusted_next_link(notion, settings):

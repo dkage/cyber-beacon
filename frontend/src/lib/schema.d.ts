@@ -659,6 +659,20 @@ export interface components {
 			previous?: string | null;
 			results: components['schemas']['Task'][];
 		};
+		PairingClaimed: {
+			token: string;
+			/** Format: date-time */
+			expires_at: string;
+		};
+		PairingPending: {
+			status: components['schemas']['StatusEnum'];
+		};
+		PairingStarted: {
+			code: string;
+			secret: string;
+			/** Format: date-time */
+			expires_at: string;
+		};
 		PatchedSettings: {
 			readonly id?: number;
 			/** Format: email */
@@ -702,6 +716,9 @@ export interface components {
 		};
 		Poll: {
 			secret: string;
+		};
+		PreconditionError: {
+			detail: string;
 		};
 		Provider: {
 			provider: components['schemas']['ProviderProviderEnum'];
@@ -752,6 +769,11 @@ export interface components {
 			/** Format: uuid */
 			task: string;
 		};
+		/**
+		 * @description * `pending` - pending
+		 * @enum {string}
+		 */
+		StatusEnum: 'pending';
 		Task: {
 			readonly source: components['schemas']['SourcePreview'] | null;
 			/** Format: uuid */
@@ -1098,14 +1120,12 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			200: {
+			201: {
 				headers: {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': {
-						[key: string]: unknown;
-					};
+					'application/json': components['schemas']['PairingStarted'];
 				};
 			};
 		};
@@ -1125,7 +1145,7 @@ export interface operations {
 			};
 		};
 		responses: {
-			200: {
+			201: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -1155,9 +1175,15 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': {
-						[key: string]: unknown;
-					};
+					'application/json': components['schemas']['PairingClaimed'];
+				};
+			};
+			202: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PairingPending'];
 				};
 			};
 		};
@@ -1394,6 +1420,24 @@ export interface operations {
 				};
 				content: {
 					'application/json': components['schemas']['Task'];
+				};
+			};
+			/** @description The Task version is stale. */
+			412: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PreconditionError'];
+				};
+			};
+			/** @description The If-Match header is required. */
+			428: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['PreconditionError'];
 				};
 			};
 		};

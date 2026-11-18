@@ -14,18 +14,21 @@ def test_pairing_redaction_scope_and_revocation(client, user, settings):
     user.save(update_fields=["date_order", "date_separator"])
     create_task(user, {"title": "Visible", "notes": "Secret notes", "do_date": "2026-11-18"})
     device_client = APIClient()
-    pair = device_client.post("/api/v1/kiosk/pair/").json()
-    assert (
-        device_client.post("/api/v1/kiosk/pair/poll/", {"secret": pair["secret"]}).status_code
-        == 202
-    )
+    started = device_client.post("/api/v1/kiosk/pair/")
+    assert started.status_code == 201
+    pair = started.json()
+    assert pair["expires_at"]
+    pending = device_client.post("/api/v1/kiosk/pair/poll/", {"secret": pair["secret"]})
+    assert pending.status_code == 202
+    assert pending.json() == {"status": "pending"}
     approved = client.post(
         "/api/v1/kiosk/pair/approve/", {"code": pair["code"], "label": "Office TV"}
     )
     assert approved.status_code == 201
-    token = device_client.post("/api/v1/kiosk/pair/poll/", {"secret": pair["secret"]}).json()[
-        "token"
-    ]
+    claimed = device_client.post("/api/v1/kiosk/pair/poll/", {"secret": pair["secret"]})
+    assert claimed.status_code == 200
+    assert claimed.json()["expires_at"]
+    token = claimed.json()["token"]
     assert (
         device_client.post("/api/v1/kiosk/pair/poll/", {"secret": pair["secret"]}).status_code
         == 400

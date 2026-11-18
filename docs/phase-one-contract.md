@@ -39,9 +39,11 @@ Notion content synchronization is in Phase 1. Google and Outlook request read-on
 calendar access, read selected calendars, materialize timed/all-day event occurrences
 and never create Tasks. Each connected account can select its own calendar Mounts.
 Their day windows are bounded and refreshed periodically. A refresh publishes only a
-complete window and keeps the last good events while it retries. Checkpoints expire
-one hour after the window was opened. Calendar freshness shows when that window was
-opened. Manual refresh honors the Provider's rate-limit deadline, and throttling
+complete window and keeps the last good events visible in Today and the kiosk while
+it retries and after repeated failures pause refresh. Disconnecting the account hides
+its events. Checkpoints expire one hour after the window was opened and must still be
+valid at publication. Calendar freshness shows when that window was opened. Manual
+refresh honors the Provider's rate-limit deadline, and throttling
 does not count toward pausing a Mount. Failed refreshes and reauthorization are
 visible; credentials never leave Django. OAuth uses expiring one-use state bound to
 the authenticated owner and session.
