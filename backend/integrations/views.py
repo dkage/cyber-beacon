@@ -40,7 +40,7 @@ class OAuthCallback(APIView):
 
     @extend_schema(exclude=True)
     def get(self, request, provider):
-        if provider not in {"notion", "google"}:
+        if provider not in {"notion", "google", "microsoft"}:
             raise ValidationError("Unknown Provider.")
         if request.query_params.get("error"):
             return HttpResponseRedirect("/connections?error=consent-denied")
@@ -101,7 +101,7 @@ class ConnectionViewSet(viewsets.GenericViewSet):
             )
             mount.enabled = True
             mount.save(update_fields=["enabled"])
-        if connection.provider == "google":
+        if connection.provider in {"google", "microsoft"}:
             transaction.on_commit(
                 lambda: enqueue("integrations.services.sync_calendar", str(mount.pk))
             )
@@ -165,7 +165,10 @@ class MountViewSet(viewsets.GenericViewSet):
     @action(detail=True, methods=["post"])
     def refresh(self, request, pk=None):
         mount = self.get_object()
-        if mount.connection.provider != "google" or mount.connection.status != "active":
+        if (
+            mount.connection.provider not in {"google", "microsoft"}
+            or mount.connection.status != "active"
+        ):
             raise ValidationError("Choose an active Calendar Mount.")
         mount.enabled = True
         mount.save(update_fields=["enabled"])

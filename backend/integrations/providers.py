@@ -12,6 +12,9 @@ from .models import IntegrationConnection
 
 NOTION_VERSION = "2025-09-03"
 GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.readonly"
+MICROSOFT_SCOPES = "User.Read Calendars.Read offline_access"
+MICROSOFT_AUTH = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+MICROSOFT_TOKEN = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
 
 
 class ProviderError(APIException):
@@ -79,6 +82,9 @@ def authorize_url(provider, state):
     if provider == "notion":
         params["owner"] = "user"
         return "https://api.notion.com/v1/oauth/authorize?" + urlencode(params)
+    if provider == "microsoft":
+        params.update(scope=MICROSOFT_SCOPES, prompt="select_account")
+        return MICROSOFT_AUTH + "?" + urlencode(params)
     params.update(scope=GOOGLE_SCOPE, access_type="offline", prompt="consent select_account")
     return "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params)
 
@@ -99,6 +105,24 @@ def exchange(provider, code):
             result.get("workspace_name") or "Notion workspace",
             [],
         )
+    if provider == "microsoft":
+        data.update(
+            client_id=cfg["client_id"], client_secret=cfg["client_secret"], scope=MICROSOFT_SCOPES
+        )
+        result = http("POST", MICROSOFT_TOKEN, data=data)
+        result["expires_at"] = (
+            timezone.now() + timedelta(seconds=result.get("expires_in", 3600))
+        ).isoformat()
+        account = http(
+            "GET",
+            "https://graph.microsoft.com/v1.0/me",
+            headers={"Authorization": "Bearer " + result["access_token"]},
+        )
+        identity = account.get("id") or account.get("userPrincipalName")
+        label = account.get("mail") or account.get("userPrincipalName") or identity
+        if not identity:
+            raise ProviderError("Microsoft did not return an account identity.", kind="fatal")
+        return result, identity, label, result.get("scope", "").split()
     data.update(client_id=cfg["client_id"], client_secret=cfg["client_secret"])
     result = http("POST", "https://oauth2.googleapis.com/token", data=data)
     if GOOGLE_SCOPE not in result.get("scope", "").split():
@@ -140,29 +164,34 @@ def request(connection, method, path, **kwargs):
     if connection.status != "active" or not connection.credentials:
         raise ProviderError("Reconnect this Provider before continuing.", kind="auth_dead")
     credentials = connection.credentials
-    if connection.provider == "google":
+    if connection.provider in {"google", "microsoft"}:
         expires = credentials.get("expires_at")
         if expires and timezone.now() >= parse_datetime(expires):
-            cfg = config("google")
+            cfg = config(connection.provider)
             if not credentials.get("refresh_token"):
-                raise ProviderError("Reconnect Google Calendar.", kind="auth_dead")
+                raise ProviderError("Reconnect this Calendar account.", kind="auth_dead")
             try:
+                refresh_data = {
+                    "grant_type": "refresh_token",
+                    "refresh_token": credentials["refresh_token"],
+                    "client_id": cfg["client_id"],
+                    "client_secret": cfg["client_secret"],
+                }
+                if connection.provider == "microsoft":
+                    refresh_data["scope"] = MICROSOFT_SCOPES
                 refreshed = http(
                     "POST",
-                    "https://oauth2.googleapis.com/token",
-                    data={
-                        "grant_type": "refresh_token",
-                        "refresh_token": credentials["refresh_token"],
-                        "client_id": cfg["client_id"],
-                        "client_secret": cfg["client_secret"],
-                    },
+                    MICROSOFT_TOKEN
+                    if connection.provider == "microsoft"
+                    else "https://oauth2.googleapis.com/token",
+                    data=refresh_data,
                 )
             except ProviderError as exc:
                 if exc.kind == "fatal":
                     exc.kind = "auth_dead"
                 if exc.kind == "auth_dead":
                     IntegrationConnection.objects.filter(pk=connection.pk).update(
-                        status="needs_reauth", last_error="Reconnect Google Calendar."
+                        status="needs_reauth", last_error="Reconnect this Calendar account."
                     )
                 raise
             credentials = {
@@ -176,8 +205,15 @@ def request(connection, method, path, **kwargs):
                 credentials=credentials
             )
             connection.credentials = credentials
-        base = "https://www.googleapis.com/calendar/v3/"
-        headers = {"Authorization": "Bearer " + credentials["access_token"]}
+        if connection.provider == "microsoft":
+            base = "https://graph.microsoft.com/v1.0/"
+            headers = {
+                "Authorization": "Bearer " + credentials["access_token"],
+                "Prefer": 'outlook.timezone="UTC", IdType="ImmutableId"',
+            }
+        else:
+            base = "https://www.googleapis.com/calendar/v3/"
+            headers = {"Authorization": "Bearer " + credentials["access_token"]}
     else:
         take_budget(connection)
         base = "https://api.notion.com/v1/"
@@ -186,7 +222,13 @@ def request(connection, method, path, **kwargs):
             "Notion-Version": NOTION_VERSION,
         }
     try:
-        return http(method, base + path, headers=headers, **kwargs)
+        if connection.provider == "microsoft" and path.startswith("https://"):
+            if not path.startswith("https://graph.microsoft.com/v1.0/"):
+                raise ProviderError("Provider returned an invalid page URL.", kind="fatal")
+            url = path
+        else:
+            url = base + path
+        return http(method, url, headers=headers, **kwargs)
     except ProviderError as exc:
         if exc.kind == "auth_dead":
             IntegrationConnection.objects.filter(pk=connection.pk).update(
@@ -222,6 +264,21 @@ def resources(connection, cursor="", query=""):
                 {"id": row["id"], "label": notion_title(row)} for row in result.get("results", [])
             ],
             "next_cursor": result.get("next_cursor"),
+        }
+    if connection.provider == "microsoft":
+        params = {"$top": 50, "$select": "id,name"}
+        result = request(
+            connection,
+            "GET",
+            cursor if cursor.startswith("https://") else "me/calendars",
+            params={} if cursor else params,
+        )
+        return {
+            "results": [
+                {"id": row["id"], "label": row.get("name") or row["id"]}
+                for row in result.get("value", [])
+            ],
+            "next_cursor": result.get("@odata.nextLink"),
         }
     params = {"maxResults": 50}
     if cursor:

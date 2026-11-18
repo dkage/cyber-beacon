@@ -29,7 +29,7 @@ class ConnectionSerializer(serializers.ModelSerializer):
 
 
 class ProviderSerializer(serializers.Serializer):
-    provider = serializers.ChoiceField(choices=["notion", "google"])
+    provider = serializers.ChoiceField(choices=["notion", "google", "microsoft"])
 
 
 class BrowseQuerySerializer(serializers.Serializer):

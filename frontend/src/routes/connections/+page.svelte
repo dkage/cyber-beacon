@@ -114,6 +114,8 @@
 			disabled={pending}
 			onclick={() => connect('google')}>Connect Google Calendar</button
 		>
+		<button disabled={pending} onclick={() => connect('microsoft')}>Connect Outlook Calendar</button
+		>
 	</div>
 </header>
 {#if error}<p class="error" role="alert">{error}</p>{/if}{#if notice}<p
@@ -124,13 +126,17 @@
 	</p>{/if}
 {#if loading}<p>Loading Connections…</p>{:else if !connections.length}<section class="panel empty">
 		<h2>Your work, gathered here.</h2>
-		<p>Connect Notion to choose worksheets, or Google Calendar to see meetings.</p>
+		<p>Connect Notion to choose worksheets, or Google or Outlook Calendar to see meetings.</p>
 		<p class="muted">OAuth application credentials must be configured by the server operator.</p>
 	</section>{/if}
 <div class="connection-grid">
 	{#each connections as connection (connection.id)}<section class="panel">
 			<span class="eyebrow external"
-				>{connection.provider === 'notion' ? 'NOTION' : 'GOOGLE CALENDAR'}</span
+				>{connection.provider === 'notion'
+					? 'NOTION'
+					: connection.provider === 'google'
+						? 'GOOGLE CALENDAR'
+						: 'OUTLOOK CALENDAR'}</span
 			>
 			<h2>{connection.label}</h2>
 			<p class="muted">{connection.status}</p>

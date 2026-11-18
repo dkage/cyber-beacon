@@ -133,5 +133,5 @@ INTEGRATION_OAUTH = {
         "client_secret": os.environ.get(f"{provider.upper()}_CLIENT_SECRET", ""),
         "redirect_uri": os.environ.get(f"{provider.upper()}_REDIRECT_URI", ""),
     }
-    for provider in ["notion", "google"]
+    for provider in ["notion", "google", "microsoft"]
 }

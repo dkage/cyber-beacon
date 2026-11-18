@@ -35,11 +35,13 @@ Notion reads data sources and page properties with API version 2025-09-03. The d
 picker discovers its data sources; the selected data source is the Mount target.
 Title and a readable property summary are copied on explicit import, raw properties
 remain in Source. No provider completion, write-back, automatic projection or background
-Notion content synchronization is in Phase 1. Google requests calendar readonly scope,
-reads selected calendars, materializes timed/all-day event occurrences and never
-creates Tasks. Its day window is bounded and refreshed periodically. Pagination,
+Notion content synchronization is in Phase 1. Google and Outlook request read-only
+calendar access, read selected calendars, materialize timed/all-day event occurrences
+and never create Tasks. Each connected account can select its own calendar Mounts.
+Their day windows are bounded and refreshed periodically. Pagination,
 rate limits, failed refreshes and reauthorization are visible; credentials never leave
 Django. OAuth uses expiring one-use state bound to the authenticated owner and session.
+Microsoft delegated OAuth requests Calendars.Read and offline_access for refresh tokens.
 
 ## Capacity and order
 
