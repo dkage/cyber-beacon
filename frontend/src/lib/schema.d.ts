@@ -419,6 +419,16 @@ export interface components {
 			code: string;
 			label: string;
 		};
+		BrowseItem: {
+			id: string;
+			title: string;
+			url: string;
+			imported_count: number;
+		};
+		BrowsePage: {
+			results: components['schemas']['BrowseItem'][];
+			next_cursor: string | null;
+		};
 		CalendarEvent: {
 			readonly id: number;
 			/** Format: uuid */
@@ -533,6 +543,39 @@ export interface components {
 			outcome?: string;
 			message?: string;
 			counts?: unknown;
+		};
+		KioskEvent: {
+			id: number;
+			title: string;
+			/** Format: date-time */
+			starts_at: string | null;
+			/** Format: date-time */
+			ends_at: string | null;
+			/** Format: date */
+			start_date: string | null;
+			/** Format: date */
+			end_date: string | null;
+		};
+		KioskSummary: {
+			/** Format: date */
+			date: string;
+			timezone: string;
+			date_order: components['schemas']['DateOrderEnum'];
+			date_separator: components['schemas']['DateSeparatorEnum'];
+			/** Format: date-time */
+			fetched_at: string;
+			tasks: components['schemas']['KioskTask'][];
+			events: components['schemas']['KioskEvent'][];
+			calendars: components['schemas']['Freshness'][];
+			briefing: string;
+		};
+		KioskTask: {
+			/** Format: uuid */
+			id: string;
+			title: string;
+			/** Format: date-time */
+			completed_at: string | null;
+			estimated_minutes: number | null;
 		};
 		Mount: {
 			/** Format: uuid */
@@ -671,6 +714,14 @@ export interface components {
 			/** Format: date */
 			date: string;
 			items: components['schemas']['OrderItem'][];
+		};
+		ResourceItem: {
+			id: string;
+			label: string;
+		};
+		ResourcePage: {
+			results: components['schemas']['ResourceItem'][];
+			next_cursor: string | null;
 		};
 		Settings: {
 			readonly id: number;
@@ -826,7 +877,7 @@ export interface operations {
 			};
 		};
 		responses: {
-			200: {
+			201: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -855,9 +906,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': {
-						[key: string]: unknown;
-					};
+					'application/json': components['schemas']['ResourcePage'];
 				};
 			};
 		};
@@ -881,9 +930,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': {
-						[key: string]: unknown;
-					};
+					'application/json': components['schemas']['BrowsePage'];
 				};
 			};
 		};
@@ -1115,9 +1162,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': {
-						[key: string]: unknown;
-					};
+					'application/json': components['schemas']['KioskSummary'];
 				};
 			};
 		};
@@ -1319,7 +1364,9 @@ export interface operations {
 	tasks_restore_create: {
 		parameters: {
 			query?: never;
-			header?: never;
+			header: {
+				'If-Match': string;
+			};
 			path: {
 				id: string;
 			};
