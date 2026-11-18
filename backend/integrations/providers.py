@@ -5,6 +5,7 @@ import httpx
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework.exceptions import APIException
 
 from .models import IntegrationConnection
@@ -141,7 +142,7 @@ def request(connection, method, path, **kwargs):
     credentials = connection.credentials
     if connection.provider == "google":
         expires = credentials.get("expires_at")
-        if expires and timezone.now().isoformat() >= expires:
+        if expires and timezone.now() >= parse_datetime(expires):
             cfg = config("google")
             if not credentials.get("refresh_token"):
                 raise ProviderError("Reconnect Google Calendar.", kind="auth_dead")
@@ -159,6 +160,10 @@ def request(connection, method, path, **kwargs):
             except ProviderError as exc:
                 if exc.kind == "fatal":
                     exc.kind = "auth_dead"
+                if exc.kind == "auth_dead":
+                    IntegrationConnection.objects.filter(pk=connection.pk).update(
+                        status="needs_reauth", last_error="Reconnect Google Calendar."
+                    )
                 raise
             credentials = {
                 **credentials,
@@ -232,10 +237,24 @@ def resources(connection, cursor="", query=""):
     }
 
 
-def browse(mount, cursor=""):
+def browse(mount, cursor="", query=""):
     body = {"page_size": 50}
     if cursor:
         body["start_cursor"] = cursor
+    if query:
+        schema = request(
+            mount.connection, "GET", f"data_sources/{quote(mount.external_id, safe='')}"
+        )
+        title = next(
+            (
+                value["id"]
+                for value in schema.get("properties", {}).values()
+                if value.get("type") == "title"
+            ),
+            None,
+        )
+        if title:
+            body["filter"] = {"property": title, "title": {"contains": query}}
     return request(
         mount.connection,
         "POST",

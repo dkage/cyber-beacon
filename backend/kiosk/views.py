@@ -14,7 +14,7 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 
 from integrations.services import digest
-from planner.read_models import day_summary
+from planner.read_models import DaySerializer, day_summary
 
 from .auth import KioskAuthentication
 from .models import DevicePairing, KioskDevice
@@ -140,7 +140,7 @@ class KioskSummary(APIView):
     @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         day = timezone.now().astimezone(ZoneInfo(request.user.timezone)).date()
-        full = day_summary(request.user, day)
+        full = DaySerializer(day_summary(request.user, day)).data
         return Response(
             {
                 "date": day,

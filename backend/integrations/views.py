@@ -120,7 +120,9 @@ class MountViewSet(viewsets.GenericViewSet):
             raise ValidationError("Choose an enabled Notion Mount.")
         query = BrowseQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
-        result = providers.browse(mount, query.validated_data["cursor"])
+        result = providers.browse(
+            mount, query.validated_data["cursor"], query.validated_data["query"]
+        )
         rows = result.get("results", [])
         counts = {}
         for external_id in TaskSource.objects.filter(

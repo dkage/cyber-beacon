@@ -40,7 +40,11 @@ services:
       web: {condition: service_healthy}
   worker-ai:
     <<: *app
-    command: ["python", "manage.py", "qcluster", "--name", "ai"]
+    command: ["python", "manage.py", "qcluster"]
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      Q_CLUSTER_NAME: ai
     depends_on:
       web: {condition: service_healthy}
 volumes:

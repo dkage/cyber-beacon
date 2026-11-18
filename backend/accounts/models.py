@@ -1,3 +1,4 @@
+from datetime import time
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.contrib.auth.models import AbstractUser
@@ -17,6 +18,6 @@ class User(AbstractUser):
     timezone = models.CharField(
         max_length=64, default="America/Sao_Paulo", validators=[validate_timezone]
     )
-    work_start = models.TimeField(default="09:00")
-    work_end = models.TimeField(default="17:00")
+    work_start = models.TimeField(default=time(9))
+    work_end = models.TimeField(default=time(17))
     work_weekdays = models.JSONField(default=list)

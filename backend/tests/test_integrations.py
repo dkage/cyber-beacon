@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 from cryptography.fernet import Fernet
 from django.db import connection
+from django.utils import timezone
 
 from integrations import providers, services
 from integrations.models import CalendarEvent, IntegrationConnection, Mount, OAuthState, TaskSource
@@ -219,3 +220,27 @@ def test_notion_budget_and_sanitized_provider_errors(notion, monkeypatch):
     with pytest.raises(providers.ProviderError) as error:
         providers.http("GET", "https://provider.test")
     assert "never expose" not in str(error.value.detail)
+
+
+def test_day_read_model_serializes_tasks_sources_meetings_and_running_timer(client, user, notion):
+    task = create_task(user, {"title": "Worksheet", "do_date": date(2026, 11, 18)})
+    TaskSource.objects.create(
+        task=task, mount=notion, external_id="record", raw={"title": "Remote"}
+    )
+    conn = notion.connection
+    conn.provider = "google"
+    conn.save(update_fields=["provider"])
+    CalendarEvent.objects.create(
+        mount=notion,
+        external_id="event",
+        title="Review",
+        starts_at=datetime(2026, 11, 18, 12, tzinfo=UTC),
+        ends_at=datetime(2026, 11, 18, 13, tzinfo=UTC),
+    )
+    TimeEntry.objects.create(user=user, task=task, started_at=timezone.now())
+    response = client.get("/api/v1/day/?date=2026-11-18")
+    assert response.status_code == 200
+    result = response.json()
+    assert result["tasks"][0]["source"]["raw"]["title"] == "Remote"
+    assert result["events"][0]["mount"] == str(notion.pk)
+    assert result["timer"]["task"] == str(task.pk)

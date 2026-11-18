@@ -18,7 +18,7 @@ def daily_tick():
             run.message = "Carry-forward failed. Check server logs and retry."
             run.ended_at = timezone.now()
             run.save()
-            raise
+            continue
         run.counts = {"carried_forward": count}
         run.outcome = "success"
         run.ended_at = timezone.now()

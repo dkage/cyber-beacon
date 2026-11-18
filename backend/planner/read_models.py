@@ -58,12 +58,12 @@ def day_summary(user, day):
         "date": day,
         "timezone": user.timezone,
         "fetched_at": timezone.now(),
-        "tasks": TaskSerializer(tasks, many=True).data,
-        "events": CalendarEventSerializer(events, many=True).data,
+        "tasks": tasks,
+        "events": events,
         "capacity": capacity(user, day, events),
         "task_actual_seconds": totals,
         "day_actual_seconds": seconds,
-        "timer": TimeEntrySerializer(timer).data if timer else None,
+        "timer": timer,
         "calendars": list(
             Mount.objects.filter(connection__user=user, connection__provider="google").values(
                 "id", "label", "last_succeeded_at", "last_error", "enabled"
