@@ -456,8 +456,8 @@ def test_microsoft_calendar_sync_paginates_and_maps_all_day_events(notion, setti
             {
                 "id": "allday",
                 "subject": "Holiday",
-                "start": {"dateTime": "2026-11-19T00:00:00Z", "timeZone": "UTC"},
-                "end": {"dateTime": "2026-11-20T00:00:00Z", "timeZone": "UTC"},
+                "start": {"dateTime": "2026-11-19T03:00:00Z", "timeZone": "UTC"},
+                "end": {"dateTime": "2026-11-20T03:00:00Z", "timeZone": "UTC"},
                 "isAllDay": True,
                 "showAs": "free",
                 "isCancelled": False,

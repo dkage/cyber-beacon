@@ -4,6 +4,7 @@ import logging
 import secrets
 from datetime import timedelta
 from urllib.parse import quote
+from zoneinfo import ZoneInfo
 
 from django.db import transaction
 from django.db.models import Q
@@ -194,17 +195,27 @@ def import_record(user, mount, external_id, day, key):
         return task
 
 
-def event_values(raw):
+def event_values(raw, timezone_name=None):
     if "isAllDay" in raw:
         start, end = raw.get("start", {}), raw.get("end", {})
         if raw.get("isAllDay"):
             start_value, end_value = start.get("dateTime", ""), end.get("dateTime", "")
+            target_timezone = ZoneInfo(timezone_name or "UTC")
+
+            def local_date(value):
+                parsed = parse_datetime(value)
+                if parsed is None:
+                    return None
+                if timezone.is_naive(parsed):
+                    parsed = timezone.make_aware(parsed, timezone=ZoneInfo("UTC"))
+                return parsed.astimezone(target_timezone).date()
+
             return {
                 "title": (raw.get("subject") or "Untitled meeting")[:500],
                 "starts_at": None,
                 "ends_at": None,
-                "start_date": parse_date(start_value[:10]),
-                "end_date": parse_date(end_value[:10]),
+                "start_date": local_date(start_value),
+                "end_date": local_date(end_value),
                 "blocking": raw.get("showAs") != "free" and not raw.get("isCancelled"),
                 "url": raw.get("webLink", "")[:2000],
             }
@@ -304,7 +315,11 @@ def sync_calendar(mount_id):
             CalendarEvent.objects.filter(mount=mount).delete()
             CalendarEvent.objects.bulk_create(
                 [
-                    CalendarEvent(mount=mount, external_id=row["id"], **event_values(row))
+                    CalendarEvent(
+                        mount=mount,
+                        external_id=row["id"],
+                        **event_values(row, mount.connection.user.timezone),
+                    )
                     for row in rows
                 ]
             )
