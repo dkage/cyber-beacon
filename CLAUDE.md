@@ -123,6 +123,8 @@ when a missing contract is resolved.
 
 ## Documentation and delivery
 
+- **Backend work:** before changing models, APIs, authentication, jobs or backend tests,
+  read [Django API conventions](docs/agents/django.md).
 - **Domain work:** read [CONTEXT.md](CONTEXT.md), applicable [ADRs](docs/adr/), and
   [domain documentation rules](docs/agents/domain.md). CONTEXT owns vocabulary; ADRs own
   architecture decisions. [The glossary](docs/glossary/README.md) is a lookup index.
