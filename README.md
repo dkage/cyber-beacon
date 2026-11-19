@@ -192,6 +192,27 @@ static pages, `/api` and `/_allauth`. Back up PostgreSQL and the Fernet keys. Tr
 Zoraxy and actual TV hardware need operator verification; this work verifies local
 containers, not that deployment.
 
+## Localization
+
+Settings stores the account language in Django. Choose English, Brazilian Portuguese,
+or Spanish, then save to apply it throughout the web app. Paired kiosks pick up
+the account language with their next refresh and keep it with their offline summary.
+The date order and separator are still separate preferences.
+
+Update `frontend/src/lib/i18n/en.ts`, `pt-BR.ts`, and `es.ts` in the same change
+whenever you add or change user-facing copy. Include errors, empty and loading states,
+and accessible names. Use the `$t` store in Svelte, and pass values such as task
+titles as named parameters. Add `.one` and `.other` entries for count-dependent
+messages and pass a numeric `count`. Preserve the same parameter names in each
+language. The runtime falls back to English for a missing entry.
+
+Run `bun run check` and `bun run test:unit --run` from `frontend/` to verify key
+and parameter parity. For Django validation errors that need specific UI copy,
+assign a stable code and map it in `frontend/src/lib/api.ts`. The API supplies
+the first code in the `X-Beacon-Error-Code` header and retains its response body.
+For allauth, use the code returned in its error payload. Unknown failures use
+localized fallback copy. Keep user-entered and provider content as received.
+
 See [CLAUDE.md](CLAUDE.md), [CONTRIBUTING.md](CONTRIBUTING.md) and
 [COMMITS.md](COMMITS.md) for engineering guidance. Product decisions live in
 [the planning maps](.plan/maps/); build work lives in GitHub Issues.

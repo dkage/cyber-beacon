@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '$lib/i18n';
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
@@ -7,4 +8,4 @@
 	});
 </script>
 
-<p>Opening your day… <a href={resolve('/today')}>Go to Today</a></p>
+<p>{$t('openingDay')} <a href={resolve('/today')}>{$t('goToday')}</a></p>

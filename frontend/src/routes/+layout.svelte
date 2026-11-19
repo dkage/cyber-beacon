@@ -4,14 +4,25 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import { clearSession, message, write } from '$lib/api';
+	import { onMount } from 'svelte';
+	import { kioskLanguage, language, t } from '$lib/i18n';
+	import { clearSession, message, syncLanguage, write } from '$lib/api';
 
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
-	let logoutError = $state('');
+	let logoutError = $state<unknown>(null);
 	let pending = $state(false);
-	let isLoginPage = $derived(page.url.pathname.replace(/\/+$/, '') === '/login');
+	const activePath = $derived(page.url.pathname.replace(/\/+$/, ''));
+	const isLoginPage = $derived(activePath === '/login');
+	const isKioskPage = $derived(activePath === '/kiosk');
+	onMount(() => {
+		if (!isKioskPage && !isLoginPage && activePath !== '/settings' && activePath !== '/connections')
+			void syncLanguage();
+	});
+	$effect(() => {
+		document.documentElement.lang = isKioskPage ? $kioskLanguage : $language;
+	});
 	async function logout() {
 		pending = true;
 		try {
@@ -23,7 +34,7 @@
 			clearSession();
 			await goto(resolve('/login'), { invalidateAll: true });
 		} catch (cause) {
-			logoutError = message(cause);
+			logoutError = cause;
 		} finally {
 			pending = false;
 		}
@@ -31,35 +42,37 @@
 </script>
 
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
-{#if page.url.pathname !== '/kiosk'}
-	<a class="skip-link" href="#main">Skip to content</a>
+{#if !isKioskPage}
+	<a class="skip-link" href="#main">{$t('skipContent')}</a>
 	{#if !isLoginPage}
 		<div class="app-shell">
 			<aside class="sidebar">
 				<a class="brand" href={resolve('/today')}
 					><span class="brand-symbol">◈</span><span
-						>CYBER<br />BEACON<span class="brand-subtitle">YOUR DAY, WITH INTENTION</span></span
+						>CYBER<br />BEACON<span class="brand-subtitle">{$t('brandTagline')}</span></span
 					></a
 				>
-				<nav aria-label="Main navigation">
+				<nav aria-label={$t('mainNavigation')}>
 					<a class:active={page.url.pathname === '/today'} href={resolve('/today')}
-						><span>◎</span> Today</a
+						><span aria-hidden="true">◎</span> {$t('today')}</a
 					><a class:active={page.url.pathname === '/connections'} href={resolve('/connections')}
-						><span>↗</span> Connections</a
+						><span aria-hidden="true">↗</span> {$t('connections')}</a
 					><a class:active={page.url.pathname === '/settings'} href={resolve('/settings')}
-						><span>⚙</span> Settings</a
-					><a href={resolve('/kiosk')}><span>▣</span> Kiosk display</a>
+						><span aria-hidden="true">⚙</span> {$t('settings')}</a
+					><a href={resolve('/kiosk')}><span aria-hidden="true">▣</span> {$t('kioskDisplay')}</a>
 				</nav>
 				<div class="sidebar-bottom">
-					<span class="status-dot"></span><span>SELF-HOSTED / PERSONAL</span><button
+					<span class="status-dot"></span><span>{$t('selfHosted')}</span><button
 						class="quiet"
 						disabled={pending}
-						onclick={logout}>Sign out</button
+						onclick={logout}>{$t('signOut')}</button
 					>
 				</div>
 			</aside>
 			<main id="main">
-				{#if logoutError}<p class="error" role="alert">{logoutError}</p>{/if}{@render children()}
+				{#if logoutError}<p class="error" role="alert">
+						{message(logoutError, $t)}
+					</p>{/if}{@render children()}
 			</main>
 		</div>
 	{:else}

@@ -1,49 +1,56 @@
 <script lang="ts">
+	import { t } from '$lib/i18n';
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
-	import { clearSession, csrf, message, write } from '$lib/api';
+	import { clearSession, csrf, message, syncLanguage, write } from '$lib/api';
 	let email = $state('');
 	let password = $state('');
 	let pending = $state(false);
-	let error = $state('');
+	let error = $state<unknown>(null);
 	async function login(event: SubmitEvent) {
 		event.preventDefault();
 		if (pending) return;
 		pending = true;
-		error = '';
+		error = null;
 		try {
 			await write('/_allauth/browser/v1/auth/login', { email, password });
 			password = '';
 			clearSession();
-			await csrf();
+			await Promise.all([csrf(), syncLanguage()]);
 			await goto(resolve('/today'));
 		} catch (cause) {
-			error = message(cause);
+			error = cause;
 		} finally {
 			pending = false;
 		}
 	}
 </script>
 
-<svelte:head><title>Sign in · Cyber Beacon</title></svelte:head>
+<svelte:head><title>{$t('pageTitle', { page: $t('signIn') })}</title></svelte:head>
 <div class="login-shell">
-	<span class="eyebrow">PERSONAL MISSION CONTROL</span>
-	<h1>Welcome back.</h1>
-	<p class="muted">A clear day starts with a little intention.</p>
+	<span class="eyebrow">{$t('loginEyebrow')}</span>
+	<h1>{$t('welcome')}</h1>
+	<p class="muted">{$t('loginIntro')}</p>
 	<form class="panel" onsubmit={login}>
-		<label>Email<input type="email" autocomplete="username" bind:value={email} required /></label
+		<label
+			>{$t('email')}<input
+				type="email"
+				autocomplete="username"
+				bind:value={email}
+				required
+			/></label
 		><label
-			>Password<input
+			>{$t('password')}<input
 				type="password"
 				autocomplete="current-password"
 				bind:value={password}
 				required
 			/></label
 		>
-		{#if error}<p class="error" role="alert">{error}</p>{/if}<button
+		{#if error}<p class="error" role="alert">{message(error, $t)}</p>{/if}<button
 			class="primary"
-			disabled={pending}>{pending ? 'Signing in…' : 'Sign in'}</button
+			disabled={pending}>{pending ? $t('signingIn') : $t('signIn')}</button
 		>
 	</form>
-	<p class="muted">Create your account with the server setup command.</p>
+	<p class="muted">{$t('accountSetup')}</p>
 </div>

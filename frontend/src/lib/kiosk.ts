@@ -1,4 +1,5 @@
 import type { components } from './schema';
+import { isLanguage } from './i18n';
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
 	return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -30,6 +31,7 @@ export function isKioskSummary(value: unknown): value is components['schemas']['
 	return (
 		isRecord(value) &&
 		isCalendarDate(value.date) &&
+		(value.language === undefined || isLanguage(value.language)) &&
 		isTimeZone(value.timezone) &&
 		(value.date_order === 'ymd' || value.date_order === 'dmy' || value.date_order === 'mdy') &&
 		(value.date_separator === '-' || value.date_separator === '/') &&

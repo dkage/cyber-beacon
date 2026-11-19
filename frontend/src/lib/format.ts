@@ -1,3 +1,5 @@
+import { currentTranslator, defaultLanguage, type Language, type Translator } from './i18n';
+
 export type DateOrder = 'ymd' | 'dmy' | 'mdy';
 export type DateSeparator = '-' | '/';
 
@@ -13,11 +15,12 @@ export function formatDateTime(
 	value: string,
 	timezone: string,
 	order: DateOrder,
-	separator: DateSeparator
+	separator: DateSeparator,
+	language: Language = defaultLanguage
 ): string {
 	const instant = new Date(value);
 	const date = formatDateInTimezone(value, timezone, order, separator);
-	const time = new Intl.DateTimeFormat(undefined, {
+	const time = new Intl.DateTimeFormat(language, {
 		timeZone: timezone,
 		hour: '2-digit',
 		minute: '2-digit'
@@ -42,11 +45,17 @@ export function formatDateInTimezone(
 	return formatDate(`${part('year')}-${part('month')}-${part('day')}`, order, separator);
 }
 
-export function minutes(value: number): string {
+export function minutes(value: number, translate: Translator = currentTranslator()): string {
 	const sign = value < 0 ? '−' : '';
 	const absolute = Math.abs(Math.round(value));
 	const hours = Math.floor(absolute / 60);
-	return `${sign}${hours ? hours + 'h ' : ''}${absolute % 60}m`;
+	const minutes = absolute % 60;
+	return (
+		sign +
+		(hours
+			? translate('durationHours', { hours, minutes })
+			: translate('durationMinutes', { minutes }))
+	);
 }
 export function localDate(
 	now = new Date(),
@@ -61,8 +70,8 @@ export function localDate(
 	const part = (name: string) => parts.find((value) => value.type === name)?.value;
 	return `${part('year')}-${part('month')}-${part('day')}`;
 }
-export function clock(instant: string, timezone: string) {
-	return new Intl.DateTimeFormat(undefined, {
+export function clock(instant: string, timezone: string, language: Language = defaultLanguage) {
+	return new Intl.DateTimeFormat(language, {
 		timeZone: timezone,
 		hour: '2-digit',
 		minute: '2-digit'

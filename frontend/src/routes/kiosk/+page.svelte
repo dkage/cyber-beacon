@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { clock, formatDate, minutes } from '$lib/format';
-	import { message } from '$lib/api';
+	import { kioskLanguage, kioskT as t, setKioskLanguage } from '$lib/i18n';
+	import { LocalizedError, message, providerStatusMessage } from '$lib/api';
 	import { isKioskSummary, isRecord } from '$lib/kiosk';
 	import type { components } from '$lib/schema';
 
@@ -10,7 +11,7 @@
 	let summary = $state<Summary | null>(null);
 	let code = $state('');
 	let secret = '';
-	let error = $state('');
+	let error = $state<unknown>(null);
 	let stale = $state(false);
 	let scale = $state(1);
 	let now = $state(Date.now());
@@ -42,21 +43,18 @@
 			summary = null;
 			remember('beacon-device', null);
 			remember('beacon-summary', null);
-			throw new Error('Display access expired or was revoked. Pair again.');
+			throw new LocalizedError('displayExpired');
 		}
 		if (!response.ok)
-			throw new Error(
-				response.status === 400
-					? 'Pairing expired. A new code will be generated.'
-					: 'The server is unavailable.'
-			);
+			throw new LocalizedError(response.status === 400 ? 'pairExpired' : 'serverUnavailable');
 		const result: unknown = await response.json();
 		return result;
 	}
 	async function refreshSummary() {
 		const result = await request('summary/');
-		if (!isKioskSummary(result)) throw new Error('The server returned an invalid day summary.');
+		if (!isKioskSummary(result)) throw new LocalizedError('invalidSummary');
 		summary = result;
+		setKioskLanguage(result.language);
 		remember('beacon-summary', JSON.stringify(result));
 		stale = false;
 	}
@@ -72,7 +70,7 @@
 					typeof pairing.code !== 'string' ||
 					typeof pairing.secret !== 'string'
 				) {
-					throw new Error('The server returned an invalid pairing code.');
+					throw new LocalizedError('invalidPairCode');
 				}
 				code = pairing.code;
 				secret = pairing.secret;
@@ -86,7 +84,7 @@
 						remember('beacon-device', token);
 						await refreshSummary();
 					} else if (!isRecord(result) || result.status !== 'pending') {
-						throw new Error('The server returned an invalid pairing status.');
+						throw new LocalizedError('invalidPairStatus');
 					}
 				} catch (cause) {
 					secret = '';
@@ -95,10 +93,10 @@
 				}
 			}
 			failures = 0;
-			error = '';
+			error = null;
 		} catch (cause) {
 			failures += 1;
-			error = message(cause);
+			error = cause;
 			stale = !!summary;
 		}
 		if (!stopped)
@@ -111,6 +109,7 @@
 	}
 	onMount(() => {
 		stopped = false;
+		setKioskLanguage(undefined);
 		try {
 			token = localStorage.getItem('beacon-device') ?? '';
 			scale = Number(localStorage.getItem('beacon-scale') ?? 1) || 1;
@@ -119,6 +118,7 @@
 				const result: unknown = JSON.parse(cached);
 				if (isKioskSummary(result)) {
 					summary = result;
+					setKioskLanguage(result.language);
 					stale = true;
 				} else {
 					remember('beacon-summary', null);
@@ -140,56 +140,63 @@
 	});
 </script>
 
-<svelte:head><title>Kiosk · Cyber Beacon</title></svelte:head>
+<svelte:head><title>{$t('pageTitle', { page: $t('kiosk') })}</title></svelte:head>
 <div class="kiosk" style={`--display-scale:${scale}`}>
 	<header class="kiosk-heading">
 		<div>
-			<span class="eyebrow">CYBER BEACON / LIVE DISPLAY</span>
+			<span class="eyebrow">{$t('kioskEyebrow')}</span>
 			<h1>
 				{summary
 					? formatDate(summary.date, summary.date_order, summary.date_separator)
-					: 'Your day, at a glance.'}
+					: $t('kioskHeading')}
 			</h1>
 		</div>
 		<div class="kiosk-clock">
-			{summary ? clock(new Date(now).toISOString(), summary.timezone) : ''}
+			{summary ? clock(new Date(now).toISOString(), summary.timezone, $kioskLanguage) : ''}
 		</div>
 	</header>
 	{#if stale && summary}<p class="error stale" role="status">
-			STALE · Last successful update {clock(summary.fetched_at, summary.timezone)}. {error}
-		</p>{:else if error}<p class="error" role="alert">{error}</p>{/if}
+			{$t('kioskStale', { time: clock(summary.fetched_at, summary.timezone, $kioskLanguage) })}
+			{error ? message(error, $t) : ''}
+		</p>{:else if error}<p class="error" role="alert">{message(error, $t)}</p>{/if}
 	{#if !token}<section class="panel pairing">
-			<span class="eyebrow">PAIR THIS DISPLAY</span>
-			<h2>{code || 'Requesting a pairing code…'}</h2>
-			<p>On your signed-in planner, open Settings → Pair a display.</p>
+			<span class="eyebrow">{$t('kioskPair')}</span>
+			<h2>{code || $t('kioskRequestCode')}</h2>
+			<p>{$t('kioskPairPath')}</p>
 			<p class="muted">
-				Codes expire after ten minutes. This display can only read a limited day summary.
+				{$t('kioskLimited')}
 			</p>
 		</section>{/if}
 	{#if summary}<div class="kiosk-grid">
 			<section class="panel">
-				<span class="eyebrow">TODAY'S WORK</span>
-				<h2>{summary.tasks.filter((task) => !task.completed_at).length} Tasks to go</h2>
-				{#if !summary.tasks.length}<p class="muted">No work planned for this day.</p>{/if}
+				<span class="eyebrow">{$t('kioskToday')}</span>
+				<h2>
+					{$t('kioskRemaining', {
+						count: summary.tasks.filter((task) => !task.completed_at).length
+					})}
+				</h2>
+				{#if !summary.tasks.length}<p class="muted">{$t('kioskEmpty')}</p>{/if}
 				<ul class="kiosk-tasks">
 					{#each summary.tasks as task (task.id)}<li class:done={!!task.completed_at}>
 							<span class="attention">{task.completed_at ? '✓' : '○'}</span><strong
 								>{task.title}</strong
 							><span class="muted"
-								>{task.estimated_minutes === null ? '—' : minutes(task.estimated_minutes)}</span
+								>{task.estimated_minutes === null ? '—' : minutes(task.estimated_minutes, $t)}</span
 							>
 						</li>{/each}
 				</ul>
 			</section>
 			<aside class="panel">
-				<span class="eyebrow external">CALENDAR EVENTS</span>{#if !summary.events.length}<h2>
-						Room to focus.
+				<span class="eyebrow external">{$t('kioskEvents')}</span>{#if !summary.events.length}<h2>
+						{$t('kioskFocus')}
 					</h2>
 					<p class="muted">
-						No meetings in the current calendar data.
+						{$t('kioskNoMeetings')}
 					</p>{/if}{#each summary.events as event (event.id)}<article class="meeting">
 						<span class="external"
-							>{event.starts_at ? clock(event.starts_at, summary.timezone) : 'All day'}</span
+							>{event.starts_at
+								? clock(event.starts_at, summary.timezone, $kioskLanguage)
+								: $t('allDay')}</span
 						>
 						<h2>{event.title}</h2>
 					</article>{/each}
@@ -197,24 +204,29 @@
 						class="small"
 						class:error={!!calendar.last_error}
 					>
-						{calendar.label}: {calendar.last_error ||
-							(calendar.last_succeeded_at
-								? 'Updated ' + clock(calendar.last_succeeded_at, summary.timezone)
-								: 'Waiting for first refresh')}
+						{calendar.label}: {calendar.last_error
+							? providerStatusMessage(calendar.last_error, $t)
+							: calendar.last_succeeded_at
+								? $t('updatedAt', {
+										time: clock(calendar.last_succeeded_at, summary.timezone, $kioskLanguage)
+									})
+								: $t('waitingRefresh')}
 					</p>{/each}
 				<div class="briefing">
-					<span class="eyebrow">BRIEFING</span>
-					<p class="muted">{summary.briefing}</p>
+					<span class="eyebrow">{$t('briefing')}</span>
+					<p class="muted">
+						{summary.briefing === $t('briefingLater') ? $t('briefingLater') : summary.briefing}
+					</p>
 				</div>
 			</aside>
 		</div>
 		<footer class="muted">
-			{summary.timezone} · Updated {clock(summary.fetched_at, summary.timezone)} · {stale
-				? 'Last known day'
-				: 'Connected'}
+			{summary.timezone} · {$t('updatedAt', {
+				time: clock(summary.fetched_at, summary.timezone, $kioskLanguage)
+			})} · {stale ? $t('lastKnownDay') : $t('connected')}
 		</footer>{/if}
 	<label class="display-scale"
-		>TV text size<input
+		>{$t('tvTextSize')}<input
 			type="range"
 			min="0.8"
 			max="1.8"
