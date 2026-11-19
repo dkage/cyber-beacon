@@ -38,3 +38,11 @@ below are starting points for confirmation, not silently approved schema decisio
 - Define API preview/commit/undo and conflict behavior; retain engine ownership, rate limiting and source-token isolation.
 
 - Pass examples with 2h task split by meeting, personal task routing, hidden non-blocking calendar, zero estimate, overtime, overlapping owned sessions and DST; amend backend 02/03/06 and glossary.
+
+## Phase 1 implementation disposition (2026-11-18)
+
+The developer authorized autonomous implementation of the entire First usable day.
+[The bounded release contract](../../../../docs/phase-one-contract.md) resolves this
+ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
+Broader release/parity questions above remain open. Verification and any limitations
+are recorded with the implementation; the packaging proof is not claimed in advance.

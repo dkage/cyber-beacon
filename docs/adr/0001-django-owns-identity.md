@@ -43,9 +43,17 @@ django-oauth-toolkit layers on additively without allauth coming out.
   PostgreSQL is used from the start, and also serves the multi-user structure the schema
   assumes.
 - Token transport differs by client while the auth system stays single: the web client
-  uses HttpOnly session cookies via SvelteKit as a backend-for-frontend, a native client
+  uses Django HttpOnly session cookies from a same-origin static SvelteKit app, a native client
   holds tokens in the Keychain. Prefer allauth's opaque, revocable token strategy over
   JWT until statelessness actually pays — a JWT cannot be withdrawn before it expires.
 - "Sign in with Google" and "connect Google Calendar" must stay separate concerns. One
   user connects several accounts per provider (personal and work), so integration
   connections are many-per-provider-per-user, unlike allauth's `SocialAccount`.
+
+## Phase 1 packaging proof (2026-11-18)
+
+The static client replaces the earlier BFF wording. A Bun build stage produces
+assets copied into the Django image. Executable allauth/CSRF, nested-route refresh
+and Vite proxy browser tests pass, and local Compose starts web, Postgres and two
+distinct worker queues. This removes a Node runtime without changing identity
+ownership or the native client contract. TrueNAS/Zoraxy acceptance remains separate.

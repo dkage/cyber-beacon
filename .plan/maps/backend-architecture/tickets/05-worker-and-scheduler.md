@@ -121,3 +121,11 @@ Not decisions, only setup items to carry onto the backend issue when one is file
 - **A defaults caveat.** The five-failure limit, the one-hour cap, the two AI retries, the 30-day retention and the lease length are reasoned defaults accepted as recommended, not tuned against real traffic. All are settings.
 - **Ticket 04's service list is amended**, not reopened: see the note appended there.
 - **Ticket 06's wording** that the vault sits on the backend's machine is unchanged by this ticket.
+
+## Phase 1 implementation disposition (2026-11-18)
+
+The developer authorized autonomous implementation of the entire First usable day.
+[The bounded release contract](../../../../docs/phase-one-contract.md) resolves this
+ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
+Broader release/parity questions above remain open. Verification and any limitations
+are recorded with the implementation; the packaging proof is not claimed in advance.

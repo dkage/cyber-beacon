@@ -2,10 +2,9 @@
 
 Model names and the fields that carry a decision. Not a schema.
 
-**Migration readiness:** explicit import, local worksheets, local completion and midnight
-carry-forward are decided (parity ticket 13). Meeting representation, calendar routing and
-TimeEntry/timer storage still require the linked [parity decisions](../../.plan/maps/sunsama-parity/map.md)
-before affected first migrations. [Translation/status](./sunsama-reference.md).
+**Migration readiness:** the bounded Phase 1 schema is implemented under
+[the release contract](../phase-one-contract.md). Broader meeting checklist, calendar
+routing and timer changes remain with the [parity map](../../.plan/maps/sunsama-parity/map.md).
 
 ## Work and time (ticket 02)
 
@@ -52,3 +51,11 @@ stored: it is the absence of a row past the cutoff.
 | `day_rollover` | 00:00 | Local time the day turns over; when carry-forward runs |
 | `prep_cutoff` | 10:00 | Past it, with no prep resolved, prep is missed |
 | `wrap_up_limit` | 24h | Past it, the sweep records an auto-skip |
+
+## First usable day implementation contract
+
+See [release contract](../phase-one-contract.md) for the bounded Phase 1 decisions.
+Task gains `version` and `deleted_at`; TaskSource is per worksheet, with intentional
+repeat imports. TimeEntry stores actual intervals, one running entry per user.
+User work hours and timezone own daily capacity. KioskDevice owns read-only, revocable
+access to a redacted day summary. Disconnect retains worksheets and history.

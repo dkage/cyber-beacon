@@ -21,3 +21,12 @@ notes/
 
 # LLMs
 .claude/
+
+# Runtime and local configuration
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+backend/staticfiles/

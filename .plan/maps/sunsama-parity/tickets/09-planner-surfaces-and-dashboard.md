@@ -36,3 +36,11 @@ below are starting points for confirmation, not silently approved schema decisio
 - Show how completing prep moves into Today/Focus or dashboard by preference without losing state; phone interaction and kiosk read-only scope stay distinct.
 
 - Cross-check identity and widget data contracts with backend 09/11/12; settle what responsive web supports vs native-only later.
+
+## Phase 1 implementation disposition (2026-11-18)
+
+The developer authorized autonomous implementation of the entire First usable day.
+[The bounded release contract](../../../../docs/phase-one-contract.md) resolves this
+ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
+Broader release/parity questions above remain open. Verification and any limitations
+are recorded with the implementation; the packaging proof is not claimed in advance.

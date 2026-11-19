@@ -28,11 +28,10 @@ capacity/projections, recurrence, channels and weekly objectives remain open in 
 | **Due date** | The day it is owed to someone else. Never moved by moving the do date | deadline, end date |
 | **Start date** | Earliest day the Task is actionable | defer date |
 | **Time block** | A span of clock time you committed. May have no Task | slot, appointment |
-| **Time entry** | Time actually spent. Planned is Time block, actual is Time entry (not built yet) | session, log |
+| **Time entry** | Time actually spent. Planned is Time block, actual is Time entry | session, log |
 | **Calendar event** | A meeting from a connected calendar. Never a Task | meeting, booking |
 
-All Task dates are **local calendar dates** (no time of day). Only a `TimeBlock` holds
-instants.
+All Task dates are **local calendar dates** (no time of day). Time blocks, Time entries and timed Calendar events hold instants.
 
 ## Provenance
 
