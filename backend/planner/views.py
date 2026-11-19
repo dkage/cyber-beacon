@@ -1,4 +1,4 @@
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from django.db.models import QuerySet
 from django.utils import timezone
@@ -7,8 +7,6 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.request import Request
 from rest_framework.response import Response
-
-from accounts.models import User
 
 from . import services
 from .models import Task, TimeEntry
@@ -21,6 +19,9 @@ from .serializers import (
     TaskSerializer,
     TimeEntrySerializer,
 )
+
+if TYPE_CHECKING:
+    from accounts.models import User
 
 
 def precondition(request: Request) -> int | None:
@@ -44,7 +45,7 @@ class TaskViewSet(viewsets.GenericViewSet[Task]):
 
     def get_queryset(self) -> QuerySet[Task]:
         # The API requires an authenticated user via the default DRF permission.
-        return Task.objects.filter(user=cast(User, self.request.user), deleted_at=None)
+        return Task.objects.filter(user=cast("User", self.request.user), deleted_at=None)
 
     @extend_schema(parameters=[TaskListQuerySerializer])
     def list(self, request: Request) -> Response:
@@ -52,7 +53,7 @@ class TaskViewSet(viewsets.GenericViewSet[Task]):
         query.is_valid(raise_exception=True)
         params = query.validated_data
         tasks = Task.objects.filter(
-            user=cast(User, request.user), deleted_at__isnull=not params["trash"]
+            user=cast("User", request.user), deleted_at__isnull=not params["trash"]
         )
         if params["backlog"]:
             tasks = tasks.filter(do_date=None)
