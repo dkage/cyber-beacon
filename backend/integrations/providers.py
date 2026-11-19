@@ -208,6 +208,8 @@ def exchange(provider, code):
 @transaction.atomic
 def take_budget(connection):
     locked = IntegrationConnection.objects.select_for_update().get(pk=connection.pk)
+    if locked.status != "active" or locked.auth_version != connection.auth_version:
+        raise ProviderError("Provider connection changed. Try again.")
     now = timezone.now()
     tokens = min(3.0, locked.budget_tokens + (now - locked.budget_at).total_seconds() * 3)
     if tokens < 1:
@@ -221,10 +223,18 @@ def take_budget(connection):
     locked.save(update_fields=["budget_tokens", "budget_at"])
 
 
+def _update_auth(connection, auth_version, **changes):
+    # Check the authentication state used for the HTTP call in the same write.
+    return IntegrationConnection.objects.filter(
+        pk=connection.pk, status="active", auth_version=auth_version
+    ).update(auth_version=auth_version + 1, **changes)
+
+
 def request(connection, method, path, **kwargs):
     if connection.status != "active" or not connection.credentials:
         raise ProviderError("Reconnect this Provider before continuing.", kind="auth_dead")
     credentials = connection.credentials
+    auth_version = connection.auth_version
     if connection.provider in {"google", "microsoft", "github"}:
         expires = credentials.get("expires_at")
         if expires and timezone.now() >= parse_datetime(expires):
@@ -263,8 +273,11 @@ def request(connection, method, path, **kwargs):
                 if exc.kind == "fatal":
                     exc.kind = "auth_dead"
                 if exc.kind == "auth_dead":
-                    IntegrationConnection.objects.filter(pk=connection.pk).update(
-                        status="needs_reauth", last_error="Reconnect this Provider account."
+                    _update_auth(
+                        connection,
+                        auth_version,
+                        status="needs_reauth",
+                        last_error="Reconnect this Provider account.",
                     )
                 raise
             credentials = {
@@ -274,9 +287,10 @@ def request(connection, method, path, **kwargs):
                     timezone.now() + timedelta(seconds=refreshed.get("expires_in", 3600))
                 ).isoformat(),
             }
-            IntegrationConnection.objects.filter(pk=connection.pk, status="active").update(
-                credentials=credentials
-            )
+            if not _update_auth(connection, auth_version, credentials=credentials):
+                raise ProviderError("Provider connection changed. Try again.")
+            auth_version += 1
+            connection.auth_version = auth_version
             connection.credentials = credentials
         if connection.provider == "microsoft":
             base = "https://graph.microsoft.com/v1.0/"
@@ -317,8 +331,8 @@ def request(connection, method, path, **kwargs):
         return http(method, url, headers=headers, **kwargs)
     except ProviderError as exc:
         if exc.kind == "auth_dead":
-            IntegrationConnection.objects.filter(pk=connection.pk).update(
-                status="needs_reauth", last_error=str(exc.detail)
+            _update_auth(
+                connection, auth_version, status="needs_reauth", last_error=str(exc.detail)
             )
         raise
 

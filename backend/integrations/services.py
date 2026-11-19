@@ -90,7 +90,7 @@ def finish_oauth(user, session_key, provider, state, code):
     credentials, identity, label, scopes = providers.exchange(provider, code)
     with transaction.atomic():
         lock_user(user)
-        connection, _ = IntegrationConnection.objects.get_or_create(
+        connection, _ = IntegrationConnection.objects.select_for_update().get_or_create(
             user=user,
             provider=provider,
             account_identity=identity,
@@ -103,6 +103,7 @@ def finish_oauth(user, session_key, provider, state, code):
                 enabled=False, consecutive_failures__gte=CALENDAR_FAILURE_PAUSE_THRESHOLD
             ).update(consecutive_failures=0)
         connection.credentials = {**previous, **credentials}
+        connection.auth_version += 1
         connection.scopes = scopes
         connection.status = "active"
         connection.last_error = ""
@@ -116,9 +117,13 @@ def disconnect(user, connection):
     if connection.user_id != user.pk:
         raise NotFound()
     lock_user(user)
+    connection.refresh_from_db(
+        fields=["auth_version"], from_queryset=IntegrationConnection.objects.select_for_update()
+    )
     connection.status = "disconnected"
     connection.credentials = None
-    connection.save(update_fields=["status", "credentials"])
+    connection.auth_version += 1
+    connection.save(update_fields=["status", "credentials", "auth_version"])
     connection.mounts.update(enabled=False, sync_started_at=None, consecutive_failures=0)
     CalendarSyncProgress.objects.filter(mount__connection=connection).delete()
 

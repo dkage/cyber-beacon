@@ -22,6 +22,7 @@ class IntegrationConnection(models.Model):
     account_identity = models.CharField(max_length=255)
     label = models.CharField(max_length=255)
     credentials = EncryptedJSONField(null=True)
+    auth_version = models.PositiveBigIntegerField(default=0, editable=False)
     scopes = models.JSONField(default=list)
     status = models.CharField(max_length=30, default="active")
     last_error = models.CharField(max_length=500, blank=True)

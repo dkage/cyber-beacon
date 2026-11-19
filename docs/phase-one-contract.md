@@ -46,8 +46,10 @@ Checkpoints expire one hour after the window was opened and must still be valid 
 publication. Calendar freshness shows when that window was opened. Manual
 refresh honors the Provider's rate-limit deadline, and throttling
 does not count toward pausing a Mount. Failed refreshes and reauthorization are
-visible; credentials never leave Django. OAuth uses expiring one-use state bound to
-the authenticated owner and session.
+visible; credentials never leave Django. A Provider response can update credentials
+or require reauthorization only if the Connection still has the authentication state
+used by that request. OAuth uses expiring one-use state bound to the authenticated
+owner and session.
 Microsoft delegated OAuth requests Calendars.Read and offline_access for refresh tokens.
 GitHub App access lists repositories visible to the connected account, filters out pull
 requests, and imports an explicitly selected issue as a local worksheet. GitHub tokens

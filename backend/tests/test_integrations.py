@@ -949,6 +949,112 @@ def test_calendar_refresh_after_disconnect_and_reconnect_keeps_mount_hidden(
     assert not CalendarSyncProgress.objects.filter(mount=notion).exists()
 
 
+@pytest.mark.parametrize("reconnect", [False, True], ids=["disconnected", "reconnected"])
+@pytest.mark.parametrize("late_response", ["calendar_401", "renewal_401", "renewal_success"])
+def test_late_calendar_http_response_cannot_change_connection(
+    notion, settings, monkeypatch, reconnect, late_response
+):
+    import httpx
+
+    settings.INTEGRATION_OAUTH["microsoft"] = {
+        "client_id": "id",
+        "client_secret": "secret",
+        "redirect_uri": "http://localhost/callback",
+    }
+    conn = notion.connection
+    now = timezone.now()
+    conn.provider = "microsoft"
+    conn.credentials = {"access_token": "old", "refresh_token": "old-refresh"}
+    if late_response.startswith("renewal"):
+        conn.credentials["expires_at"] = (now - timedelta(hours=1)).isoformat()
+    conn.save(update_fields=["provider", "credentials"])
+    if reconnect:
+        OAuthState.objects.create(
+            digest=services.digest("state"),
+            user=conn.user,
+            provider="microsoft",
+            session_digest=services.digest("session"),
+            expires_at=now + timedelta(minutes=10),
+        )
+
+    request_urls = []
+
+    def send(method, url, **kwargs):
+        if (
+            url == providers.MICROSOFT_TOKEN
+            and kwargs["data"]["grant_type"] == "authorization_code"
+        ):
+            return httpx.Response(200, json={"access_token": "new", "refresh_token": "new-refresh"})
+        if url == "https://graph.microsoft.com/v1.0/me":
+            return httpx.Response(200, json={"id": conn.account_identity})
+
+        request_urls.append(url)
+        if len(request_urls) > 1:
+            return httpx.Response(200, json={"value": []})
+        services.disconnect(conn.user, conn)
+        if reconnect:
+            services.finish_oauth(conn.user, "session", "microsoft", "state", "code")
+        if late_response == "renewal_success":
+            return httpx.Response(
+                200, json={"access_token": "stale-renewal", "refresh_token": "stale-refresh"}
+            )
+        return httpx.Response(401)
+
+    monkeypatch.setattr(httpx, "request", send)
+    services.sync_calendar(notion.pk)
+
+    conn.refresh_from_db()
+    assert conn.status == ("active" if reconnect else "disconnected")
+    assert conn.last_error == ""
+    if reconnect:
+        assert conn.credentials["access_token"] == "new"
+        assert conn.credentials["refresh_token"] == "new-refresh"
+    else:
+        assert conn.credentials is None
+    assert len(request_urls) == 1
+
+
+def test_late_renewal_cannot_overwrite_concurrent_renewal(notion, settings, monkeypatch):
+    import httpx
+
+    settings.INTEGRATION_OAUTH["microsoft"] = {
+        "client_id": "id",
+        "client_secret": "secret",
+        "redirect_uri": "http://localhost/callback",
+    }
+    conn = notion.connection
+    conn.provider = "microsoft"
+    conn.credentials = {
+        "access_token": "expired",
+        "refresh_token": "original",
+        "expires_at": (timezone.now() - timedelta(hours=1)).isoformat(),
+    }
+    conn.save(update_fields=["provider", "credentials"])
+    renewal_started = False
+    resource_headers = []
+
+    def send(method, url, **kwargs):
+        nonlocal renewal_started
+        if url != providers.MICROSOFT_TOKEN:
+            resource_headers.append(kwargs["headers"]["Authorization"])
+            return httpx.Response(200, json={"value": []})
+        if renewal_started:
+            return httpx.Response(200, json={"access_token": "current", "refresh_token": "rotated"})
+        renewal_started = True
+        other_request = IntegrationConnection.objects.get(pk=conn.pk)
+        providers.request(other_request, "GET", "me/calendars")
+        return httpx.Response(200, json={"access_token": "late"})
+
+    monkeypatch.setattr(httpx, "request", send)
+    with pytest.raises(providers.ProviderError, match="Provider connection changed"):
+        providers.request(conn, "GET", "me/calendars")
+
+    conn.refresh_from_db()
+    assert conn.credentials["access_token"] == "current"
+    assert conn.credentials["refresh_token"] == "rotated"
+    assert resource_headers == ["Bearer current"]
+
+
 def test_microsoft_provider_rejects_untrusted_next_link(notion, settings):
     settings.INTEGRATION_OAUTH["microsoft"] = {
         "client_id": "id",
