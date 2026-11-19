@@ -110,6 +110,7 @@ Backend commands run from `backend/` with `uv run --env-file ../.env`:
 uv run --env-file ../.env ruff check .
 uv run --env-file ../.env ruff format --check .
 uv run --env-file ../.env mypy
+uv run deptry .
 uv run --env-file ../.env pytest
 uv run --env-file ../.env python manage.py check
 uv run --env-file ../.env python manage.py makemigrations --check --dry-run
@@ -121,6 +122,10 @@ viewsets, including unannotated function bodies. Imported modules still provide 
 information. Diagnostics in other backend apps, settings, migrations and tests are
 deferred while this baseline is established. The serializer suppressions cover DRF's
 declarative fields and `many=True` constructor behavior, which the stubs cannot express.
+
+Deptry uses the uv environment and the dependency groups in `backend/pyproject.toml`.
+Its unused-dependency exceptions cover Django's string-registered allauth and WhiteNoise,
+the PostgreSQL driver loaded by Django, and Gunicorn in the production entrypoint.
 
 Frontend commands run from `frontend/`:
 
