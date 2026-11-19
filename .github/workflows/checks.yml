@@ -6,6 +6,17 @@ on:
 permissions:
   contents: read
 jobs:
+  workflow-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.x"
+          cache: false
+      - run: ./scripts/lint-workflows
   phase-one:
     runs-on: ubuntu-latest
     services:
@@ -79,7 +90,7 @@ jobs:
         run: docker build -t cyber-beacon:ci .
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: phase-one
+    needs: [phase-one, workflow-lint]
     runs-on: ubuntu-latest
     permissions:
       contents: write

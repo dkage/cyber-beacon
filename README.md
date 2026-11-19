@@ -152,6 +152,10 @@ it never uses live Provider credentials. PostgreSQL must be running, and the loc
 role must be allowed to create test databases. CI runs these checks on pull requests.
 The HTTP API schema is at `/api/v1/`; its API explorer is `/api/v1/docs/`.
 
+From the repository root, run `./scripts/lint-workflows` with Go 1.26 or newer.
+It runs the pinned actionlint version against all GitHub Actions workflows.
+Actionlint also checks embedded scripts when ShellCheck or Pyflakes is installed.
+
 ## Deploy on the homelab
 
 Set `DEBUG=false`, a random `DJANGO_SECRET_KEY`, `ALLOWED_HOSTS` and
