@@ -562,6 +562,7 @@ export interface components {
 			timezone: string;
 			date_order: components['schemas']['DateOrderEnum'];
 			date_separator: components['schemas']['DateSeparatorEnum'];
+			language?: components['schemas']['LanguageEnum'];
 			/** Format: date-time */
 			fetched_at: string;
 			tasks: components['schemas']['KioskTask'][];
@@ -577,6 +578,13 @@ export interface components {
 			completed_at: string | null;
 			estimated_minutes: number | null;
 		};
+		/**
+		 * @description * `en` - English
+		 *     * `pt-BR` - Português (Brasil)
+		 *     * `es` - Español
+		 * @enum {string}
+		 */
+		LanguageEnum: 'en' | 'pt-BR' | 'es';
 		Mount: {
 			/** Format: uuid */
 			readonly id: string;
@@ -685,6 +693,7 @@ export interface components {
 			work_weekdays?: number[];
 			date_order?: components['schemas']['DateOrderEnum'];
 			date_separator?: components['schemas']['DateSeparatorEnum'];
+			language?: components['schemas']['LanguageEnum'];
 		};
 		PatchedTask: {
 			readonly source?: components['schemas']['SourcePreview'] | null;
@@ -756,6 +765,7 @@ export interface components {
 			work_weekdays: number[];
 			date_order?: components['schemas']['DateOrderEnum'];
 			date_separator?: components['schemas']['DateSeparatorEnum'];
+			language?: components['schemas']['LanguageEnum'];
 		};
 		SourcePreview: {
 			/** Format: uri */

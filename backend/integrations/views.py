@@ -51,7 +51,7 @@ class OAuthCallback(APIView):
     @extend_schema(exclude=True)
     def get(self, request, provider):
         if provider not in {"notion", "google", "microsoft", "github"}:
-            raise ValidationError("Unknown Provider.")
+            raise ValidationError("Unknown Provider.", code="unknown_provider")
         if request.query_params.get("error"):
             return HttpResponseRedirect("/connections?error=consent-denied")
         services.finish_oauth(
@@ -99,12 +99,12 @@ class ConnectionViewSet(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         if connection.status != "active":
-            raise ValidationError("Reconnect this Provider first.")
+            raise ValidationError("Reconnect this Provider first.", code="reconnect_provider")
         with transaction.atomic():
             lock_user(request.user)
             connection.refresh_from_db(fields=["status"])
             if connection.status != "active":
-                raise ValidationError("Reconnect this Provider first.")
+                raise ValidationError("Reconnect this Provider first.", code="reconnect_provider")
             mount, _ = Mount.objects.get_or_create(
                 connection=connection,
                 external_id=data["external_id"],
@@ -131,7 +131,9 @@ class MountViewSet(viewsets.GenericViewSet):
     def browse(self, request, pk=None):
         mount = self.get_object()
         if not providers.supports(mount.connection.provider, "worksheet") or not mount.enabled:
-            raise ValidationError("Choose an enabled worksheet source Mount.")
+            raise ValidationError(
+                "Choose an enabled worksheet source Mount.", code="choose_worksheet_source"
+            )
         query = BrowseQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         result = providers.browse(
@@ -218,9 +220,9 @@ class MountViewSet(viewsets.GenericViewSet):
             .get(pk=mount.connection_id)
         )
         if not providers.supports(connection.provider, "calendar") or connection.status != "active":
-            raise ValidationError("Choose an active Calendar Mount.")
+            raise ValidationError("Choose an active Calendar Mount.", code="choose_active_calendar")
         if connection.auth_version != mount.connection.auth_version:
-            raise ValidationError("The Connection changed. Refresh and try again.")
+            raise ValidationError("The Connection changed. Refresh and try again.", code="conflict")
         mount.refresh_from_db(
             fields=["rate_limited_until"], from_queryset=Mount.objects.select_for_update()
         )

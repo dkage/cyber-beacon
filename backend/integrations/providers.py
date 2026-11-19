@@ -40,11 +40,13 @@ def supports(provider, capability):
 class ProviderError(APIException):
     status_code = 502
     default_detail = "Provider request failed. Try again later."
+    default_code = "provider_error"
 
     def __init__(self, detail=None, *, kind="retryable", retry_after=60):
         self.kind = kind
         self.retry_after = retry_after
-        super().__init__(detail)
+        code = {"auth_dead": "reconnect_provider", "rate_limited": "throttled"}.get(kind)
+        super().__init__(detail, code=code)
 
 
 def http(method, url, **kwargs):

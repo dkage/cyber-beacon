@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from accounts.models import DATE_ORDER_CHOICES, DATE_SEPARATOR_CHOICES
+from accounts.models import DATE_ORDER_CHOICES, DATE_SEPARATOR_CHOICES, LANGUAGE_CHOICES
 from planner.read_models import FreshnessSerializer
 
 
@@ -40,6 +40,7 @@ class KioskSummarySerializer(serializers.Serializer):
     timezone = serializers.CharField()
     date_order = serializers.ChoiceField(choices=DATE_ORDER_CHOICES)
     date_separator = serializers.ChoiceField(choices=DATE_SEPARATOR_CHOICES)
+    language = serializers.ChoiceField(choices=LANGUAGE_CHOICES, required=False)
     fetched_at = serializers.DateTimeField()
     tasks = KioskTaskSerializer(many=True)
     events = KioskEventSerializer(many=True)

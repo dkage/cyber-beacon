@@ -67,13 +67,19 @@ def validate_parent(user: User, task: Task | None, parent: Task | None) -> None:
         try:
             parent = Task.objects.get(pk=parent.pk, user=user, deleted_at=None)
         except Task.DoesNotExist as exc:
-            raise ValidationError({"parent": "Choose one of your active Tasks."}) from exc
+            raise ValidationError(
+                {"parent": "Choose one of your active Tasks."}, code="invalid_parent_task"
+            ) from exc
     seen = {task.pk} if task else set()
     while parent:
         if parent.user_id != user.pk or parent.deleted_at:
-            raise ValidationError({"parent": "Choose one of your active Tasks."})
+            raise ValidationError(
+                {"parent": "Choose one of your active Tasks."}, code="invalid_parent_task"
+            )
         if parent.pk in seen:
-            raise ValidationError({"parent": "Subtasks cannot form a cycle."})
+            raise ValidationError(
+                {"parent": "Subtasks cannot form a cycle."}, code="cyclic_subtask"
+            )
         seen.add(parent.pk)
         parent = parent.parent
 
@@ -164,12 +170,14 @@ def start_timer(user: User, task_id: str) -> TimeEntry:
     lock_user(user)
     task = owned_task(user, task_id)
     if task.completed_at:
-        raise Conflict("Reopen the Task before starting a timer.")
+        raise Conflict("Reopen the Task before starting a timer.", code="timer_completed_task")
     current = TimeEntry.objects.filter(user=user, ended_at=None).first()
     if current:
         if current.task_id == task.pk:
             return current
-        raise Conflict("Stop the current timer before starting another.")
+        raise Conflict(
+            "Stop the current timer before starting another.", code="timer_already_running"
+        )
     entry = TimeEntry.objects.create(user=user, task=task, started_at=timezone.now())
     activity(task, "timer_started", user, entry_id=str(entry.pk))
     return entry

@@ -84,7 +84,8 @@ def finish_oauth(user, session_key, provider, state, code):
         )
         if not row:
             raise ValidationError(
-                "This connection request expired or was already used. Start again."
+                "This connection request expired or was already used. Start again.",
+                code="connection_expired",
             )
         row.delete()
     credentials, identity, label, scopes = providers.exchange(provider, code)
@@ -154,13 +155,18 @@ def import_record(user, mount, external_id, day, key):
         or mount.connection.status != "active"
         or not mount.enabled
     ):
-        raise ValidationError("Choose an active worksheet source Mount.")
+        raise ValidationError(
+            "Choose an active worksheet source Mount.", code="choose_worksheet_source"
+        )
     if provider == "notion":
         raw = providers.page(mount.connection, external_id)
         if raw.get("parent", {}).get("data_source_id", "").replace(
             "-", ""
         ) != mount.external_id.replace("-", ""):
-            raise ValidationError("This record does not belong to the selected data source.")
+            raise ValidationError(
+                "This record does not belong to the selected data source.",
+                code="source_record_mismatch",
+            )
         title = providers.notion_title(raw)
         lines = []
         for name, value in raw.get("properties", {}).items():
@@ -177,7 +183,7 @@ def import_record(user, mount, external_id, day, key):
                 lines.append(f"{name}: {text}")
     else:
         if not external_id.isdigit():
-            raise ValidationError("Choose a valid GitHub issue.")
+            raise ValidationError("Choose a valid GitHub issue.", code="invalid_github_issue")
         raw = providers.issue(mount, external_id)
         repository = raw.get("repository_url", "").rsplit("/repos/", 1)[-1]
         if (
@@ -185,7 +191,10 @@ def import_record(user, mount, external_id, day, key):
             or str(raw.get("number", "")) != external_id
             or repository.casefold() != mount.external_id.casefold()
         ):
-            raise ValidationError("This issue does not belong to the selected repository.")
+            raise ValidationError(
+                "This issue does not belong to the selected repository.",
+                code="source_issue_mismatch",
+            )
         title = f"#{external_id} {raw.get('title') or 'Untitled'}"[:500]
         lines = [f"GitHub issue #{external_id} · {raw.get('state', 'open')}"]
         if raw.get("body"):

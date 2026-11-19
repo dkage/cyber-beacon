@@ -20,6 +20,7 @@ class SettingsSerializer(serializers.ModelSerializer):
             "work_weekdays",
             "date_order",
             "date_separator",
+            "language",
         ]
         read_only_fields = ["id", "email"]
 
@@ -28,6 +29,7 @@ class SettingsSerializer(serializers.ModelSerializer):
         end = attrs.get("work_end", self.instance.work_end)
         if end <= start:
             raise serializers.ValidationError(
-                {"work_end": "Choose an end after the start on the same day."}
+                {"work_end": "Choose an end after the start on the same day."},
+                code="invalid_work_hours",
             )
         return attrs

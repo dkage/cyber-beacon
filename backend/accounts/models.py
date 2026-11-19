@@ -11,13 +11,16 @@ DATE_ORDER_CHOICES = [
     ("mdy", "Month, day, year"),
 ]
 DATE_SEPARATOR_CHOICES = [("-", "Hyphen (-)"), ("/", "Slash (/)")]
+LANGUAGE_CHOICES = [("en", "English"), ("pt-BR", "Português (Brasil)"), ("es", "Español")]
 
 
 def validate_timezone(value):
     try:
         ZoneInfo(value)
     except (ZoneInfoNotFoundError, ValueError) as exc:
-        raise ValidationError("Use an IANA timezone such as America/Sao_Paulo.") from exc
+        raise ValidationError(
+            "Use an IANA timezone such as America/Sao_Paulo.", code="invalid_timezone"
+        ) from exc
 
 
 class User(AbstractUser):
@@ -30,3 +33,4 @@ class User(AbstractUser):
     work_weekdays = models.JSONField(default=list)
     date_order = models.CharField(max_length=3, choices=DATE_ORDER_CHOICES, default="ymd")
     date_separator = models.CharField(max_length=1, choices=DATE_SEPARATOR_CHOICES, default="-")
+    language = models.CharField(max_length=5, choices=LANGUAGE_CHOICES, default="en")

@@ -1180,6 +1180,8 @@ components:
           $ref: '#/components/schemas/DateOrderEnum'
         date_separator:
           $ref: '#/components/schemas/DateSeparatorEnum'
+        language:
+          $ref: '#/components/schemas/LanguageEnum'
         fetched_at:
           type: string
           format: date-time
@@ -1227,6 +1229,16 @@ components:
       - estimated_minutes
       - id
       - title
+    LanguageEnum:
+      enum:
+      - en
+      - pt-BR
+      - es
+      type: string
+      description: |-
+        * `en` - English
+        * `pt-BR` - Português (Brasil)
+        * `es` - Español
     Mount:
       type: object
       properties:
@@ -1440,6 +1452,8 @@ components:
           $ref: '#/components/schemas/DateOrderEnum'
         date_separator:
           $ref: '#/components/schemas/DateSeparatorEnum'
+        language:
+          $ref: '#/components/schemas/LanguageEnum'
     PatchedTask:
       type: object
       properties:
@@ -1611,6 +1625,8 @@ components:
           $ref: '#/components/schemas/DateOrderEnum'
         date_separator:
           $ref: '#/components/schemas/DateSeparatorEnum'
+        language:
+          $ref: '#/components/schemas/LanguageEnum'
       required:
       - email
       - id
