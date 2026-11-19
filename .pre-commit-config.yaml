@@ -1,0 +1,28 @@
+minimum_pre_commit_version: "4.4.0"
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff lint
+        # Git runs hooks from the repository root, so keep Ruff's backend import roots explicit.
+        entry: >-
+          uv run --project backend --frozen ruff check
+          --config backend/pyproject.toml --config 'src=["backend", "backend/src"]' --force-exclude
+        language: unsupported
+        types: [python]
+      - id: ruff-format
+        name: Ruff format
+        entry: uv run --project backend --frozen ruff format --check --config backend/pyproject.toml --force-exclude
+        language: unsupported
+        types: [python]
+      - id: prettier-check
+        name: Prettier
+        entry: ./scripts/check-frontend-format
+        language: unsupported
+        files: ^frontend/
+        types: [text]
+      - id: actionlint
+        name: GitHub Actions workflow lint
+        entry: ./scripts/lint-workflows
+        language: unsupported
+        files: ^\.github/workflows/[^/]+\.ya?ml$

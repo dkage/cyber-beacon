@@ -78,6 +78,7 @@ jobs:
           uv run ruff format --check ../scripts
           uv run mypy
           uv run deptry .
+          uv run pre-commit validate-config ../.pre-commit-config.yaml
           uv run python manage.py check
           uv run python manage.py collectstatic --noinput
           uv run pytest

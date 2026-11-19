@@ -16,7 +16,12 @@ placeholder. Calendar projections, timeboxing and auto-scheduling are the next r
 
 ## Run locally
 
-Install Docker Compose, Python 3.13 with uv, and Bun 1.3.14.
+Install Docker Compose, Python 3.13 with uv, and Bun 1.3.14. The frontend checks
+use Node.js 24, and workflow and API compatibility checks use Go 1.26 or newer.
+
+Run `./scripts/setup-dev` from the repository root after cloning. It installs the
+locked backend and frontend development dependencies and registers the shared
+pre-commit hook. Rerun the same command to restore the hook.
 
 ```sh
 cp .env.example .env
@@ -34,7 +39,6 @@ the same processes locally:
 ```sh
 docker compose up -d postgres
 cd backend
-uv sync --frozen
 uv run --env-file ../.env python manage.py migrate
 uv run --env-file ../.env python manage.py createcachetable
 uv run --env-file ../.env python manage.py ensure_schedules
@@ -45,7 +49,6 @@ In separate terminals:
 
 ```sh
 cd frontend
-bun install --frozen-lockfile
 bun run dev
 ```
 
@@ -160,6 +163,11 @@ The HTTP API schema is at `/api/v1/`; its API explorer is `/api/v1/docs/`.
 From the repository root, run `./scripts/lint-workflows` with Go 1.26 or newer.
 It runs the pinned actionlint version against all GitHub Actions workflows.
 Actionlint also checks embedded scripts when ShellCheck or Pyflakes is installed.
+
+The shared hook checks staged Python files with Ruff, supported staged frontend
+files with Prettier, and staged GitHub Actions workflows with actionlint. The hook
+runs in check mode. The GitHub Checks workflow runs the whole-project checks,
+including type and dependency analysis, API compatibility and tests.
 
 With Go installed, run `./scripts/check-api-compatibility origin/master` from the root.
 Use your PR's target ref if it differs. The script compares the working copy of
