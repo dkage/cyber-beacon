@@ -134,6 +134,7 @@ bun run generate:api
 bunx prettier --write src/lib/schema.d.ts
 bun run check
 bun run lint
+bun run knip
 bunx playwright install chromium
 bun run test:unit --run
 bun run test:e2e
@@ -146,6 +147,10 @@ covers app TypeScript, Svelte components, the service worker and Vite configurat
 Tooling outside the app TSConfig (including Playwright and Storybook configuration)
 uses syntax-based linting. The generated API declaration skips ESLint and is covered
 by the schema and generated-type drift check in CI.
+
+Knip uses SvelteKit route and alias discovery, Storybook's story globs (including
+Svelte CSF), Vitest and Playwright configuration, and Bun package scripts. Its
+binary exception covers `uv`, which Playwright teardown invokes from the system PATH.
 
 Playwright creates its own temporary PostgreSQL database and removes it on shutdown;
 it never uses live Provider credentials. PostgreSQL must be running, and the local
