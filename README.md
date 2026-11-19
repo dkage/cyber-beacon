@@ -161,6 +161,19 @@ From the repository root, run `./scripts/lint-workflows` with Go 1.26 or newer.
 It runs the pinned actionlint version against all GitHub Actions workflows.
 Actionlint also checks embedded scripts when ShellCheck or Pyflakes is installed.
 
+With Go installed, run `./scripts/check-api-compatibility origin/master` from the root.
+Use your PR's target ref if it differs. The script compares the working copy of
+`backend/openapi.yaml` with the schema at the Git merge base. CI runs the same
+comparison against the PR head and fails on oasdiff warnings or errors. A merge base
+before the schema was introduced has no prior API to compare.
+
+For an intentional breaking change, prefer publishing a new API version alongside
+the existing one and record the client migration and deprecation plan in the PR.
+For an agreed exception, record the affected operation, oasdiff finding, client
+impact and justification in the PR and document the exception alongside the schema.
+Configure the root `.oasdiff.yaml` with `err-ignore` or `warn-ignore` pointing to a
+versioned ignore file containing the exact finding, then rerun the same command.
+
 ## Deploy on the homelab
 
 Set `DEBUG=false`, a random `DJANGO_SECRET_KEY`, `ALLOWED_HOSTS` and

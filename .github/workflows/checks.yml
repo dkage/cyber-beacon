@@ -6,6 +6,23 @@ on:
 permissions:
   contents: read
 jobs:
+  api-compatibility:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.x"
+          cache: false
+      - name: Compare OpenAPI contract with the merge base
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: ./scripts/check-api-compatibility "$PR_BASE_SHA"
   workflow-lint:
     runs-on: ubuntu-latest
     steps:
