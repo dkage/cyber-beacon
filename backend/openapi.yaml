@@ -221,6 +221,14 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+          description: The Mount is ineligible or its Connection changed.
         '429':
           headers:
             Retry-After:

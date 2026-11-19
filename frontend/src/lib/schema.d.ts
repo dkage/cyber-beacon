@@ -1009,6 +1009,15 @@ export interface operations {
 					};
 				};
 			};
+			/** @description The Mount is ineligible or its Connection changed. */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': string[];
+				};
+			};
 			429: {
 				headers: {
 					/** @description Seconds until the calendar can be refreshed. */

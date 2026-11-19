@@ -2,7 +2,7 @@ from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import Throttled, ValidationError
@@ -15,7 +15,7 @@ from planner.serializers import TaskSerializer
 from planner.services import lock_user
 
 from . import providers, services
-from .models import Mount, TaskSource
+from .models import IntegrationConnection, Mount, TaskSource
 from .serializers import (
     BrowsePageSerializer,
     BrowseQuerySerializer,
@@ -189,7 +189,14 @@ class MountViewSet(viewsets.GenericViewSet):
 
     @extend_schema(
         request=None,
-        responses={202: OpenApiTypes.OBJECT, 429: OpenApiTypes.OBJECT},
+        responses={
+            202: OpenApiTypes.OBJECT,
+            400: OpenApiResponse(
+                response={"type": "array", "items": {"type": "string"}},
+                description="The Mount is ineligible or its Connection changed.",
+            ),
+            429: OpenApiTypes.OBJECT,
+        },
         parameters=[
             OpenApiParameter(
                 "Retry-After",
@@ -201,18 +208,27 @@ class MountViewSet(viewsets.GenericViewSet):
         ],
     )
     @action(detail=True, methods=["post"])
+    @transaction.atomic
     def refresh(self, request, pk=None):
         mount = self.get_object()
-        if (
-            not providers.supports(mount.connection.provider, "calendar")
-            or mount.connection.status != "active"
-        ):
+        # Disconnect takes the same locks in this order.
+        connection = (
+            IntegrationConnection.objects.select_for_update()
+            .only("provider", "status", "auth_version")
+            .get(pk=mount.connection_id)
+        )
+        if not providers.supports(connection.provider, "calendar") or connection.status != "active":
             raise ValidationError("Choose an active Calendar Mount.")
+        if connection.auth_version != mount.connection.auth_version:
+            raise ValidationError("The Connection changed. Refresh and try again.")
+        mount.refresh_from_db(
+            fields=["rate_limited_until"], from_queryset=Mount.objects.select_for_update()
+        )
         if mount.rate_limited_until:
             wait = (mount.rate_limited_until - timezone.now()).total_seconds()
             if wait > 0:
                 raise Throttled(wait=wait, detail="The Provider is rate limiting this calendar.")
         mount.enabled = True
         mount.save(update_fields=["enabled"])
-        enqueue("integrations.services.sync_calendar", str(mount.pk))
+        transaction.on_commit(lambda: enqueue("integrations.services.sync_calendar", str(mount.pk)))
         return Response({"status": "queued"}, status=202)

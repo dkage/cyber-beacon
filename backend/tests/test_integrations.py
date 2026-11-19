@@ -1,11 +1,13 @@
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, time, timedelta
+from threading import Event
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 import pytest
 from cryptography.fernet import Fernet
-from django.db import connection
+from django.db import close_old_connections, connection, connections
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -19,6 +21,7 @@ from integrations.models import (
     OAuthState,
     TaskSource,
 )
+from integrations.views import MountViewSet
 from kiosk.models import KioskDevice
 from planner.day import capacity, time_totals
 from planner.models import Task, TimeEntry
@@ -376,7 +379,9 @@ def test_calendar_checkpoint_expiring_during_fetch_cannot_replace_snapshot(notio
     assert not CalendarSyncProgress.objects.filter(mount=notion).exists()
 
 
-def test_calendar_throttle_deadline_and_transient_failure_keep_events(client, notion, monkeypatch):
+def test_calendar_throttle_deadline_and_transient_failure_keep_events(
+    client, notion, monkeypatch, django_capture_on_commit_callbacks
+):
     conn = notion.connection
     conn.provider = "google"
     conn.save(update_fields=["provider"])
@@ -418,7 +423,8 @@ def test_calendar_throttle_deadline_and_transient_failure_keep_events(client, no
         assert len(calls) == attempt + 1
         now = notion.next_attempt_at
 
-    response = client.post(url)
+    with django_capture_on_commit_callbacks(execute=True):
+        response = client.post(url)
     assert response.status_code == 202
     assert len(queued) == 1
     services.sync_calendar(notion.pk)
@@ -428,6 +434,69 @@ def test_calendar_throttle_deadline_and_transient_failure_keep_events(client, no
     assert list(services.events_for_day(conn.user, day).values_list("external_id", flat=True)) == [
         "kept"
     ]
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("reconnect", [False, True], ids=["disconnected", "reconnected"])
+def test_manual_calendar_refresh_cannot_reenable_a_disconnected_mount(
+    client, notion, monkeypatch, reconnect
+):
+    conn = notion.connection
+    conn.provider = "google"
+    conn.save(update_fields=["provider"])
+    if reconnect:
+        OAuthState.objects.create(
+            digest=services.digest("state"),
+            user=conn.user,
+            provider="google",
+            session_digest=services.digest("session"),
+            expires_at=timezone.now() + timedelta(minutes=10),
+        )
+        monkeypatch.setattr(
+            providers,
+            "exchange",
+            lambda *_: ({"access_token": "new-token"}, conn.account_identity, conn.label, []),
+        )
+    mount_read, disconnected = Event(), Event()
+    get_object = MountViewSet.get_object
+    queued = []
+    monkeypatch.setattr("integrations.views.enqueue", lambda *args: queued.append(args))
+
+    def get_mount(view):
+        mount = get_object(view)
+        mount_read.set()
+        assert disconnected.wait(timeout=5)
+        return mount
+
+    monkeypatch.setattr(MountViewSet, "get_object", get_mount)
+
+    def refresh():
+        close_old_connections()
+        try:
+            refresh_client = APIClient()
+            refresh_client.force_authenticate(conn.user)
+            return refresh_client.post(f"/api/v1/integrations/mounts/{notion.pk}/refresh/")
+        finally:
+            connections.close_all()
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pending = pool.submit(refresh)
+        try:
+            assert mount_read.wait(timeout=5)
+            response = client.post(f"/api/v1/integrations/connections/{conn.pk}/disconnect/")
+            assert response.status_code == 204
+            if reconnect:
+                services.finish_oauth(conn.user, "session", "google", "state", "code")
+        finally:
+            disconnected.set()
+        refreshed = pending.result(timeout=5)
+
+    notion.refresh_from_db()
+    conn.refresh_from_db()
+    assert conn.status == ("active" if reconnect else "disconnected")
+    assert not notion.enabled
+    assert refreshed.status_code == 400
+    assert not queued
 
 
 @pytest.mark.parametrize(
