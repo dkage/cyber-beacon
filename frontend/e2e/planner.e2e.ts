@@ -83,6 +83,7 @@ test('a real authenticated day: create, edit, order, time, complete, trash and r
 	await page.getByRole('button', { name: 'Trash Prepare launch', exact: true }).click();
 	await page.getByRole('link', { name: 'Settings', exact: false }).click();
 	await page.getByRole('button', { name: 'Restore Task', exact: true }).click();
+	await expect(page.getByText('Task restored.', { exact: true })).toBeVisible();
 	await page.getByRole('link', { name: 'Today', exact: false }).first().click();
 	await expect(page.getByRole('button', { name: 'Prepare launch', exact: true })).toBeVisible();
 	const rejected = await page.request.post('/api/v1/tasks/', { data: { title: 'No CSRF' } });
