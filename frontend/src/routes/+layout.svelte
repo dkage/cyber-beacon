@@ -6,7 +6,9 @@
 	import { goto } from '$app/navigation';
 	import { clearSession, message, write } from '$lib/api';
 
-	let { children } = $props();
+	import type { LayoutProps } from './$types';
+
+	let { children }: LayoutProps = $props();
 	let logoutError = $state('');
 	let pending = $state(false);
 	let isLoginPage = $derived(page.url.pathname.replace(/\/+$/, '') === '/login');

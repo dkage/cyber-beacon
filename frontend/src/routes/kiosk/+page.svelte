@@ -49,7 +49,8 @@
 					? 'Pairing expired. A new code will be generated.'
 					: 'The server is unavailable.'
 			);
-		return response.json();
+		const result: unknown = await response.json();
+		return result as T;
 	}
 	async function refresh() {
 		if (stopped) return;
@@ -91,7 +92,9 @@
 		}
 		if (!stopped)
 			timeout = setTimeout(
-				refresh,
+				() => {
+					void refresh();
+				},
 				Math.min(120000, (token ? 15000 : 5000) * 2 ** Math.min(failures, 3))
 			);
 	}
@@ -102,7 +105,7 @@
 			scale = Number(localStorage.getItem('beacon-scale') ?? 1) || 1;
 			const cached = localStorage.getItem('beacon-summary');
 			if (token && cached) {
-				summary = JSON.parse(cached);
+				summary = JSON.parse(cached) as Summary;
 				stale = true;
 			}
 		} catch {

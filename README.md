@@ -141,6 +141,12 @@ bun run build
 bun run build-storybook
 ```
 
+`bun run lint` syncs SvelteKit before running Prettier and ESLint. Type-aware linting
+covers app TypeScript, Svelte components, the service worker and Vite configuration.
+Tooling outside the app TSConfig (including Playwright and Storybook configuration)
+uses syntax-based linting. The generated API declaration skips ESLint and is covered
+by the schema and generated-type drift check in CI.
+
 Playwright creates its own temporary PostgreSQL database and removes it on shutdown;
 it never uses live Provider credentials. PostgreSQL must be running, and the local
 role must be allowed to create test databases. CI runs these checks on pull requests.

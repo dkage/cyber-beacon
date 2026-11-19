@@ -1,3 +1,4 @@
+/// <reference types="@sveltejs/kit" />
 /// <reference lib="webworker" />
 import { build, files, version } from '$service-worker';
 
