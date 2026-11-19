@@ -109,11 +109,18 @@ Backend commands run from `backend/` with `uv run --env-file ../.env`:
 ```sh
 uv run --env-file ../.env ruff check .
 uv run --env-file ../.env ruff format --check .
+uv run --env-file ../.env mypy
 uv run --env-file ../.env pytest
 uv run --env-file ../.env python manage.py check
 uv run --env-file ../.env python manage.py makemigrations --check --dry-run
 uv run --env-file ../.env python manage.py spectacular --validate --fail-on-warn --file openapi.yaml
 ```
+
+Mypy loads `config.settings` and checks the planner models, serializers, services and
+viewsets, including unannotated function bodies. Imported modules still provide type
+information. Diagnostics in other backend apps, settings, migrations and tests are
+deferred while this baseline is established. The serializer suppressions cover DRF's
+declarative fields and `many=True` constructor behavior, which the stubs cannot express.
 
 Frontend commands run from `frontend/`:
 

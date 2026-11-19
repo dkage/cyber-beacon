@@ -196,6 +196,7 @@ def carry_forward(user: User, now: datetime | None = None) -> int:
     count = 0
     for task in tasks:
         previous = task.do_date
+        assert previous is not None  # The do_date__lt filter excludes NULL.
         while previous < today:
             following = previous + timedelta(days=1)
             activity(

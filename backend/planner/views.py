@@ -1,8 +1,14 @@
+from typing import cast
+
+from django.db.models import QuerySet
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.request import Request
 from rest_framework.response import Response
+
+from accounts.models import User
 
 from . import services
 from .models import Task, TimeEntry
@@ -17,7 +23,7 @@ from .serializers import (
 )
 
 
-def precondition(request):
+def precondition(request: Request) -> int | None:
     value = request.headers.get("If-Match")
     if value is None:
         return None
@@ -31,20 +37,23 @@ def precondition(request):
         raise ValidationError({"If-Match": 'Expected "<integer version>".'}) from exc
 
 
-class TaskViewSet(viewsets.GenericViewSet):
+class TaskViewSet(viewsets.GenericViewSet[Task]):
     lookup_value_regex = "[0-9a-f-]{36}"
     serializer_class = TaskSerializer
     queryset = Task.objects.none()
 
-    def get_queryset(self):
-        return Task.objects.filter(user=self.request.user, deleted_at=None)
+    def get_queryset(self) -> QuerySet[Task]:
+        # The API requires an authenticated user via the default DRF permission.
+        return Task.objects.filter(user=cast(User, self.request.user), deleted_at=None)
 
     @extend_schema(parameters=[TaskListQuerySerializer])
-    def list(self, request):
+    def list(self, request: Request) -> Response:
         query = TaskListQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         params = query.validated_data
-        tasks = Task.objects.filter(user=request.user, deleted_at__isnull=not params["trash"])
+        tasks = Task.objects.filter(
+            user=cast(User, request.user), deleted_at__isnull=not params["trash"]
+        )
         if params["backlog"]:
             tasks = tasks.filter(do_date=None)
         elif "date" in params:
@@ -52,7 +61,7 @@ class TaskViewSet(viewsets.GenericViewSet):
         page = self.paginate_queryset(tasks)
         return self.get_paginated_response(self.get_serializer(page, many=True).data)
 
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request: Request, pk: str | None = None) -> Response:
         task = self.get_object()
         return Response(self.get_serializer(task).data, headers={"ETag": f'"{task.version}"'})
 
@@ -124,7 +133,7 @@ class TaskViewSet(viewsets.GenericViewSet):
         return Response(self.get_serializer(tasks, many=True).data)
 
 
-class TimerViewSet(viewsets.GenericViewSet):
+class TimerViewSet(viewsets.GenericViewSet[TimeEntry]):
     lookup_value_regex = "[0-9a-f-]{36}"
     serializer_class = TimeEntrySerializer
     queryset = TimeEntry.objects.none()
