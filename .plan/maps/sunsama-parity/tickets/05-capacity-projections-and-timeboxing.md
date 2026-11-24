@@ -87,3 +87,21 @@ over-capacity threshold uses real estimates only; projected finish uses real + d
 arithmetic and workload thresholds but still occupies calendar time and constrains
 scheduling. Tagging source = channel/calendar "personal" flag (decisions 6/7). Actual /
 completed time is always real and unaffected.
+
+## Resolved so far (2026-11-18) — Decision 3: projections vs committed blocks
+
+- **3.1 Projection is a derived read-model, not a stored entity.** Computed from
+committed inputs (order, remaining estimates, work hours, blocking meetings) with a
+deterministic algorithm, exposed via a read endpoint, labeled preview. No projection
+row is persisted as a TimeBlock; a cached snapshot for kiosk freshness is never a
+committed block.
+- **3.2 Deterministic recipe:** walk ordered remaining work (real estimate minus
+tracked actual), fit into work window minus blocking meetings, never past shutdown.
+Parallel tasks share projected intervals; Focused breaks the sequence; running timer
+first; fixed clock times anchor (per Decision 1).
+- **3.3 Explicit commit only.** Viewing/ordering/projecting writes nothing. Only pin /
+commit / drag creates a working session (TimeBlock) on its calendar target. Per audit
+(F053/F054): projection never creates an external event and never commits by itself.
+- **3.4 Freshness:** recompute on authoritative server state, debounced per user
+interaction; commit re-reads the current projection atomically before locking (never
+pin a stale preview); kiosk shows last-good projection with computed-at freshness.
