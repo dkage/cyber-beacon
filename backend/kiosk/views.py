@@ -76,7 +76,9 @@ class PairApprove(APIView):
             .first()
         )
         if not pairing:
-            raise ValidationError({"code": "Code expired or was already approved."})
+            raise ValidationError(
+                {"code": "Code expired or was already approved."}, code="pair_code_invalid"
+            )
         device = KioskDevice.objects.create(
             user=request.user, label=data["label"], expires_at=timezone.now() + timedelta(days=90)
         )
@@ -174,6 +176,7 @@ class KioskSummary(APIView):
                 "timezone": request.user.timezone,
                 "date_order": request.user.date_order,
                 "date_separator": request.user.date_separator,
+                "language": request.user.language,
                 "fetched_at": full["fetched_at"],
                 "tasks": [
                     {key: task[key] for key in ["id", "title", "completed_at", "estimated_minutes"]}

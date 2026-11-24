@@ -2,7 +2,17 @@
 	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { api, ApiError, message, write } from '$lib/api';
+	import {
+		api,
+		ApiError,
+		applySavedLanguage,
+		fieldErrorProps,
+		message,
+		providerStatusMessage,
+		readSettings,
+		write
+	} from '$lib/api';
+	import { language, languages, t } from '$lib/i18n';
 	import { formatDate, formatDateInTimezone, formatDateTime } from '$lib/format';
 	import type { components } from '$lib/schema';
 	import type { Settings, Task } from '$lib/types';
@@ -18,22 +28,43 @@
 	let devices = $state<Schema['Device'][]>([]);
 	let jobs = $state<Job[]>([]);
 	let trash = $state<Task[]>([]);
-	let error = $state('');
+	let error = $state<unknown>(null);
 	let notice = $state('');
 	let pending = $state(false);
 	let code = $state('');
-	let label = $state('Office display');
-	const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+	let label = $state<string | null>(null);
+	const weekdays = $derived.by(() => {
+		const format = new Intl.DateTimeFormat($language, { weekday: 'long', timeZone: 'UTC' });
+		return Array.from({ length: 7 }, (_, index) => format.format(Date.UTC(2024, 0, index + 1)));
+	});
+	const jobKinds: Partial<Record<string, 'jobCarry' | 'jobCalendar'>> = {
+		carry_forward: 'jobCarry',
+		calendar_sync: 'jobCalendar'
+	};
+	const jobOutcomes: Partial<
+		Record<string, 'jobRunning' | 'jobSuccess' | 'jobFailed' | 'jobSkipped' | 'jobCancelled'>
+	> = {
+		started: 'jobRunning',
+		success: 'jobSuccess',
+		failed: 'jobFailed',
+		skipped: 'jobSkipped',
+		lost: 'jobFailed',
+		cancelled: 'jobCancelled',
+		retryable: 'jobFailed',
+		fatal: 'jobFailed',
+		auth_dead: 'jobFailed',
+		rate_limited: 'jobFailed'
+	};
 	async function load() {
 		try {
-			settings = await api<Settings>('/api/v1/settings/');
+			settings = await readSettings();
 			if (!settings.work_weekdays.length) settings.work_weekdays = [0, 1, 2, 3, 4];
 			devices = await api<Schema['Device'][]>('/api/v1/kiosk/devices/');
 			jobs = (await api<{ results: Job[] }>('/api/v1/jobs/?limit=20')).results;
 			trash = (await api<{ results: Task[] }>('/api/v1/tasks/?trash=true&limit=100')).results;
 		} catch (cause) {
 			if (cause instanceof ApiError && cause.status === 403) await goto(resolve('/login'));
-			else error = message(cause);
+			else error = cause;
 		}
 	}
 	onMount(() => {
@@ -42,91 +73,124 @@
 	async function action(work: () => Promise<void>) {
 		if (pending) return;
 		pending = true;
-		error = '';
+		error = null;
 		notice = '';
 		try {
 			await work();
 		} catch (cause) {
-			error = message(cause);
+			error = cause;
 		} finally {
 			pending = false;
 		}
 	}
 </script>
 
-<svelte:head><title>Settings · Cyber Beacon</title></svelte:head>
+<svelte:head><title>{$t('pageTitle', { page: $t('settings') })}</title></svelte:head>
 <header class="page-heading">
 	<div>
-		<span class="eyebrow">YOUR OPERATING RHYTHM</span>
-		<h1>A day that fits you.</h1>
-		<p class="muted">Work hours, connected displays, and background health.</p>
+		<span class="eyebrow">{$t('settingsEyebrow')}</span>
+		<h1>{$t('settingsHeading')}</h1>
+		<p class="muted">{$t('settingsIntro')}</p>
 	</div>
 </header>
-{#if error}<p role="alert" class="error">{error}</p>{/if}{#if notice}<p
-		role="status"
-		class="success"
-	>
+{#if error}<p id="settings-error" role="alert" class="error">
+		{message(error, $t)}
+	</p>{/if}{#if notice}<p role="status" class="success">
 		{notice}
 	</p>{/if}
 <div class="connection-grid">
 	{#if settings}<section class="panel">
-			<h2>Preferences</h2>
+			<h2>{$t('preferences')}</h2>
 			<p class="muted">{settings.email}</p>
 			<form
 				onsubmit={(event) => {
 					event.preventDefault();
 					void action(async () => {
 						settings = await write<Settings>('/api/v1/settings/', settings, 'PATCH');
-						notice = 'Preferences saved.';
+						applySavedLanguage(settings.language);
+						notice = $t('preferencesSaved');
 					});
 				}}
 			>
 				<label
-					>Timezone<input
+					>{$t('timezone')}<input
 						bind:value={settings.timezone}
+						{...fieldErrorProps(error, 'timezone', 'settings-error')}
 						required
 						placeholder="America/Sao_Paulo"
 					/></label
 				>
 				<div class="form-grid">
-					<label>Work starts<input type="time" bind:value={settings.work_start} required /></label
-					><label>Work ends<input type="time" bind:value={settings.work_end} required /></label>
+					<label
+						>{$t('workStarts')}<input
+							type="time"
+							bind:value={settings.work_start}
+							{...fieldErrorProps(error, 'work_start', 'settings-error')}
+							required
+						/></label
+					><label
+						>{$t('workEnds')}<input
+							type="time"
+							bind:value={settings.work_end}
+							{...fieldErrorProps(error, 'work_end', 'settings-error')}
+							required
+						/></label
+					>
 				</div>
+				<label>
+					{$t('language')}
+					<select
+						bind:value={settings.language}
+						{...fieldErrorProps(error, 'language', 'settings-error')}
+					>
+						{#each Object.entries(languages) as [value, name] (value)}
+							<option {value} lang={value}>{name}</option>
+						{/each}
+					</select>
+				</label>
 				<fieldset>
-					<legend>Working days</legend>{#each weekdays as name, index (name)}<label
+					<legend>{$t('workingDays')}</legend>{#each weekdays as name, index (name)}<label
 							class="check-label"
 							><input
 								type="checkbox"
 								value={index}
 								bind:group={settings.work_weekdays}
+								{...fieldErrorProps(error, 'work_weekdays', 'settings-error')}
 							/>{name}</label
 						>{/each}
 				</fieldset>
 				<div class="form-grid">
 					<label
-						>Date order<select bind:value={settings.date_order}>
-							<option value="ymd">Year, month, day</option>
-							<option value="dmy">Day, month, year</option>
-							<option value="mdy">Month, day, year</option>
+						>{$t('dateOrder')}<select
+							bind:value={settings.date_order}
+							{...fieldErrorProps(error, 'date_order', 'settings-error')}
+						>
+							<option value="ymd">{$t('yearMonthDay')}</option>
+							<option value="dmy">{$t('dayMonthYear')}</option>
+							<option value="mdy">{$t('monthDayYear')}</option>
 						</select></label
 					><label
-						>Date separator<select bind:value={settings.date_separator}>
-							<option value="-">Hyphen (-)</option>
-							<option value="/">Slash (/)</option>
+						>{$t('dateSeparator')}<select
+							bind:value={settings.date_separator}
+							{...fieldErrorProps(error, 'date_separator', 'settings-error')}
+						>
+							<option value="-">{$t('hyphen')}</option>
+							<option value="/">{$t('slash')}</option>
 						</select></label
 					>
 				</div>
 				<p class="muted">
-					Preview: {formatDate('2026-11-18', settings.date_order, settings.date_separator)}
+					{$t('datePreview', {
+						date: formatDate('2026-11-18', settings.date_order, settings.date_separator)
+					})}
 				</p>
-				<button class="primary" disabled={pending}>Save preferences</button>
+				<button class="primary" disabled={pending}>{$t('savePreferences')}</button>
 			</form>
 		</section>{/if}
 	<section class="panel">
-		<h2>Pair a display</h2>
+		<h2>{$t('pairDisplay')}</h2>
 		<p class="muted">
-			Open <a href={resolve('/kiosk')}>Kiosk</a> on the TV, then enter its code here. Devices receive
-			read-only access for 90 days.
+			{$t('pairInstructions')} <a href={resolve('/kiosk')}>{$t('kiosk')}</a>
 		</p>
 		<form
 			onsubmit={(event) => {
@@ -134,40 +198,48 @@
 				void action(async () => {
 					await write('/api/v1/kiosk/pair/approve/', {
 						code: code.toUpperCase(),
-						label
+						label: label ?? $t('officeDisplay')
 					} satisfies Schema['Approve']);
 					code = '';
 					await load();
-					notice = 'Display approved.';
+					notice = $t('displayApproved');
 				});
 			}}
 		>
 			<label
-				>Pairing code<input
+				>{$t('pairCode')}<input
 					bind:value={code}
+					{...fieldErrorProps(error, 'code', 'settings-error')}
 					minlength="8"
 					maxlength="8"
 					required
 					autocomplete="off"
 				/></label
-			><label>Display name<input bind:value={label} maxlength="100" required /></label><button
-				disabled={pending}>Approve display</button
-			>
+			><label
+				>{$t('displayName')}<input
+					value={label ?? $t('officeDisplay')}
+					{...fieldErrorProps(error, 'label', 'settings-error')}
+					oninput={(event) => (label = event.currentTarget.value)}
+					maxlength="100"
+					required
+				/></label
+			><button disabled={pending}>{$t('approveDisplay')}</button>
 		</form>
 		{#each devices as device (device.id)}<article class="mount">
 				<strong>{device.label}</strong>
 				<p class="muted small">
 					{device.revoked_at
-						? 'Revoked'
+						? $t('revoked')
 						: settings
-							? 'Expires ' +
-								formatDateInTimezone(
-									device.expires_at,
-									settings.timezone,
-									settings.date_order,
-									settings.date_separator
-								)
-							: 'Expires soon'}
+							? $t('expires', {
+									date: formatDateInTimezone(
+										device.expires_at,
+										settings.timezone,
+										settings.date_order,
+										settings.date_separator
+									)
+								})
+							: $t('expiresSoon')}
 				</p>
 				<button
 					disabled={pending || !!device.revoked_at}
@@ -175,15 +247,15 @@
 						action(async () => {
 							await write(`/api/v1/kiosk/devices/${device.id}/revoke/`);
 							await load();
-						})}>Revoke display</button
+						})}>{$t('revokeDisplay')}</button
 				>
 			</article>{/each}
 	</section>
 </div>
 <section class="panel">
-	<h2>Trash</h2>
-	<p class="muted">Restoring preserves the original dates and history.</p>
-	{#if !trash.length}<p>No Tasks in trash.</p>{/if}
+	<h2>{$t('trash')}</h2>
+	<p class="muted">{$t('trashHint')}</p>
+	{#if !trash.length}<p>{$t('trashEmpty')}</p>{/if}
 	<ul class="resource-list">
 		{#each trash as task (task.id)}<li>
 				<span>{task.title}</span><button
@@ -192,15 +264,15 @@
 						action(async () => {
 							await write(`/api/v1/tasks/${task.id}/restore/`, undefined, 'POST', task.version);
 							await load();
-							notice = 'Task restored.';
-						})}>Restore Task</button
+							notice = $t('taskRestored');
+						})}>{$t('restoreTask')}</button
 				>
 			</li>{/each}
 	</ul>
 </section>
 <section class="panel">
-	<h2>Background health</h2>
-	{#if !jobs.length}<p class="muted">No Job runs recorded yet.</p>{/if}
+	<h2>{$t('backgroundHealth')}</h2>
+	{#if !jobs.length}<p class="muted">{$t('noJobs')}</p>{/if}
 	<ul class="job-list">
 		{#each jobs as job (job.id)}<li class:error={job.outcome !== 'success'}>
 				<time
@@ -209,10 +281,23 @@
 								job.started_at,
 								settings.timezone,
 								settings.date_order,
-								settings.date_separator
+								settings.date_separator,
+								$language
 							)
 						: job.started_at}</time
-				><strong>{job.kind} · {job.outcome}</strong>{#if job.message}<span>{job.message}</span>{/if}
+				><strong
+					>{$t(jobKinds[job.kind] ?? 'jobOther')} · {$t(
+						jobOutcomes[job.outcome] ?? 'jobUnknown'
+					)}</strong
+				>{#if job.message}<span
+						>{job.outcome === 'lost'
+							? $t('jobWorkerStopped')
+							: job.kind === 'carry_forward'
+								? $t('carryFailed')
+								: job.kind === 'calendar_sync' && job.outcome !== 'cancelled'
+									? providerStatusMessage(job.message, $t)
+									: $t('jobDetails')}</span
+					>{/if}
 			</li>{/each}
 	</ul>
 </section>

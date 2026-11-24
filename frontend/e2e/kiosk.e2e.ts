@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import type { components } from '../src/lib/schema';
 
 test('pair a read-only display, survive outage with stale data, and clear on revocation', async ({
 	browser,
@@ -42,4 +43,87 @@ test('pair a read-only display, survive outage with stale data, and clear on rev
 	await expect(device.getByRole('heading', { name: 'Design review' })).toHaveCount(0);
 	expect(await device.evaluate(() => localStorage.getItem('beacon-summary'))).toBeNull();
 	await deviceContext.close();
+});
+
+test('discard an invalid cached summary and keep the last good summary after a bad refresh', async ({
+	page
+}) => {
+	const validSummary = {
+		date: '2026-11-19',
+		timezone: 'UTC',
+		date_order: 'ymd',
+		date_separator: '-',
+		fetched_at: '2026-11-19T12:00:00Z',
+		tasks: [],
+		events: [],
+		calendars: [],
+		briefing: 'Last good briefing'
+	} satisfies components['schemas']['KioskSummary'];
+	let payload: unknown = {};
+	await page.route('**/api/v1/kiosk/summary/', (route) => route.fulfill({ json: payload }));
+	await page.addInitScript(() => {
+		if (localStorage.getItem('beacon-device')) return;
+		localStorage.setItem('beacon-device', 'browser-fixture');
+		localStorage.setItem('beacon-summary', '{}');
+	});
+
+	await page.goto('/kiosk');
+	await expect(page.getByRole('alert')).toHaveText('The server returned an invalid day summary.');
+	expect(await page.evaluate(() => localStorage.getItem('beacon-summary'))).toBeNull();
+
+	payload = validSummary;
+	await page.reload();
+	await expect(page.getByText('Last good briefing')).toBeVisible();
+	await expect(page.getByText(/· Connected$/)).toBeVisible();
+
+	const duplicate = {
+		id: '00000000-0000-0000-0000-000000000001',
+		title: 'Duplicate task',
+		completed_at: null,
+		estimated_minutes: null
+	};
+	payload = { ...validSummary, tasks: [duplicate, duplicate] };
+	await page.reload();
+	await expect(page.getByRole('status')).toContainText(
+		'The server returned an invalid day summary.'
+	);
+	await expect(page.getByText('Last good briefing')).toBeVisible();
+	expect(await page.evaluate(() => localStorage.getItem('beacon-summary'))).toBe(
+		JSON.stringify(validSummary)
+	);
+});
+
+test('leaving the kiosk cancels its pending refresh', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('beacon-device', 'browser-fixture'));
+	let started!: () => void;
+	const requestStarted = new Promise<void>((resolve) => (started = resolve));
+	let release!: () => void;
+	const held = new Promise<void>((resolve) => (release = resolve));
+	await page.route('**/api/v1/kiosk/summary/', async (route) => {
+		started();
+		await held;
+		await route.fulfill({ status: 401 });
+	});
+
+	await page.goto('/kiosk');
+	await requestStarted;
+	const cancelled = page.waitForEvent('requestfailed', {
+		predicate: (request) => new URL(request.url()).pathname === '/api/v1/kiosk/summary/',
+		timeout: 5000
+	});
+	try {
+		await page.evaluate(() => {
+			const link = document.createElement('a');
+			link.href = '/login';
+			document.body.append(link);
+			link.click();
+		});
+		await expect(page).toHaveURL(/login$/);
+		await cancelled;
+		expect(await page.evaluate(() => localStorage.getItem('beacon-device'))).toBe(
+			'browser-fixture'
+		);
+	} finally {
+		release();
+	}
 });

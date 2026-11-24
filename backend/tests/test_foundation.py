@@ -15,6 +15,26 @@ def test_csrf_bootstrap():
     assert "csrftoken" in response.cookies
 
 
+def test_user_language_defaults_to_english_and_persists_supported_values(client, user):
+    path = "/api/v1/settings/"
+    assert client.get(path).json()["language"] == "en"
+    for language in ("pt-BR", "es", "en"):
+        response = client.patch(path, {"language": language}, format="json")
+        assert response.status_code == 200
+        assert response.json()["language"] == language
+        user.refresh_from_db()
+        assert user.language == language
+    invalid = client.patch(path, {"language": "pt"}, format="json")
+    assert invalid.status_code == 400
+    assert invalid["X-Beacon-Error-Code"] == "invalid_choice"
+    assert "language" in invalid.json()
+    invalid_hours = client.patch(path, {"work_start": "18:00", "work_end": "17:00"}, format="json")
+    assert invalid_hours["X-Beacon-Error-Code"] == "invalid_work_hours"
+    invalid_timezone = client.patch(path, {"timezone": "Invalid/Zone"}, format="json")
+    assert invalid_timezone["X-Beacon-Error-Code"] == "invalid_timezone"
+    assert client.get(path).json()["language"] == "en"
+
+
 def test_user_date_format_preferences_are_saved_and_validated(client, user):
     initial = client.get("/api/v1/settings/")
     assert initial.status_code == 200

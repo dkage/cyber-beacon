@@ -5,7 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import Throttled, ValidationError
+from rest_framework.exceptions import NotAuthenticated, Throttled, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -48,19 +48,32 @@ class OAuthStart(APIView):
 class OAuthCallback(APIView):
     permission_classes = [IsAuthenticated]
 
+    def handle_exception(self, exc):
+        if isinstance(exc, NotAuthenticated):
+            return HttpResponseRedirect("/login?error=connection_session")
+        return super().handle_exception(exc)
+
     @extend_schema(exclude=True)
     def get(self, request, provider):
         if provider not in {"notion", "google", "microsoft", "github"}:
-            raise ValidationError("Unknown Provider.")
+            return HttpResponseRedirect("/connections?error=unknown_provider")
         if request.query_params.get("error"):
             return HttpResponseRedirect("/connections?error=consent-denied")
-        services.finish_oauth(
-            request.user,
-            request.session.session_key,
-            provider,
-            request.query_params.get("state", "")[:500],
-            request.query_params.get("code", "")[:4000],
-        )
+        try:
+            services.finish_oauth(
+                request.user,
+                request.session.session_key,
+                provider,
+                request.query_params.get("state", "")[:500],
+                request.query_params.get("code", "")[:4000],
+            )
+        except ValidationError:
+            return HttpResponseRedirect("/connections?error=connection_expired")
+        except providers.ProviderError as exc:
+            code = exc.get_codes()
+            if code not in ("reconnect_provider", "throttled"):
+                code = "provider_error"
+            return HttpResponseRedirect(f"/connections?error={code}")
         return HttpResponseRedirect("/connections?connected=1")
 
 
@@ -99,12 +112,12 @@ class ConnectionViewSet(viewsets.GenericViewSet):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         if connection.status != "active":
-            raise ValidationError("Reconnect this Provider first.")
+            raise ValidationError("Reconnect this Provider first.", code="reconnect_provider")
         with transaction.atomic():
             lock_user(request.user)
             connection.refresh_from_db(fields=["status"])
             if connection.status != "active":
-                raise ValidationError("Reconnect this Provider first.")
+                raise ValidationError("Reconnect this Provider first.", code="reconnect_provider")
             mount, _ = Mount.objects.get_or_create(
                 connection=connection,
                 external_id=data["external_id"],
@@ -131,7 +144,9 @@ class MountViewSet(viewsets.GenericViewSet):
     def browse(self, request, pk=None):
         mount = self.get_object()
         if not providers.supports(mount.connection.provider, "worksheet") or not mount.enabled:
-            raise ValidationError("Choose an enabled worksheet source Mount.")
+            raise ValidationError(
+                "Choose an enabled worksheet source Mount.", code="choose_worksheet_source"
+            )
         query = BrowseQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         result = providers.browse(
@@ -157,9 +172,13 @@ class MountViewSet(viewsets.GenericViewSet):
                         "id": str(row["id"])
                         if mount.connection.provider == "notion"
                         else str(row["number"]),
-                        "title": providers.notion_title(row)
-                        if mount.connection.provider == "notion"
-                        else f"#{row['number']} {row.get('title') or 'Untitled'}",
+                        "title": (
+                            providers.notion_title(row, fallback="")
+                            if mount.connection.provider == "notion"
+                            else f"#{row['number']} {row['title']}"
+                            if row.get("title")
+                            else ""
+                        ),
                         "url": row.get("url")
                         if mount.connection.provider == "notion"
                         else row.get("html_url", ""),
@@ -218,9 +237,9 @@ class MountViewSet(viewsets.GenericViewSet):
             .get(pk=mount.connection_id)
         )
         if not providers.supports(connection.provider, "calendar") or connection.status != "active":
-            raise ValidationError("Choose an active Calendar Mount.")
+            raise ValidationError("Choose an active Calendar Mount.", code="choose_active_calendar")
         if connection.auth_version != mount.connection.auth_version:
-            raise ValidationError("The Connection changed. Refresh and try again.")
+            raise ValidationError("The Connection changed. Refresh and try again.", code="conflict")
         mount.refresh_from_db(
             fields=["rate_limited_until"], from_queryset=Mount.objects.select_for_update()
         )

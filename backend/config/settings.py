@@ -86,10 +86,15 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "config.errors.api_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "config.pagination.BoundedPagination",
     "PAGE_SIZE": 100,
 }
 SPECTACULAR_SETTINGS = {
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.hooks.postprocess_schema_enums",
+        "config.errors.document_error_code_header",
+    ],
     "TITLE": "Cyber Beacon API",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,

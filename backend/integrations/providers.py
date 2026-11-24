@@ -40,11 +40,13 @@ def supports(provider, capability):
 class ProviderError(APIException):
     status_code = 502
     default_detail = "Provider request failed. Try again later."
+    default_code = "provider_error"
 
     def __init__(self, detail=None, *, kind="retryable", retry_after=60):
         self.kind = kind
         self.retry_after = retry_after
-        super().__init__(detail)
+        code = {"auth_dead": "reconnect_provider", "rate_limited": "throttled"}.get(kind)
+        super().__init__(detail, code=code)
 
 
 def http(method, url, **kwargs):
@@ -131,6 +133,25 @@ def authorize_url(provider, state):
 
 
 def exchange(provider, code):
+    try:
+        credentials, identity, label, scopes = _exchange(provider, code)
+    except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
+        raise ProviderError("Provider returned an unreadable response.") from exc
+    if (
+        not isinstance(credentials.get("access_token"), str)
+        or not credentials["access_token"]
+        or not isinstance(identity, str)
+        or not identity.strip()
+        or len(identity) > 255
+        or "\x00" in identity
+        or not isinstance(label, str)
+        or "\x00" in label
+    ):
+        raise ProviderError("Provider returned an unreadable response.")
+    return credentials, identity, label, scopes
+
+
+def _exchange(provider, code):
     cfg = config(provider)
     data = {"grant_type": "authorization_code", "code": code, "redirect_uri": cfg["redirect_uri"]}
     if provider == "notion":
@@ -140,6 +161,8 @@ def exchange(provider, code):
             json=data,
             auth=(cfg["client_id"], cfg["client_secret"]),
         )
+        if not isinstance(result.get("access_token"), str) or not result["access_token"]:
+            raise ProviderError("Provider returned an unreadable response.")
         return (
             result,
             result["workspace_id"],
@@ -182,8 +205,10 @@ def exchange(provider, code):
             "https://api.github.com/user",
             headers={"Authorization": "Bearer " + result["access_token"]},
         )
-        identity = str(account["id"])
-        return result, identity, account.get("name") or account["login"], []
+        identity = account["id"]
+        if type(identity) is not int or identity <= 0:
+            raise ProviderError("Provider returned an unreadable response.")
+        return result, str(identity), account.get("name") or account["login"], []
     data.update(client_id=cfg["client_id"], client_secret=cfg["client_secret"])
     result = http("POST", "https://oauth2.googleapis.com/token", data=data)
     if GOOGLE_SCOPE not in result.get("scope", "").split():
@@ -337,7 +362,7 @@ def request(connection, method, path, **kwargs):
         raise
 
 
-def notion_title(record):
+def notion_title(record, *, fallback="Untitled"):
     title = record.get("title", [])
     for value in record.get("properties", {}).values():
         if value.get("type") == "title":
@@ -347,7 +372,7 @@ def notion_title(record):
         "".join(part.get("plain_text", part.get("text", {}).get("content", "")) for part in title)[
             :500
         ]
-        or "Untitled"
+        or fallback
     )
 
 
@@ -365,7 +390,8 @@ def resources(connection, cursor="", query=""):
         result = request(connection, "POST", "search", json=body)
         return {
             "results": [
-                {"id": row["id"], "label": notion_title(row)} for row in result.get("results", [])
+                {"id": row["id"], "label": notion_title(row, fallback="")}
+                for row in result.get("results", [])
             ],
             "next_cursor": result.get("next_cursor"),
         }

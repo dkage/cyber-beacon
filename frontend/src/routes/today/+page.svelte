@@ -3,14 +3,15 @@
 	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
-	import { api, ApiError, message, write } from '$lib/api';
+	import { api, ApiError, message, providerStatusMessage, write } from '$lib/api';
+	import { language, t } from '$lib/i18n';
 	import { clock, formatDate, localDate, minutes } from '$lib/format';
 	import TaskEditor from '$lib/TaskEditor.svelte';
 	import type { Day, Task } from '$lib/types';
 	let data = $state<Day | null>(null);
 	let backlog = $state<Task[]>([]);
 	let backlogTotal = $state(0);
-	let error = $state('');
+	let error = $state<unknown>(null);
 	let pending = $state(false);
 	let loading = $state(true);
 	let editing = $state<Task | null | undefined>(undefined);
@@ -36,14 +37,14 @@
 			data = result;
 			backlog = unplanned.results;
 			backlogTotal = unplanned.count;
-			error = '';
+			error = null;
 		} catch (cause) {
 			if (current !== generation || (cause instanceof Error && cause.name === 'AbortError')) return;
 			if (cause instanceof ApiError && cause.status === 403 && !data) {
 				await goto(resolve('/login'));
 				return;
 			}
-			error = message(cause);
+			error = cause;
 		} finally {
 			if (current === generation) loading = false;
 		}
@@ -78,12 +79,12 @@
 	async function command(action: () => Promise<unknown>) {
 		if (pending) return;
 		pending = true;
-		error = '';
+		error = null;
 		try {
 			await action();
 			await refresh();
 		} catch (cause) {
-			error = message(cause);
+			error = cause;
 		} finally {
 			pending = false;
 		}
@@ -97,7 +98,7 @@
 			);
 			backlog = [...backlog, ...result.results];
 		} catch (cause) {
-			error = message(cause);
+			error = cause;
 		} finally {
 			pending = false;
 		}
@@ -118,91 +119,101 @@
 	}
 </script>
 
-<svelte:head><title>Today · Cyber Beacon</title></svelte:head>
+<svelte:head><title>{$t('pageTitle', { page: $t('today') })}</title></svelte:head>
 <div class="today-view">
 	<header class="page-heading">
 		<div>
-			<span class="eyebrow">DAILY FLIGHT PLAN</span>
-			<h1>Make room for what matters.</h1>
-			<p class="muted">Choose your work. Leave space to do it.</p>
+			<span class="eyebrow">{$t('todayEyebrow')}</span>
+			<h1>{$t('todayHeading')}</h1>
+			<p class="muted">{$t('todayIntro')}</p>
 		</div>
 		<div class="heading-actions">
 			<label
-				>Plan date<input
+				>{$t('planDate')}<input
 					type="date"
 					value={data?.date ?? selectedDay}
 					onchange={(event) => goto(resolve(`/today?date=${event.currentTarget.value}`))}
 				/></label
-			><a class="button quiet" href={resolve('/today')}>Today</a><button
+			><a class="button quiet" href={resolve('/today')}>{$t('today')}</a><button
 				class="primary"
 				disabled={!data || pending}
-				onclick={() => (editing = null)}>New Task</button
+				onclick={() => (editing = null)}>{$t('newTask')}</button
 			>
 		</div>
 	</header>
 	{#if error}<div role="alert" class="error">
-			{error} <button onclick={() => refresh()}>Refresh day</button>
-			<a href={resolve('/login')}>Sign in</a>
+			{message(error, $t)} <button onclick={() => refresh()}>{$t('refreshDay')}</button>
+			<a href={resolve('/login')}>{$t('signIn')}</a>
 		</div>{/if}
-	{#if loading && !data}<p role="status">Loading your day…</p>{/if}
+	{#if loading && !data}<p role="status">{$t('loadingDay')}</p>{/if}
 	{#if data}
 		<div class="metrics">
 			<section class="panel">
-				<span class="eyebrow">PLANNED WORK</span><strong
-					>{minutes(data.capacity.estimated_minutes)}</strong
+				<span class="eyebrow">{$t('plannedWork')}</span><strong
+					>{minutes(data.capacity.estimated_minutes, $t)}</strong
 				><span
-					>{data.tasks.filter((task) => !task.completed_at).length} open Tasks · {data.capacity
-						.unestimated_tasks} without estimates</span
+					>{$t('openTasks', { count: data.tasks.filter((task) => !task.completed_at).length })} · {$t(
+						'withoutEstimate',
+						{ count: data.capacity.unestimated_tasks }
+					)}</span
 				>
 			</section>
 			<section class="panel">
-				<span class="eyebrow">AVAILABLE CAPACITY</span><strong
+				<span class="eyebrow">{$t('availableCapacity')}</span><strong
 					class:warning={data.capacity.remaining_minutes < 0}
-					>{minutes(data.capacity.remaining_minutes)}</strong
+					>{minutes(data.capacity.remaining_minutes, $t)}</strong
 				><span
-					>{minutes(data.capacity.meeting_minutes)} in meetings · {minutes(
-						data.capacity.work_minutes
-					)} work window</span
+					>{$t('meetingCapacity', {
+						meetings: minutes(data.capacity.meeting_minutes, $t),
+						window: minutes(data.capacity.work_minutes, $t)
+					})}</span
 				>
 			</section>
 			<section class="panel">
-				<span class="eyebrow">ACTUAL TIME TODAY</span><strong
-					>{minutes(data.day_actual_seconds / 60)}</strong
+				<span class="eyebrow">{$t('actualToday')}</span><strong
+					>{minutes(data.day_actual_seconds / 60, $t)}</strong
 				><span
-					>{data.timer ? 'Timer running · ' + minutes(elapsed / 60) : 'Ready when you are'}</span
+					>{data.timer
+						? $t('timerRunning', { time: minutes(elapsed / 60, $t) })
+						: $t('ready')}</span
 				>
 			</section>
 		</div>
 		{#if data.timer}<div class="timer-bar" role="status">
 				<span class="status-dot"></span><span
-					>Running: {data.tasks.find((task) => task.id === data!.timer?.task)?.title ??
-						'Task on another day'} · {minutes(elapsed / 60)}</span
+					>{$t('runningTask', {
+						title:
+							data.tasks.find((task) => task.id === data!.timer?.task)?.title ?? $t('anotherDay'),
+						time: minutes(elapsed / 60, $t)
+					})}</span
 				><button
 					disabled={pending}
 					onclick={() => command(() => write(`/api/v1/timers/${data!.timer!.id}/stop/`))}
-					>Stop timer</button
+					>{$t('stopTimer')}</button
 				>
 			</div>{/if}
 		<div class="planner-grid">
 			<section class="panel task-panel">
 				<div class="section-heading">
-					<h2>Your day <span class="count">{data.tasks.length}</span></h2>
+					<h2>{$t('yourDay')} <span class="count">{data.tasks.length}</span></h2>
 					<span class="muted"
 						>{formatDate(data.date, data.date_order, data.date_separator)} · {data.timezone}</span
 					>
 				</div>
 				{#if !data.tasks.length}<div class="empty">
 						<span class="empty-symbol">＋</span>
-						<h3>A little breathing room.</h3>
-						<p>Add a Task or bring one in from Notion.</p>
-						<button onclick={() => (editing = null)}>Create your first Task</button>
+						<h3>{$t('emptyDay')}</h3>
+						<p>{$t('emptyDayHint')}</p>
+						<button onclick={() => (editing = null)}>{$t('firstTask')}</button>
 					</div>{/if}
 				<ol class="task-list">
 					{#each data.tasks as task, index (task.id)}
 						<li class:done={!!task.completed_at}>
 							<button
 								class="complete"
-								aria-label={`${task.completed_at ? 'Reopen' : 'Complete'} ${task.title}`}
+								aria-label={$t(task.completed_at ? 'reopenTask' : 'completeTask', {
+									title: task.title
+								})}
 								aria-pressed={!!task.completed_at}
 								disabled={pending}
 								onclick={() =>
@@ -222,45 +233,49 @@
 								<div class="task-meta">
 									<span
 										>{task.estimated_minutes === null
-											? 'No estimate'
-											: minutes(task.estimated_minutes)}</span
+											? $t('noEstimate')
+											: minutes(task.estimated_minutes, $t)}</span
 									>{#if task.due_date}<span class="attention"
-											>Due {formatDate(task.due_date, data.date_order, data.date_separator)}</span
+											>{$t('dueOn', {
+												date: formatDate(task.due_date, data.date_order, data.date_separator)
+											})}</span
 										>{/if}{#if task.source}<span class="external"
 											>↗ {task.source.provider === 'github'
-												? 'GitHub issue'
+												? $t('githubIssue')
 												: task.source.provider === 'notion'
 													? 'Notion'
 													: task.source.provider}</span
 										>{/if}<span
-										>{minutes((data.task_actual_seconds[task.id] ?? 0) / 60)} actual</span
+										>{$t('actualTime', {
+											time: minutes((data.task_actual_seconds[task.id] ?? 0) / 60, $t)
+										})}</span
 									>
 								</div>
 							</div>
 							<div class="task-actions">
 								<button
 									class="quiet"
-									aria-label={`Move ${task.title} up`}
+									aria-label={$t('moveUp', { title: task.title })}
 									disabled={pending || index === 0}
 									onclick={() => move(task, -1)}>↑</button
 								><button
 									class="quiet"
-									aria-label={`Move ${task.title} down`}
+									aria-label={$t('moveDown', { title: task.title })}
 									disabled={pending || index === data!.tasks.length - 1}
 									onclick={() => move(task, 1)}>↓</button
 								><button
 									disabled={pending || !!task.completed_at || !!data.timer}
-									aria-label={`Start timer for ${task.title}`}
+									aria-label={$t('startTimer', { title: task.title })}
 									onclick={() => command(() => write('/api/v1/timers/start/', { task: task.id }))}
 									>▷</button
 								><button
 									class="quiet"
-									aria-label={`Trash ${task.title}`}
+									aria-label={$t('trashTask', { title: task.title })}
 									disabled={pending}
 									onclick={() =>
 										command(() =>
 											write(`/api/v1/tasks/${task.id}/`, undefined, 'DELETE', task.version)
-										)}>Trash</button
+										)}>{$t('trash')}</button
 								>
 							</div>
 						</li>
@@ -268,44 +283,47 @@
 				</ol>
 			</section>
 			<aside class="panel meetings">
-				<span class="eyebrow">AROUND YOUR WORK</span>
-				<h2>Calendar events</h2>
-				{#if !data.events.length}<p class="muted">No meetings in this day’s calendar data.</p>
-					<a href={resolve('/connections')}>Connect a calendar →</a>{/if}
+				<span class="eyebrow">{$t('meetingsEyebrow')}</span>
+				<h2>{$t('calendarEvents')}</h2>
+				{#if !data.events.length}<p class="muted">{$t('noDayMeetings')}</p>
+					<a href={resolve('/connections')}>{$t('connectCalendar')}</a>{/if}
 				{#each data.events as event (event.id)}<article class="meeting">
 						<span class="external"
 							>{event.starts_at
-								? clock(event.starts_at, data.timezone) +
+								? clock(event.starts_at, data.timezone, $language) +
 									' – ' +
-									clock(event.ends_at!, data.timezone)
-								: 'All day'}</span
+									clock(event.ends_at!, data.timezone, $language)
+								: $t('allDay')}</span
 						>
-						<h3>{event.title}</h3>
+						<h3>{event.title || $t('untitledMeeting')}</h3>
 						<small
 							>{event.blocking && event.starts_at
-								? 'Counts toward capacity'
-								: 'Does not reduce capacity'}</small
+								? $t('blocksTime')
+								: $t('doesNotBlockTime')}</small
 						>
 					</article>{/each}
 				{#each data.calendars as calendar (calendar.id)}<p
 						class="freshness"
 						class:error={!!calendar.last_error}
 					>
-						{calendar.label}: {calendar.last_error ||
-							(calendar.last_succeeded_at
-								? 'Updated ' + clock(calendar.last_succeeded_at, data.timezone)
-								: 'Waiting for first refresh')}{!calendar.enabled ? ' · paused' : ''}
+						{calendar.label}: {calendar.last_error
+							? providerStatusMessage(calendar.last_error, $t)
+							: calendar.last_succeeded_at
+								? $t('updatedAt', {
+										time: clock(calendar.last_succeeded_at, data.timezone, $language)
+									})
+								: $t('waitingRefresh')}{!calendar.enabled ? ' · ' + $t('paused') : ''}
 					</p>{/each}
-				<p class="muted small">Meetings stay read-only. Your Task list stays yours.</p>
+				<p class="muted small">{$t('meetingsReadOnly')}</p>
 			</aside>
 		</div>
 		<details class="panel">
-			<summary>Backlog · {backlogTotal} Tasks without a do date</summary>
+			<summary>{$t('backlog', { count: backlogTotal })}</summary>
 			<ul class="resource-list">
 				{#each backlog as task (task.id)}<li>
 						<div>
 							<strong>{task.title}</strong>
-							<p class="muted small">{task.completed_at ? 'Completed' : 'Not assigned to a day'}</p>
+							<p class="muted small">{task.completed_at ? $t('completed') : $t('notPlanned')}</p>
 						</div>
 						<div class="heading-actions">
 							<button
@@ -318,14 +336,14 @@
 											'PATCH',
 											task.version
 										)
-									)}>Plan for this day</button
-							><button disabled={pending} onclick={() => (editing = task)}>Edit Task</button>
+									)}>{$t('planThisDay')}</button
+							><button disabled={pending} onclick={() => (editing = task)}>{$t('editTask')}</button>
 						</div>
 					</li>{/each}
 			</ul>
-			{#if !backlog.length}<p class="muted">No Tasks waiting for a day.</p>{/if}
+			{#if !backlog.length}<p class="muted">{$t('backlogEmpty')}</p>{/if}
 			{#if backlog.length < backlogTotal}<button disabled={pending} onclick={moreBacklog}
-					>Load more Backlog Tasks</button
+					>{$t('moreBacklog')}</button
 				>{/if}
 		</details>
 		{#if editing !== undefined}{#key editing?.id ?? 'new'}<TaskEditor

@@ -4,7 +4,16 @@
 	import { SvelteMap } from 'svelte/reactivity';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { api, ApiError, message, write } from '$lib/api';
+	import { language, t, type Translator } from '$lib/i18n';
+	import {
+		api,
+		ApiError,
+		LocalizedError,
+		message,
+		providerStatusMessage,
+		readSettings,
+		write
+	} from '$lib/api';
 	import { formatDateTime, localDate, safeUrl } from '$lib/format';
 	import type { Connection, Mount, Settings } from '$lib/types';
 	import type { components } from '$lib/schema';
@@ -14,7 +23,7 @@
 	type BrowsePage = Schema['BrowsePage'];
 	let connections = $state<Connection[]>([]);
 	let settings = $state<Settings | null>(null);
-	let error = $state('');
+	let error = $state<unknown>(null);
 	let notice = $state('');
 	let pending = $state(false);
 	let loading = $state(true);
@@ -30,31 +39,37 @@
 	const importKeys = new SvelteMap<string, string>();
 	async function load() {
 		try {
-			connections = await api<Connection[]>('/api/v1/integrations/connections/');
-			settings = await api<Settings>('/api/v1/settings/');
+			[connections, settings] = await Promise.all([
+				api<Connection[]>('/api/v1/integrations/connections/'),
+				readSettings()
+			]);
 			if (!day) day = localDate(new Date(), settings.timezone);
 		} catch (cause) {
 			if (cause instanceof ApiError && cause.status === 403) await goto(resolve('/login'));
-			else error = message(cause);
+			else error = cause;
 		} finally {
 			loading = false;
 		}
 	}
 	onMount(() => {
-		if (page.url.searchParams.get('error') === 'consent-denied') {
-			error = 'Provider access was not granted. You can try connecting again when ready.';
+		const callbackError = page.url.searchParams.get('error');
+		if (callbackError) {
+			error =
+				callbackError === 'consent-denied'
+					? new LocalizedError('consentDenied')
+					: new ApiError(502, null, callbackError);
 		}
 		void load();
 	});
 	async function action(work: () => Promise<void>) {
 		if (pending) return;
 		pending = true;
-		error = '';
+		error = null;
 		notice = '';
 		try {
 			await work();
 		} catch (cause) {
-			error = message(cause);
+			error = cause;
 		} finally {
 			pending = false;
 		}
@@ -65,7 +80,7 @@
 				provider
 			});
 			const url = safeUrl(result.url);
-			if (!url) throw new Error('Invalid provider redirect.');
+			if (!url) throw new LocalizedError('invalidRedirect');
 			window.location.assign(url);
 		});
 	}
@@ -96,6 +111,14 @@
 			candidates = { page: result, query };
 		}
 	}
+	function candidateTitle(candidate: Schema['BrowseItem'], translate: Translator) {
+		return (
+			candidate.title ||
+			(selectedConnection?.provider === 'github'
+				? translate('untitledIssue', { id: candidate.id })
+				: translate('untitledRecord'))
+		);
+	}
 	async function importCandidate(candidate: Schema['BrowseItem']) {
 		if (!selectedMount) return;
 		const identity = `${selectedMount.id}:${candidate.id}:${day}`;
@@ -108,56 +131,67 @@
 		});
 		importKeys.delete(identity);
 		candidate.imported_count += 1;
-		notice = `Imported “${candidate.title}” as a local worksheet.`;
+		notice = $t('importedWorksheet', { title: candidateTitle(candidate, $t) });
 	}
 </script>
 
-<svelte:head><title>Connections · Cyber Beacon</title></svelte:head>
+<svelte:head><title>{$t('pageTitle', { page: $t('connections') })}</title></svelte:head>
 <header class="page-heading">
 	<div>
-		<span class="eyebrow">BRING YOUR WORK TOGETHER</span>
-		<h1>Connected, on your terms.</h1>
-		<p class="muted">Browse first. Import deliberately. Your worksheet stays yours.</p>
+		<span class="eyebrow">{$t('connectionsEyebrow')}</span>
+		<h1>{$t('connectionsHeading')}</h1>
+		<p class="muted">{$t('connectionsIntro')}</p>
 	</div>
 	<div class="heading-actions">
-		<button disabled={pending} onclick={() => connect('notion')}>Connect Notion</button><button
-			disabled={pending}
-			onclick={() => connect('google')}>Connect Google Calendar</button
-		>
-		<button disabled={pending} onclick={() => connect('microsoft')}>Connect Outlook Calendar</button
-		>
-		<button disabled={pending} onclick={() => connect('github')}>Connect GitHub</button>
+		<button disabled={pending} onclick={() => connect('notion')}>{$t('connectNotion')}</button
+		><button disabled={pending} onclick={() => connect('google')}>{$t('connectGoogle')}</button>
+		<button disabled={pending} onclick={() => connect('microsoft')}>{$t('connectOutlook')}</button>
+		<button disabled={pending} onclick={() => connect('github')}>{$t('connectGithub')}</button>
 	</div>
 </header>
-{#if error}<p class="error" role="alert">{error}</p>{/if}{#if notice}<p
+{#if error}<p class="error" role="alert">{message(error, $t)}</p>{/if}{#if notice}<p
 		class="success"
 		role="status"
 	>
 		{notice}
 	</p>{/if}
-{#if loading}<p>Loading Connections…</p>{:else if !connections.length}<section class="panel empty">
-		<h2>Your work, gathered here.</h2>
-		<p>Connect Notion or GitHub to choose worksheets, or a calendar to see meetings.</p>
-		<p class="muted">OAuth application credentials must be configured by the server operator.</p>
+{#if loading}<p>{$t('loadingConnections')}</p>{:else if !connections.length}<section
+		class="panel empty"
+	>
+		<h2>{$t('connectionsEmpty')}</h2>
+		<p>{$t('connectionsEmptyHint')}</p>
+		<p class="muted">{$t('oauthSetup')}</p>
 	</section>{/if}
 <div class="connection-grid">
 	{#each connections as connection (connection.id)}<section class="panel">
 			<span class="eyebrow external"
 				>{connection.provider === 'notion'
-					? 'NOTION'
+					? $t('notionLabel')
 					: connection.provider === 'google'
-						? 'GOOGLE CALENDAR'
+						? $t('googleLabel')
 						: connection.provider === 'microsoft'
-							? 'OUTLOOK CALENDAR'
-							: 'GITHUB ISSUES'}</span
+							? $t('outlookLabel')
+							: $t('githubLabel')}</span
 			>
 			<h2>{connection.label}</h2>
-			<p class="muted">{connection.status}</p>
-			{#if connection.last_error}<p class="error">{connection.last_error}</p>{/if}
+			<p class="muted">
+				{$t(
+					connection.status === 'active'
+						? 'connectionActive'
+						: connection.status === 'disconnected'
+							? 'connectionDisconnected'
+							: connection.status === 'needs_reauth'
+								? 'connectionNeedsReauth'
+								: 'connectionUnknown'
+				)}
+			</p>
+			{#if connection.last_error}<p class="error">
+					{providerStatusMessage(connection.last_error, $t)}
+				</p>{/if}
 			<div class="heading-actions">
 				<button
 					disabled={pending || connection.status !== 'active'}
-					onclick={() => action(() => browseResources(connection))}>Choose resource</button
+					onclick={() => action(() => browseResources(connection))}>{$t('chooseResource')}</button
 				><button
 					class="quiet"
 					disabled={pending}
@@ -169,48 +203,53 @@
 							resources = null;
 							candidates = null;
 							await load();
-						})}>Disconnect</button
+						})}>{$t('disconnect')}</button
 				>
 			</div>
 			{#each connection.mounts as mount (mount.id)}<article class="mount">
-					<h3>{mount.label}</h3>
+					<h3>{mount.label || $t('untitledResource')}</h3>
 					<p class="muted small">
-						{mount.enabled ? 'Enabled' : 'Paused'} · {mount.last_error ||
-							(mount.last_succeeded_at && settings
-								? 'Updated ' +
-									formatDateTime(
-										mount.last_succeeded_at,
-										settings.timezone,
-										settings.date_order,
-										settings.date_separator
-									)
-								: 'No refresh yet')}
+						{mount.enabled ? $t('enabled') : $t('paused')} · {mount.last_error
+							? providerStatusMessage(mount.last_error, $t)
+							: mount.last_succeeded_at && settings
+								? $t('updatedAt', {
+										time: formatDateTime(
+											mount.last_succeeded_at,
+											settings.timezone,
+											settings.date_order,
+											settings.date_separator,
+											$language
+										)
+									})
+								: $t('notRefreshed')}
 					</p>
 					{#if connection.provider === 'notion'}<button
 							disabled={pending || connection.status !== 'active'}
-							onclick={() => action(() => browse(mount))}>Browse records</button
+							onclick={() => action(() => browse(mount))}>{$t('browseRecords')}</button
 						>{:else if connection.provider === 'github'}<button
 							disabled={pending || connection.status !== 'active'}
-							onclick={() => action(() => browse(mount))}>Browse issues</button
+							onclick={() => action(() => browse(mount))}>{$t('browseIssues')}</button
 						>{:else}<button
 							disabled={pending || connection.status !== 'active'}
 							onclick={() =>
 								action(async () => {
 									await write(`/api/v1/integrations/mounts/${mount.id}/refresh/`);
-									notice = 'Calendar refresh queued. Meetings will update shortly.';
+									notice = $t('refreshQueued');
 									await load();
-								})}>Refresh meetings</button
+								})}>{$t('refreshMeetings')}</button
 						>{/if}
 				</article>{/each}
 		</section>{/each}
 </div>
 {#if selectedConnection && !selectedMount}<section class="panel source">
 		<h2>
-			Choose a {selectedConnection.provider === 'notion'
-				? 'Notion data source'
-				: selectedConnection.provider === 'github'
-					? 'GitHub repository'
-					: 'calendar'}
+			{$t(
+				selectedConnection.provider === 'notion'
+					? 'chooseNotion'
+					: selectedConnection.provider === 'github'
+						? 'chooseRepository'
+						: 'chooseCalendar'
+			)}
 		</h2>
 		{#if selectedConnection.provider === 'notion' || selectedConnection.provider === 'github'}<form
 				class="inline-form"
@@ -219,19 +258,20 @@
 					void action(() => browseResources(selectedConnection!));
 				}}
 			>
-				<label>Search resources<input bind:value={search} maxlength="200" /></label><button
-					disabled={pending}>Search</button
+				<label>{$t('searchResources')}<input bind:value={search} maxlength="200" /></label><button
+					disabled={pending}>{$t('search')}</button
 				>
 			</form>
 		{:else if !resources && !pending}<button
-				onclick={() => action(() => browseResources(selectedConnection!))}>Retry resources</button
+				onclick={() => action(() => browseResources(selectedConnection!))}
+				>{$t('retryResources')}</button
 			>{/if}
 		{#if resources && !resources.page.results.length}<p>
-				No accessible resources. Check the provider’s sharing permissions.
+				{$t('resourcesEmpty')}
 			</p>{/if}
 		<ul class="resource-list">
 			{#each resources?.page.results ?? [] as resource (resource.id)}<li>
-					<span>{resource.label}</span><button
+					<span>{resource.label || $t('untitledResource')}</span><button
 						disabled={pending}
 						onclick={() =>
 							action(async () => {
@@ -240,8 +280,8 @@
 									label: resource.label
 								});
 								await load();
-								notice = 'Resource attached.';
-							})}>Attach resource</button
+								notice = $t('resourceAttached');
+							})}>{$t('attachResource')}</button
 					>
 				</li>{/each}
 		</ul>
@@ -250,16 +290,16 @@
 				onclick={() =>
 					action(() =>
 						browseResources(selectedConnection!, resources!.page.next_cursor!, resources!.query)
-					)}>Next resources</button
+					)}>{$t('nextResources')}</button
 			>{/if}
 	</section>{/if}
 {#if selectedMount}<section class="panel source">
 		<div class="section-heading">
 			<div>
-				<span class="eyebrow">SOURCE BROWSER</span>
-				<h2>{selectedMount.label}</h2>
+				<span class="eyebrow">{$t('sourceBrowser')}</span>
+				<h2>{selectedMount.label || $t('untitledResource')}</h2>
 			</div>
-			<label>Import to day<input type="date" bind:value={day} /></label>
+			<label>{$t('importToDay')}<input type="date" bind:value={day} /></label>
 		</div>
 		<form
 			class="inline-form"
@@ -269,32 +309,33 @@
 			}}
 		>
 			<label
-				>{selectedConnection?.provider === 'github' ? 'Search issues' : 'Search records'}<input
-					bind:value={recordSearch}
-					maxlength="200"
-				/></label
+				>{selectedConnection?.provider === 'github'
+					? $t('searchIssues')
+					: $t('searchRecords')}<input bind:value={recordSearch} maxlength="200" /></label
 			><button disabled={pending}
-				>{selectedConnection?.provider === 'github' ? 'Search issues' : 'Search records'}</button
+				>{selectedConnection?.provider === 'github'
+					? $t('searchIssues')
+					: $t('searchRecords')}</button
 			>
 		</form>
-		{#if candidates && !candidates.page.results.length}<p>No records in this source.</p>{/if}
+		{#if candidates && !candidates.page.results.length}<p>{$t('recordsEmpty')}</p>{/if}
 		<ul class="resource-list">
 			{#each candidates?.page.results ?? [] as candidate (candidate.id)}<li>
 					<div>
-						<strong>{candidate.title}</strong>
+						<strong>{candidateTitle(candidate, $t)}</strong>
 						<p class="muted small">
 							{candidate.imported_count
-								? `${candidate.imported_count} existing worksheets · import again intentionally`
-								: 'Not imported'}
+								? $t('importAgain', { count: candidate.imported_count })
+								: $t('notImported')}
 						</p>
 						{#if safeUrl(candidate.url)}<a
 								href={safeUrl(candidate.url)}
 								target="_blank"
-								rel="external noreferrer">Preview at source ↗</a
+								rel="external noreferrer">{$t('previewSource')}</a
 							>{/if}
 					</div>
 					<button disabled={pending} onclick={() => action(() => importCandidate(candidate))}
-						>Import worksheet</button
+						>{$t('importWorksheet')}</button
 					>
 				</li>{/each}
 		</ul>
@@ -302,6 +343,6 @@
 				disabled={pending}
 				onclick={() =>
 					action(() => browse(selectedMount!, candidates!.page.next_cursor!, candidates!.query))}
-				>Next records</button
+				>{$t('nextRecords')}</button
 			>{/if}
 	</section>{/if}

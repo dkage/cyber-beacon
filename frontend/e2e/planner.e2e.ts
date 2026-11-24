@@ -316,7 +316,7 @@ test('failed lookups can be retried without showing results from another selecti
 	await page.getByLabel('Search resources').fill('matched');
 	const searchResources = page.getByRole('button', { name: 'Search', exact: true });
 	await searchResources.click();
-	await expect(page.getByRole('alert')).toContainText('Resource search offline');
+	await expect(page.getByRole('alert')).toContainText('The server is unavailable.');
 	await searchResources.click();
 	await expect(page.getByText('acme/matched', { exact: true })).toBeVisible();
 	await cards.nth(1).getByRole('button', { name: 'Choose resource' }).click();
@@ -328,7 +328,7 @@ test('failed lookups can be retried without showing results from another selecti
 	await page.getByLabel('Search issues').fill('unsubmitted search');
 	const nextRecords = page.getByRole('button', { name: 'Next records' });
 	await nextRecords.click();
-	await expect(page.getByRole('alert')).toContainText('Next page offline');
+	await expect(page.getByRole('alert')).toContainText('The server is unavailable.');
 	await nextRecords.click();
 	await expect(page.getByText('#12 Next issue')).toBeVisible();
 	await cards.nth(1).getByRole('button', { name: 'Browse issues' }).click();
@@ -358,7 +358,7 @@ test('static deep links, mobile layout and retained rejected drafts', async ({ p
 		else await route.continue();
 	});
 	await page.getByRole('button', { name: 'Save Task', exact: true }).click();
-	await expect(page.getByRole('alert')).toContainText('Temporarily unavailable');
+	await expect(page.getByRole('alert')).toContainText('The server is unavailable.');
 	await expect(page.getByLabel('Title', { exact: true })).toHaveValue('Retain this draft');
 	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
 		true

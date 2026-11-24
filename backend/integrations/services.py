@@ -34,6 +34,27 @@ CALENDAR_CHECKPOINT_MAX_AGE = timedelta(hours=1)
 CALENDAR_PAGE_LIMIT = 50
 CALENDAR_FAILURE_PAUSE_THRESHOLD = 5
 
+IMPORT_COPY = {
+    "en": (
+        "Untitled record",
+        "Untitled issue",
+        "GitHub issue",
+        {"open": "open", "closed": "closed"},
+    ),
+    "pt-BR": (
+        "Registro sem título",
+        "Issue sem título",
+        "Issue do GitHub",
+        {"open": "aberta", "closed": "fechada"},
+    ),
+    "es": (
+        "Registro sin título",
+        "Incidencia sin título",
+        "Incidencia de GitHub",
+        {"open": "abierta", "closed": "cerrada"},
+    ),
+}
+
 
 def digest(value):
     return hashlib.sha256(value.encode()).hexdigest()
@@ -84,7 +105,8 @@ def finish_oauth(user, session_key, provider, state, code):
         )
         if not row:
             raise ValidationError(
-                "This connection request expired or was already used. Start again."
+                "This connection request expired or was already used. Start again.",
+                code="connection_expired",
             )
         row.delete()
     credentials, identity, label, scopes = providers.exchange(provider, code)
@@ -154,14 +176,22 @@ def import_record(user, mount, external_id, day, key):
         or mount.connection.status != "active"
         or not mount.enabled
     ):
-        raise ValidationError("Choose an active worksheet source Mount.")
+        raise ValidationError(
+            "Choose an active worksheet source Mount.", code="choose_worksheet_source"
+        )
+    record_title, issue_title, issue_label, issue_states = IMPORT_COPY.get(
+        user.language, IMPORT_COPY["en"]
+    )
     if provider == "notion":
         raw = providers.page(mount.connection, external_id)
         if raw.get("parent", {}).get("data_source_id", "").replace(
             "-", ""
         ) != mount.external_id.replace("-", ""):
-            raise ValidationError("This record does not belong to the selected data source.")
-        title = providers.notion_title(raw)
+            raise ValidationError(
+                "This record does not belong to the selected data source.",
+                code="source_record_mismatch",
+            )
+        title = providers.notion_title(raw, fallback=record_title)
         lines = []
         for name, value in raw.get("properties", {}).items():
             kind = value.get("type")
@@ -177,7 +207,7 @@ def import_record(user, mount, external_id, day, key):
                 lines.append(f"{name}: {text}")
     else:
         if not external_id.isdigit():
-            raise ValidationError("Choose a valid GitHub issue.")
+            raise ValidationError("Choose a valid GitHub issue.", code="invalid_github_issue")
         raw = providers.issue(mount, external_id)
         repository = raw.get("repository_url", "").rsplit("/repos/", 1)[-1]
         if (
@@ -185,9 +215,13 @@ def import_record(user, mount, external_id, day, key):
             or str(raw.get("number", "")) != external_id
             or repository.casefold() != mount.external_id.casefold()
         ):
-            raise ValidationError("This issue does not belong to the selected repository.")
-        title = f"#{external_id} {raw.get('title') or 'Untitled'}"[:500]
-        lines = [f"GitHub issue #{external_id} · {raw.get('state', 'open')}"]
+            raise ValidationError(
+                "This issue does not belong to the selected repository.",
+                code="source_issue_mismatch",
+            )
+        title = f"#{external_id} {raw.get('title') or issue_title}"[:500]
+        state = raw.get("state", "open")
+        lines = [f"{issue_label} #{external_id} · {issue_states.get(state, state)}"]
         if raw.get("body"):
             lines.append(raw["body"])
     with transaction.atomic():
@@ -231,7 +265,7 @@ def event_values(raw, timezone_name=None):
                 return parsed.astimezone(target_timezone).date()
 
             return {
-                "title": (raw.get("subject") or "Untitled meeting")[:500],
+                "title": (raw.get("subject") or "")[:500],
                 "starts_at": None,
                 "ends_at": None,
                 "start_date": local_date(start_value),
@@ -242,7 +276,7 @@ def event_values(raw, timezone_name=None):
                 "url": raw.get("webLink", "")[:2000],
             }
         return {
-            "title": (raw.get("subject") or "Untitled meeting")[:500],
+            "title": (raw.get("subject") or "")[:500],
             "starts_at": parse_datetime(start.get("dateTime")),
             "ends_at": parse_datetime(end.get("dateTime")),
             "start_date": None,
@@ -256,7 +290,7 @@ def event_values(raw, timezone_name=None):
         for person in raw.get("attendees", [])
     )
     return {
-        "title": raw.get("summary", "Untitled meeting")[:500],
+        "title": (raw.get("summary") or "")[:500],
         "starts_at": parse_datetime(start["dateTime"]) if "dateTime" in start else None,
         "ends_at": parse_datetime(end["dateTime"]) if "dateTime" in end else None,
         "start_date": parse_date(start["date"]) if "date" in start else None,

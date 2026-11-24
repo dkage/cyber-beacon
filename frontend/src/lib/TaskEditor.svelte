@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { api, ApiError, message, write } from '$lib/api';
+	import { api, ApiError, fieldErrorProps, message, write } from '$lib/api';
 	import type { Task } from '$lib/types';
+	import { t } from '$lib/i18n';
 	import { safeUrl } from '$lib/format';
 	let {
 		task = null,
@@ -25,7 +26,8 @@
 	let startDate = $state(initial.task?.start_date ?? '');
 	let estimate = $state<number | undefined>(initial.task?.estimated_minutes ?? undefined);
 	let priority = $state<number | undefined>(initial.task?.priority ?? undefined);
-	let error = $state('');
+	let error = $state<unknown>(null);
+	let errorHint = $state<'taskRefreshed' | 'taskRefreshFailed' | null>(null);
 	let pending = $state(false);
 	let dialog: HTMLDialogElement;
 	let titleInput: HTMLInputElement;
@@ -45,7 +47,8 @@
 		if (pending) return;
 		pending = true;
 		onbusy(true);
-		error = '';
+		error = null;
+		errorHint = null;
 		try {
 			const draft = {
 				title,
@@ -71,13 +74,13 @@
 			);
 			await onsaved();
 		} catch (cause) {
-			error = message(cause);
+			error = cause;
 			if (cause instanceof ApiError && cause.status === 412 && task) {
 				try {
 					version = (await api<Task>(`/api/v1/tasks/${task.id}/`)).version;
-					error += ' Latest version loaded. Review your draft before saving again.';
+					errorHint = 'taskRefreshed';
 				} catch {
-					error += ' Could not refresh the Task.';
+					errorHint = 'taskRefreshFailed';
 				}
 			}
 		} finally {
@@ -98,39 +101,81 @@
 >
 	<section class="panel editor">
 		<div class="section-heading">
-			<h2 id="task-editor-title">{task ? 'Edit Task' : 'New Task'}</h2>
-			<button type="button" class="quiet" disabled={pending} onclick={oncancel}>Close editor</button
+			<h2 id="task-editor-title">{task ? $t('editTask') : $t('newTask')}</h2>
+			<button type="button" class="quiet" disabled={pending} onclick={oncancel}
+				>{$t('closeEditor')}</button
 			>
 		</div>
 		<form onsubmit={save}>
 			<label
-				>Title<input bind:this={titleInput} bind:value={title} required maxlength="500" /></label
+				>{$t('title')}<input
+					bind:this={titleInput}
+					bind:value={title}
+					{...fieldErrorProps(error, 'title', 'task-editor-error')}
+					required
+					maxlength="500"
+				/></label
 			>
-			<label>Notes<textarea bind:value={notes} rows="4" maxlength="20000"></textarea></label>
+			<label
+				>{$t('notes')}<textarea
+					bind:value={notes}
+					{...fieldErrorProps(error, 'notes', 'task-editor-error')}
+					rows="4"
+					maxlength="20000"></textarea></label
+			>
 			<div class="form-grid">
-				<label>Do date<input type="date" bind:value={doDate} /></label><label
-					>Due date<input type="date" bind:value={dueDate} /></label
-				><label>Start date<input type="date" bind:value={startDate} /></label>
 				<label
-					>Estimate (minutes)<input
+					>{$t('doDate')}<input
+						type="date"
+						bind:value={doDate}
+						{...fieldErrorProps(error, 'do_date', 'task-editor-error')}
+					/></label
+				><label
+					>{$t('dueDate')}<input
+						type="date"
+						bind:value={dueDate}
+						{...fieldErrorProps(error, 'due_date', 'task-editor-error')}
+					/></label
+				><label
+					>{$t('startDate')}<input
+						type="date"
+						bind:value={startDate}
+						{...fieldErrorProps(error, 'start_date', 'task-editor-error')}
+					/></label
+				>
+				<label
+					>{$t('estimate')}<input
 						type="number"
 						min="0"
 						max="10080"
 						bind:value={estimate}
+						{...fieldErrorProps(error, 'estimated_minutes', 'task-editor-error')}
 					/></label
-				><label>Priority (0–5)<input type="number" min="0" max="5" bind:value={priority} /></label>
+				><label
+					>{$t('priority')}<input
+						type="number"
+						min="0"
+						max="5"
+						bind:value={priority}
+						{...fieldErrorProps(error, 'priority', 'task-editor-error')}
+					/></label
+				>
 			</div>
 			{#if task?.source}<details class="source">
-					<summary>Source preview · {task.source.provider}</summary>{#if safeUrl(task.source.url)}<a
+					<summary>{$t('sourcePreview', { provider: task.source.provider })}</summary
+					>{#if safeUrl(task.source.url)}<a
 							href={safeUrl(task.source.url)}
 							target="_blank"
-							rel="external noreferrer">Open source</a
+							rel="external noreferrer">{$t('openSource')}</a
 						>{/if}
 					<pre>{JSON.stringify(task.source.raw, null, 2)}</pre>
-					<p>Your edits belong to this worksheet.</p>
+					<p>{$t('worksheetEdits')}</p>
 				</details>{/if}
-			{#if error}<p class="error" role="alert">{error}</p>{/if}
-			<button class="primary" disabled={pending}>{pending ? 'Saving…' : 'Save Task'}</button>
+			{#if error}<p id="task-editor-error" class="error" role="alert">
+					{message(error, $t)}
+					{errorHint ? $t(errorHint) : ''}
+				</p>{/if}
+			<button class="primary" disabled={pending}>{pending ? $t('saving') : $t('saveTask')}</button>
 		</form>
 	</section>
 </dialog>
