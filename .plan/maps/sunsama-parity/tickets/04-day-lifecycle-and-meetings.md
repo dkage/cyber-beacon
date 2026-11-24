@@ -48,3 +48,41 @@ The developer authorized autonomous implementation of the entire First usable da
 ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
 Broader release/parity questions above remain open. Verification and any limitations
 are recorded with the implementation; the packaging proof is not claimed in advance.
+
+## Resolved so far (2026-11-18) — Decision set: day lifecycle, meetings, history
+
+Confirmed with the developer. Mirrored in the parity-04 decision-log issue; already
+settled items from 13/05 are confirmed, not re-decided.
+
+- **04-1 Day-state contract:** explicit per-day state machine (unset -> prepped -> active
+-> shutdown-resolved/{skipped|auto-skipped}), per-day per-user Postgres records (one row
+per calendar day for a hole-free month log). Prep = settle yesterday, gather meetings,
+estimate/check capacity (parity 05), order, optional timebox, optional share; missed if
+past a per-user prep cutoff. Shutdown = review, highlights/mood/journal, publish;
+resolved when done, skipped by user, auto-skipped after a limit. Evening planning for
+tomorrow + future-day navigation + re-planning included. Skipping never moves tasks.
+- **04-2 Rollover:** parity 13 + 05-1.4 confirmed final. Only optional knob kept is
+per-user carry-forward placement (top/bottom). No auto-skip of unfinished Tasks; no
+"ask tomorrow" state.
+- **04-3 Meeting identity/dedupe:** key checklist entries by occurrence identity
+((calendar, event-id, occurrence)); one Event-ID wins; never double-count workload for
+overlapping duplicates; reuse the parity-02 Source/identity discipline. Auto-import
+exclusions + Importable flag (6.4/6.2) apply.
+- **04-4 Meeting lifecycle:** remote events are the source of truth; cancellation/decline
+removes the entry (workload recalculated) unless manually removed (suppressed, not
+resurrected); time-edit reflows but never touches actual TimeEntry or a manual
+completion; auto-completion modes Always/Never/Only-with-invitees, paused while a timer
+runs; no merge / no real subtasks.
+- **04-5 History & archive:** completion credits the do-date day (with happened-on
+annotation); past-day membership derives from do-date + activity, not current state.
+Archive = soft, explicit "park it", not Backlog and not deletion. Retained trash (no
+purge) is the deliberate override of Sunsama's one-week (phase-1 contract); auto-archive
+is manual/opt-in only.
+- **04-6 Journal & highlights:** Postgres journal authoritative, Obsidian async
+(unchanged). Highlights = privacy-filtered summary from local Activity + short-lived
+remote activity history only where a provider feed is connected, never from the
+latest-only kiosk Snapshot. Personal/private channels excluded by default; sharing
+per-action with explicit consent.
+
+Folds into CONTEXT.md/glossary (Journal, day-state) and backend 02/05/06/08/09 when the
+full set closes; 04/07 re-check coupling noted.
