@@ -105,3 +105,22 @@ commit / drag creates a working session (TimeBlock) on its calendar target. Per 
 - **3.4 Freshness:** recompute on authoritative server state, debounced per user
 interaction; commit re-reads the current projection atomically before locking (never
 pin a stale preview); kiosk shows last-good projection with computed-at freshness.
+
+## Resolved so far (2026-11-18) — Decision 4: pin-to-commit & undo
+
+- **4.1 Commit mechanics:** commit creates one working session per pinned projection
+slot; many sessions per task across days allowed; session resize updates planned time
+and re-projects the remainder, never actuals. Plain pin uses the projection; a
+modifier key = one-block/no-split override. Targets resolve per Decision 6 (internal
+default -> channel -> tasks calendar).
+- **4.2 Intended plan preserved:** every commit/resize/move/undo writes a semantic
+Activity record of the intended plan; actuals (TimeEntry) never modify or replace
+planned session history. Planned-vs-actual reporting reads both streams; a
+rearrangement is a first-class event (who/what/when/from->to).
+- **4.3 Undo contract:** version-checked inverse patch through the Phase-1 row-lock /
+precondition write path; atomic per change-set; scoped so it never reverts unrelated
+edits; distinct "undo whole run" command for runs; conflict with newer local edits ->
+surface and ask, never clobber.
+- **4.4 Boundary invariants:** commit never writes remotely by default; never
+moves/edits meetings; never places sessions in the past; ambiguous projections route
+to explicit choices (Decision 5), never silent decisions.
