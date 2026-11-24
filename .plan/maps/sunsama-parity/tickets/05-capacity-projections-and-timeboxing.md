@@ -124,3 +124,24 @@ surface and ask, never clobber.
 - **4.4 Boundary invariants:** commit never writes remotely by default; never
 moves/edits meetings; never places sessions in the past; ambiguous projections route
 to explicit choices (Decision 5), never silent decisions.
+
+## Resolved so far (2026-11-18) — Decision 5: auto-schedule
+
+- **5.1 Finding room:** configurable gap buffer (None/5/10/15m); split-at-most-3 with a
+one-block (shift-style) override; <=1h tasks split only when necessary; configurable
+default duration from 2.3 (default 30m; 15/30/45/60). Server-owned, per-user
+configurable, deterministic, asserted in scheduling tests.
+- **5.2 No-past rule:** never place sessions in absolute or stepped-over past time;
+respect work window, shutdown, unavailable days. Overtime (5.3) is the only path past
+shutdown, always explicit.
+- **5.3 Overcommit choices:** on no-room offer overtime / next-day-with-room (search
+<=1 month) / defer / cancel as explicit choices; never auto-pick. Default dialog to
+defer with a visible note. Advisory capacity (2.2) feeds but never overrides.
+- **5.4 Collision & early-finish rescheduling:** only owned sessions, never meetings /
+past days. Early-finish contraction pulls contiguous work forward until a >=30m gap.
+Both opt-in, separate toggles (collision-reschedule on, early-finish pull-forward on),
+each reversible by one version-checked undo, original plan preserved in Activity
+(4.2); shift-style gesture skips the cascade once.
+- **5.5 Deterministic change-set:** auto-schedule = deterministic scheduler returning a
+previewable change-set; apply is atomic through the versioned write path; whole-run
+undo as in 4.3. Non-AI; testable against the ticket acceptance examples.
