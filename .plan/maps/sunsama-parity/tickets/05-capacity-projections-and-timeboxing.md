@@ -145,3 +145,26 @@ each reversible by one version-checked undo, original plan preserved in Activity
 - **5.5 Deterministic change-set:** auto-schedule = deterministic scheduler returning a
 previewable change-set; apply is atomic through the versioned write path; whole-run
 undo as in 4.3. Non-AI; testable against the ticket acceptance examples.
+
+## Resolved so far (2026-11-18) — Decision 6: calendar targets & routing
+
+- **6.1 Target precedence:** channel-linked calendar -> default tasks calendar ->
+internal private calendar; separate per-calendar default for new standalone events.
+Replace the phase-one single-publish assumption; each hop per-user configurable; the
+internal fallback always exists (#20).
+- **6.2 Per-calendar independent flags:** enabled / visible / importable /
+scheduling-blocking are four independent booleans. Replaces the single "Mount enabled"
+concept; the read/sync engine reads whatever is enabled, and each flag gates only its
+own behavior. Defaults: enabled+visible+importable on connect; blocking = non-blocking
+default with per-event override.
+- **6.3 Publish policy:** sessions busy by default (configurable), no reminders by
+default, private on personal/private channels. Invariant: local non-blocking/visibility
+flags never patch remote free/busy or visibility; per-event override marks a session
+free/busy/private without changing calendar policy.
+- **6.4 Meetings as checklist work:** linked checklist read-model (never a Task);
+filterable import, auto-completion (default always) paused while a timer runs,
+remove-without-delete with occurrence-level suppression, no merge/real-subtask
+semantics. Fulfills parity 04 meeting-checklist question with the audit shape.
+- **6.5 Route summary:** projection never writes; sessions go through the 6.1 chain;
+new standalone events use their own default; meeting checklists are local read-models
+of remote events. Canonical address table for API/kiosk/agent-host.
