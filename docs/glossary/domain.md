@@ -5,9 +5,10 @@ these words in models, routes, issues and commits.
 
 **Reference baseline:** explicit import, local worksheets, local completion and midnight
 carry-forward are decided (parity ticket 13). Capacity, ordered work, projections,
-pin-to-commit, auto-schedule and calendar routing are decided (parity ticket 05,
-Decisions 1–6); meeting checklist shape is decided there, day-lifecycle detail in 04.
-Recurrence, channels, weekly objectives, AI boundaries remain open in the
+pin-to-commit, auto-schedule, calendar routing, the day-state/meeting-checklist contract
+and journal are decided (parity tickets 05 + 04). Channels/contexts, the daily-vs-backlog
+priority split and weekly objectives are decided (parity ticket 07). Recurrence, AI
+boundaries and the per-field/action matrix remain open in the
 [parity map](../../.plan/maps/sunsama-parity/map.md). Sunsama's start date means our
 **Do date**. See [reference translation](./sunsama-reference.md).
 
@@ -17,7 +18,10 @@ Recurrence, channels, weekly objectives, AI boundaries remain open in the
 |---|---|---|
 | **Task** | Something you intend to do, whether typed here or arrived from Notion | to-do, item, card |
 | **Subtask** | A Task with a parent. Otherwise fully independent, with its own dates | child task, checklist item |
-| **Priority** | Your own ordering. Upstream priority is consulted only when you have none | severity, urgency |
+| **Priority** | Your own ordering. Two levels: daily priority (today's order, opt-in reset) and persistent backlog priority (urgency). Upstream fallback only when none | severity, urgency |
+| **Channel** | Per-user category a Task/Objective belongs to; one per Task (nullable), never a Connection/Mount or Project; may be personal/private | tag, label, project |
+| **Context** | A named group of Channels. Not a Connection/Mount or Project | workspace, folder |
+| **Weekly objective** | What you intend this week: target week, channel, notes, linked Tasks; progress derived, never a status; carry-over keeps notes/links | goal, project, plan |
 | **Backlog** | Every Task with no do date. A derived view, not a place | inbox, someday list |
 | **Day order** | The per-day, per-user sequence of Tasks on a day, persisted server-side. The projection walks it in order; auto-arrange is always explicit | queue, sort order |
 | **Pin** | Locking a Task's position in the day order; wins over every automatic ordering rule | locked, frozen |
@@ -67,6 +71,7 @@ One Google Connection can have several Mounts.
 |---|---|---|
 | **Daily prep** | Morning ritual: settle yesterday, assign do dates, place Time blocks. **Missed** if unresolved past `prep_cutoff` | planning session |
 | **Wrap-up** | Evening ritual: review the day, write the journal. **Resolved** when completed or skipped. Optional; does not gate carry-forward | review, retro |
+| **Journal** | Authoritative per-day record written at shutdown (review, highlights, mood). Postgres owns it; Obsidian write async/best-effort | diary, day note, highlights feed |
 | **Carry-forward** | System-only: an uncompleted Task moves to the next day at midnight, and the miss is recorded. A deliberate move is a **reschedule** | bump, rollover |
 | **Shutdown** | Per-day configurable moment when work ends. Informational scheduling boundary — nothing past it without explicit overtime — never gates carry-forward | end of day, cutoff |
 | **Capacity** | Available work minutes on a day: work window minus the union of blocking meetings, floored at zero. Personal/private and non-blocking calendars don't consume it | free time, availability |
