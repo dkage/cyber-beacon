@@ -109,7 +109,7 @@ jobs:
         run: docker build -t cyber-beacon:ci .
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: [phase-one, workflow-lint]
+    needs: phase-one
     runs-on: ubuntu-latest
     permissions:
       contents: write

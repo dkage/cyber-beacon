@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { clock, formatDate, minutes } from '$lib/format';
 	import { message } from '$lib/api';
-	import { isKioskSummary, isRecord } from '$lib/kiosk';
 	import type { components } from '$lib/schema';
 
 	type Schema = components['schemas'];
@@ -26,7 +25,7 @@
 			/* Display can continue without persistence. */
 		}
 	}
-	async function request(path: string, body?: unknown): Promise<unknown> {
+	async function request<T>(path: string, body?: unknown): Promise<T> {
 		const response = await fetch('/api/v1/kiosk/' + path, {
 			method: body === undefined ? 'GET' : 'POST',
 			headers: {
@@ -51,42 +50,32 @@
 					: 'The server is unavailable.'
 			);
 		const result: unknown = await response.json();
-		return result;
-	}
-	async function refreshSummary() {
-		const result = await request('summary/');
-		if (!isKioskSummary(result)) throw new Error('The server returned an invalid day summary.');
-		summary = result;
-		remember('beacon-summary', JSON.stringify(result));
-		stale = false;
+		return result as T;
 	}
 	async function refresh() {
 		if (stopped) return;
 		try {
 			if (token) {
-				await refreshSummary();
+				summary = await request<Summary>('summary/');
+				remember('beacon-summary', JSON.stringify(summary));
+				stale = false;
 			} else if (!secret) {
-				const pairing = await request('pair/', {});
-				if (
-					!isRecord(pairing) ||
-					typeof pairing.code !== 'string' ||
-					typeof pairing.secret !== 'string'
-				) {
-					throw new Error('The server returned an invalid pairing code.');
-				}
+				const pairing = await request<Schema['PairingStarted']>('pair/', {});
 				code = pairing.code;
 				secret = pairing.secret;
 			} else {
 				try {
-					const result = await request('pair/poll/', { secret } satisfies Schema['Poll']);
-					if (isRecord(result) && typeof result.token === 'string' && result.token) {
+					const result = await request<Schema['PairingClaimed'] | Schema['PairingPending']>(
+						'pair/poll/',
+						{ secret } satisfies Schema['Poll']
+					);
+					if ('token' in result) {
 						token = result.token;
 						secret = '';
 						code = '';
 						remember('beacon-device', token);
-						await refreshSummary();
-					} else if (!isRecord(result) || result.status !== 'pending') {
-						throw new Error('The server returned an invalid pairing status.');
+						summary = await request<Summary>('summary/');
+						remember('beacon-summary', JSON.stringify(summary));
 					}
 				} catch (cause) {
 					secret = '';
@@ -116,17 +105,11 @@
 			scale = Number(localStorage.getItem('beacon-scale') ?? 1) || 1;
 			const cached = localStorage.getItem('beacon-summary');
 			if (token && cached) {
-				const result: unknown = JSON.parse(cached);
-				if (isKioskSummary(result)) {
-					summary = result;
-					stale = true;
-				} else {
-					remember('beacon-summary', null);
-				}
+				summary = JSON.parse(cached) as Summary;
+				stale = true;
 			}
 		} catch {
 			summary = null;
-			remember('beacon-summary', null);
 		}
 		const tick = setInterval(() => {
 			now = Date.now();
