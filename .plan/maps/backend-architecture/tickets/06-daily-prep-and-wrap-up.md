@@ -14,9 +14,13 @@ is an optional review and does not gate rollover. Work hours per weekday, shutdo
 capacity and the advisory workload/predicted-finish signal are now decided in
 [parity 05](../../sunsama-parity/tickets/05-capacity-projections-and-timeboxing.md)
 (Decisions 1–6) and belong to the scheduling contract, not the ritual. Imported meeting
-checklists and past-day progress breadcrumbs remain open in
-[parity 04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md). Resolve
-parity 04 before building the full day-state contract.
+checklists and past-day progress breadcrumbs are now decided in
+[parity 04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md): per-day
+state machine (unset/prepped/active/shutdown-resolved, with skipped and auto-skip),
+authoritative Postgres **Journal** with async Obsidian, and meeting checklist
+identity/lifecycle. Channels/contexts and weekly objectives are decided in
+[parity 07](../../sunsama-parity/tickets/07-channels-priorities-and-weekly-objectives.md),
+feeding the ritual's channel filters and weekly plan/review.
 
 ## Question
 

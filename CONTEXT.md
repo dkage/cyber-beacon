@@ -25,10 +25,14 @@ the earlier model are decided and reflected below:
 Sunsama's “start date” means our **Do date**, not our earliest-actionable **Start date**.
 Capacity, ordered work, projections, pin-to-commit, auto-schedule and calendar routing are
 decided in [parity ticket 05](.plan/maps/sunsama-parity/tickets/05-capacity-projections-and-timeboxing.md)
-(Decisions 1–6). Meeting checklist representations are decided in shape there, with
-day-lifecycle detail owned by parity 04. Still open: recurrence, channels, weekly
-objectives, AI boundaries and the per-field/action matrix. Update this document and its
-glossary index together when they resolve.
+(Decisions 1–6). The day-state contract, meeting-checklist identity/lifecycle and
+journal are decided in
+[parity ticket 04](.plan/maps/sunsama-parity/tickets/04-day-lifecycle-and-meetings.md);
+channels/contexts, the daily-vs-backlog priority split and weekly objectives are
+decided in
+[parity ticket 07](.plan/maps/sunsama-parity/tickets/07-channels-priorities-and-weekly-objectives.md).
+Still open: recurrence, AI boundaries and the per-field/action matrix. Update this
+document and its glossary index together when they resolve.
 
 ## Language
 
@@ -49,8 +53,27 @@ _Avoid_: Child task, step, checklist item.
 **Priority**:
 Your own ordering of what matters, set by you and never by an upstream service. A
 Source may carry the priority its provider assigned, which is consulted only when
-you have expressed no opinion of your own.
+you have expressed no opinion of your own. There are two levels: a **daily priority**
+for ordering today's work (opt-in per-day reset) and a persistent **backlog priority**
+for urgency that survives until you change it.
 _Avoid_: Severity, urgency, importance.
+
+**Channel**:
+A per-user category a Task or Objective belongs to. A Task has one Channel or none.
+A Channel is not a Connection/Mount and not a Project; it may carry a
+**personal/private** flag.
+_Avoid_: Tag, label, project, list, context.
+
+**Context**:
+A named group of Channels, for organizing and filtering. Not a Connection/Mount or
+Project.
+_Avoid_: Workspace, folder, view.
+
+**Weekly objective**:
+A statement of what you intend this week, tied to a target week, a Channel, notes
+and linked Tasks. Progress is derived from its work, never a status column; carry-
+over keeps notes and links; unlinking never deletes a Task.
+_Avoid_: Goal, project, plan, milestone.
 
 **Backlog**:
 Every Task you have not committed to a day — that is, every Task with no do date.
@@ -203,6 +226,11 @@ journal entry. It is **resolved** when completed or skipped; a skip the system m
 after the wrap-up limit is an **auto-skip**. It is an optional review and does not
 gate carry-forward.
 _Avoid_: Review, retro, end of day.
+
+**Journal**:
+The authoritative per-day record written at shutdown — review, highlights and mood.
+Postgres owns it; an Obsidian write is asynchronous and best-effort.
+_Avoid_: Log, diary, day note, highlights feed.
 
 **Carry-forward**:
 What happens to a Task that had a do date for a day and was not completed — at

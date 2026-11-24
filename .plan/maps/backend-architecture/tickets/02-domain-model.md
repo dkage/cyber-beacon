@@ -15,8 +15,12 @@ now decided in
 Time block, and a meeting checklist is a read-model, never a Task. Day-lifecycle detail
 remains in [parity 04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md)
 and timer rules in [parity 06](../../sunsama-parity/tickets/06-time-entries-and-focus-state.md).
-Sunsama's start date translates to our **Do date**, not our Start date. Amend the answer
-and glossary with explicit approval before first affected migrations.
+Channels/contexts, the daily-vs-backlog priority split and weekly objectives are decided
+in [parity 07](../../sunsama-parity/tickets/07-channels-priorities-and-weekly-objectives.md):
+a Channel/Objective get a per-user label, not a new Project entity; priority splits into
+daily (order, opt-in reset) and backlog (urgency) levels. Sunsama's start date
+translates to our **Do date**, not our Start date. Amend the answer and glossary with
+explicit approval before first affected migrations.
 
 ## Question
 
