@@ -76,7 +76,13 @@ test('discard an invalid cached summary and keep the last good summary after a b
 	await expect(page.getByText('Last good briefing')).toBeVisible();
 	await expect(page.getByText(/· Connected$/)).toBeVisible();
 
-	payload = { ...validSummary, tasks: [null] };
+	const duplicate = {
+		id: '00000000-0000-0000-0000-000000000001',
+		title: 'Duplicate task',
+		completed_at: null,
+		estimated_minutes: null
+	};
+	payload = { ...validSummary, tasks: [duplicate, duplicate] };
 	await page.reload();
 	await expect(page.getByRole('status')).toContainText(
 		'The server returned an invalid day summary.'

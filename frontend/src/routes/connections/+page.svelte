@@ -52,8 +52,12 @@
 		}
 	}
 	onMount(() => {
-		if (page.url.searchParams.get('error') === 'consent-denied') {
-			error = new LocalizedError('consentDenied');
+		const callbackError = page.url.searchParams.get('error');
+		if (callbackError) {
+			error =
+				callbackError === 'consent-denied'
+					? new LocalizedError('consentDenied')
+					: new ApiError(502, null, callbackError);
 		}
 		void load();
 	});

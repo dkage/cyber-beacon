@@ -921,6 +921,15 @@ export interface operations {
 					'application/json': components['schemas']['Mount'];
 				};
 			};
+			/** @description Invalid request. */
+			400: {
+				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
 		};
 	};
 	integrations_connections_resources_retrieve: {
@@ -996,6 +1005,15 @@ export interface operations {
 					'application/json': components['schemas']['Task'];
 				};
 			};
+			/** @description Invalid request. */
+			400: {
+				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
 		};
 	};
 	integrations_mounts_refresh_create: {
@@ -1022,6 +1040,8 @@ export interface operations {
 			/** @description The Mount is ineligible or its Connection changed. */
 			400: {
 				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
 					[name: string]: unknown;
 				};
 				content: {
@@ -1032,6 +1052,8 @@ export interface operations {
 				headers: {
 					/** @description Seconds until the calendar can be refreshed. */
 					'Retry-After'?: number;
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
 					[name: string]: unknown;
 				};
 				content: {
@@ -1064,6 +1086,15 @@ export interface operations {
 				content: {
 					'application/json': components['schemas']['OAuthRedirect'];
 				};
+			};
+			/** @description Invalid request. */
+			400: {
+				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
 			};
 		};
 	};
@@ -1172,6 +1203,15 @@ export interface operations {
 					'application/json': components['schemas']['Device'];
 				};
 			};
+			/** @description Invalid request. */
+			400: {
+				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
 		};
 	};
 	kiosk_pair_poll_create: {
@@ -1208,6 +1248,8 @@ export interface operations {
 			/** @description Invalid request or an expired, claimed, or revoked pairing. */
 			400: {
 				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
 					[name: string]: unknown;
 				};
 				content: {
@@ -1283,6 +1325,15 @@ export interface operations {
 					'application/json': components['schemas']['Settings'];
 				};
 			};
+			/** @description Invalid request. */
+			400: {
+				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
 		};
 	};
 	tasks_list: {
@@ -1334,6 +1385,15 @@ export interface operations {
 				content: {
 					'application/json': components['schemas']['Task'];
 				};
+			};
+			/** @description Invalid request. */
+			400: {
+				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
 			};
 		};
 	};
@@ -1407,6 +1467,15 @@ export interface operations {
 					'application/json': components['schemas']['Task'];
 				};
 			};
+			/** @description Invalid request. */
+			400: {
+				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
 		};
 	};
 	tasks_activity_list: {
@@ -1459,6 +1528,8 @@ export interface operations {
 			/** @description The If-Match header is malformed. */
 			400: {
 				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
 					[name: string]: unknown;
 				};
 				content: {
@@ -1470,6 +1541,8 @@ export interface operations {
 			/** @description The Task version is stale. */
 			412: {
 				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
 					[name: string]: unknown;
 				};
 				content: {
@@ -1479,6 +1552,8 @@ export interface operations {
 			/** @description The If-Match header is required. */
 			428: {
 				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
 					[name: string]: unknown;
 				};
 				content: {
@@ -1514,6 +1589,15 @@ export interface operations {
 				content: {
 					'application/json': components['schemas']['PaginatedTaskList'];
 				};
+			};
+			/** @description Invalid request. */
+			400: {
+				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
 			};
 		};
 	};
@@ -1579,6 +1663,15 @@ export interface operations {
 				content: {
 					'application/json': components['schemas']['TimeEntry'];
 				};
+			};
+			/** @description Invalid request. */
+			400: {
+				headers: {
+					/** @description Stable code for the first error, when available. */
+					'X-Beacon-Error-Code'?: string;
+					[name: string]: unknown;
+				};
+				content?: never;
 			};
 		};
 	};

@@ -151,6 +151,18 @@ export function write<T>(path: string, body?: unknown, method = 'POST', version?
 		headers: version === undefined ? undefined : { 'If-Match': `"${version}"` }
 	});
 }
+export function fieldErrorProps(error: unknown, field: string, descriptionId: string) {
+	if (
+		error instanceof ApiError &&
+		error.fields !== null &&
+		typeof error.fields === 'object' &&
+		Object.hasOwn(error.fields, field)
+	) {
+		return { 'aria-invalid': true, 'aria-describedby': descriptionId };
+	}
+	return {};
+}
+
 export function message(error: unknown, translate: Translator = currentTranslator()) {
 	return translate(error instanceof LocalizedError ? error.key : 'networkError');
 }

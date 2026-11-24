@@ -91,6 +91,10 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 100,
 }
 SPECTACULAR_SETTINGS = {
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.hooks.postprocess_schema_enums",
+        "config.errors.document_error_code_header",
+    ],
     "TITLE": "Cyber Beacon API",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,

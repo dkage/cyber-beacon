@@ -1,13 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { clock, formatDate, minutes } from '$lib/format';
-	import { kioskLanguage, kioskT as t, setKioskLanguage } from '$lib/i18n';
+	import {
+		defaultLanguage,
+		kioskLanguage,
+		kioskT as t,
+		setKioskLanguage,
+		translator
+	} from '$lib/i18n';
 	import { LocalizedError, message, providerStatusMessage } from '$lib/api';
 	import { isKioskSummary, isRecord } from '$lib/kiosk';
 	import type { components } from '$lib/schema';
 
 	type Schema = components['schemas'];
 	type Summary = Schema['KioskSummary'];
+	const defaultBriefing = translator(defaultLanguage)('briefingLater');
 	let summary = $state<Summary | null>(null);
 	let code = $state('');
 	let secret = '';
@@ -215,7 +222,7 @@
 				<div class="briefing">
 					<span class="eyebrow">{$t('briefing')}</span>
 					<p class="muted">
-						{summary.briefing === $t('briefingLater') ? $t('briefingLater') : summary.briefing}
+						{summary.briefing === defaultBriefing ? $t('briefingLater') : summary.briefing}
 					</p>
 				</div>
 			</aside>

@@ -27,6 +27,16 @@ function isTimeZone(value: unknown): value is string {
 	}
 }
 
+function isKeyedList(value: unknown, isValid: (item: Record<string, unknown>) => boolean): boolean {
+	if (!Array.isArray(value)) return false;
+	const ids = new Set<unknown>();
+	return value.every((item: unknown) => {
+		if (!isRecord(item) || !isValid(item) || ids.has(item.id)) return false;
+		ids.add(item.id);
+		return true;
+	});
+}
+
 export function isKioskSummary(value: unknown): value is components['schemas']['KioskSummary'] {
 	return (
 		isRecord(value) &&
@@ -37,20 +47,18 @@ export function isKioskSummary(value: unknown): value is components['schemas']['
 		(value.date_separator === '-' || value.date_separator === '/') &&
 		isInstant(value.fetched_at) &&
 		typeof value.briefing === 'string' &&
-		Array.isArray(value.tasks) &&
-		value.tasks.every(
-			(task: unknown) =>
-				isRecord(task) &&
+		isKeyedList(
+			value.tasks,
+			(task) =>
 				typeof task.id === 'string' &&
 				typeof task.title === 'string' &&
 				isNullableInstant(task.completed_at) &&
 				(task.estimated_minutes === null ||
 					(typeof task.estimated_minutes === 'number' && Number.isFinite(task.estimated_minutes)))
 		) &&
-		Array.isArray(value.events) &&
-		value.events.every(
-			(event: unknown) =>
-				isRecord(event) &&
+		isKeyedList(
+			value.events,
+			(event) =>
 				typeof event.id === 'number' &&
 				typeof event.title === 'string' &&
 				isNullableInstant(event.starts_at) &&
@@ -58,10 +66,9 @@ export function isKioskSummary(value: unknown): value is components['schemas']['
 				(event.start_date === null || isCalendarDate(event.start_date)) &&
 				(event.end_date === null || isCalendarDate(event.end_date))
 		) &&
-		Array.isArray(value.calendars) &&
-		value.calendars.every(
-			(calendar: unknown) =>
-				isRecord(calendar) &&
+		isKeyedList(
+			value.calendars,
+			(calendar) =>
 				typeof calendar.id === 'string' &&
 				typeof calendar.label === 'string' &&
 				typeof calendar.enabled === 'boolean' &&

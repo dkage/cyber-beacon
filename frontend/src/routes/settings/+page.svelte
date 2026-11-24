@@ -6,6 +6,7 @@
 		api,
 		ApiError,
 		applySavedLanguage,
+		fieldErrorProps,
 		message,
 		providerStatusMessage,
 		readSettings,
@@ -31,7 +32,7 @@
 	let notice = $state('');
 	let pending = $state(false);
 	let code = $state('');
-	let label = $state('');
+	let label = $state<string | null>(null);
 	const weekdays = $derived.by(() => {
 		const format = new Intl.DateTimeFormat($language, { weekday: 'long', timeZone: 'UTC' });
 		return Array.from({ length: 7 }, (_, index) => format.format(Date.UTC(2024, 0, index + 1)));
@@ -92,10 +93,9 @@
 		<p class="muted">{$t('settingsIntro')}</p>
 	</div>
 </header>
-{#if error}<p role="alert" class="error">{message(error, $t)}</p>{/if}{#if notice}<p
-		role="status"
-		class="success"
-	>
+{#if error}<p id="settings-error" role="alert" class="error">
+		{message(error, $t)}
+	</p>{/if}{#if notice}<p role="status" class="success">
 		{notice}
 	</p>{/if}
 <div class="connection-grid">
@@ -115,6 +115,7 @@
 				<label
 					>{$t('timezone')}<input
 						bind:value={settings.timezone}
+						{...fieldErrorProps(error, 'timezone', 'settings-error')}
 						required
 						placeholder="America/Sao_Paulo"
 					/></label
@@ -124,15 +125,24 @@
 						>{$t('workStarts')}<input
 							type="time"
 							bind:value={settings.work_start}
+							{...fieldErrorProps(error, 'work_start', 'settings-error')}
 							required
 						/></label
 					><label
-						>{$t('workEnds')}<input type="time" bind:value={settings.work_end} required /></label
+						>{$t('workEnds')}<input
+							type="time"
+							bind:value={settings.work_end}
+							{...fieldErrorProps(error, 'work_end', 'settings-error')}
+							required
+						/></label
 					>
 				</div>
 				<label>
 					{$t('language')}
-					<select bind:value={settings.language}>
+					<select
+						bind:value={settings.language}
+						{...fieldErrorProps(error, 'language', 'settings-error')}
+					>
 						{#each Object.entries(languages) as [value, name] (value)}
 							<option {value} lang={value}>{name}</option>
 						{/each}
@@ -145,18 +155,25 @@
 								type="checkbox"
 								value={index}
 								bind:group={settings.work_weekdays}
+								{...fieldErrorProps(error, 'work_weekdays', 'settings-error')}
 							/>{name}</label
 						>{/each}
 				</fieldset>
 				<div class="form-grid">
 					<label
-						>{$t('dateOrder')}<select bind:value={settings.date_order}>
+						>{$t('dateOrder')}<select
+							bind:value={settings.date_order}
+							{...fieldErrorProps(error, 'date_order', 'settings-error')}
+						>
 							<option value="ymd">{$t('yearMonthDay')}</option>
 							<option value="dmy">{$t('dayMonthYear')}</option>
 							<option value="mdy">{$t('monthDayYear')}</option>
 						</select></label
 					><label
-						>{$t('dateSeparator')}<select bind:value={settings.date_separator}>
+						>{$t('dateSeparator')}<select
+							bind:value={settings.date_separator}
+							{...fieldErrorProps(error, 'date_separator', 'settings-error')}
+						>
 							<option value="-">{$t('hyphen')}</option>
 							<option value="/">{$t('slash')}</option>
 						</select></label
@@ -181,7 +198,7 @@
 				void action(async () => {
 					await write('/api/v1/kiosk/pair/approve/', {
 						code: code.toUpperCase(),
-						label: label || $t('officeDisplay')
+						label: label ?? $t('officeDisplay')
 					} satisfies Schema['Approve']);
 					code = '';
 					await load();
@@ -192,6 +209,7 @@
 			<label
 				>{$t('pairCode')}<input
 					bind:value={code}
+					{...fieldErrorProps(error, 'code', 'settings-error')}
 					minlength="8"
 					maxlength="8"
 					required
@@ -199,9 +217,11 @@
 				/></label
 			><label
 				>{$t('displayName')}<input
-					bind:value={label}
+					value={label ?? $t('officeDisplay')}
+					{...fieldErrorProps(error, 'label', 'settings-error')}
+					oninput={(event) => (label = event.currentTarget.value)}
 					maxlength="100"
-					placeholder={$t('officeDisplay')}
+					required
 				/></label
 			><button disabled={pending}>{$t('approveDisplay')}</button>
 		</form>

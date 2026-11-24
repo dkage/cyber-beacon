@@ -72,12 +72,16 @@ function savedLanguage(): Language {
 	return defaultLanguage;
 }
 
-const web = writable<Language>(savedLanguage());
+const web = writable<Language>(defaultLanguage);
 const kiosk = writable<Language>(defaultLanguage);
 export const language = { subscribe: web.subscribe };
 export const kioskLanguage = { subscribe: kiosk.subscribe };
 export const t = derived(language, (selected): Translator => translator(selected));
 export const kioskT = derived(kioskLanguage, (selected): Translator => translator(selected));
+
+export function restoreSavedLanguage() {
+	web.set(savedLanguage());
+}
 
 export function setLanguage(value: unknown) {
 	const selected = isLanguage(value) ? value : defaultLanguage;

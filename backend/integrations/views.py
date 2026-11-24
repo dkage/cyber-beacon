@@ -51,16 +51,24 @@ class OAuthCallback(APIView):
     @extend_schema(exclude=True)
     def get(self, request, provider):
         if provider not in {"notion", "google", "microsoft", "github"}:
-            raise ValidationError("Unknown Provider.", code="unknown_provider")
+            return HttpResponseRedirect("/connections?error=unknown_provider")
         if request.query_params.get("error"):
             return HttpResponseRedirect("/connections?error=consent-denied")
-        services.finish_oauth(
-            request.user,
-            request.session.session_key,
-            provider,
-            request.query_params.get("state", "")[:500],
-            request.query_params.get("code", "")[:4000],
-        )
+        try:
+            services.finish_oauth(
+                request.user,
+                request.session.session_key,
+                provider,
+                request.query_params.get("state", "")[:500],
+                request.query_params.get("code", "")[:4000],
+            )
+        except ValidationError:
+            return HttpResponseRedirect("/connections?error=connection_expired")
+        except providers.ProviderError as exc:
+            code = exc.get_codes()
+            if code not in ("reconnect_provider", "throttled"):
+                code = "provider_error"
+            return HttpResponseRedirect(f"/connections?error={code}")
         return HttpResponseRedirect("/connections?connected=1")
 
 

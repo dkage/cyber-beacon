@@ -5,7 +5,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { kioskLanguage, language, t } from '$lib/i18n';
+	import { kioskLanguage, language, restoreSavedLanguage, t } from '$lib/i18n';
 	import { clearSession, message, syncLanguage, write } from '$lib/api';
 
 	import type { LayoutProps } from './$types';
@@ -17,6 +17,7 @@
 	const isLoginPage = $derived(activePath === '/login');
 	const isKioskPage = $derived(activePath === '/kiosk');
 	onMount(() => {
+		restoreSavedLanguage();
 		if (!isKioskPage && !isLoginPage && activePath !== '/settings' && activePath !== '/connections')
 			void syncLanguage();
 	});

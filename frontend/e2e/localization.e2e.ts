@@ -35,6 +35,7 @@ test('persist the account language across browser sessions and a paired kiosk', 
 		await expect(page.getByRole('alert')).toHaveText(
 			'Use um fuso horário IANA, como America/Sao_Paulo.'
 		);
+		await expect(timezone).toHaveAttribute('aria-describedby', 'settings-error');
 		await timezone.fill(tz);
 
 		await signIn(other);
@@ -44,6 +45,11 @@ test('persist the account language across browser sessions and a paired kiosk', 
 		await other.getByRole('button', { name: 'Nova tarefa' }).click();
 		await expect(other.getByRole('dialog').getByLabel('Título')).toBeVisible();
 		await other.getByRole('button', { name: 'Fechar editor' }).click();
+		await other.goto('/api/v1/integrations/oauth/notion/callback/?state=expired');
+		await expect(other).toHaveURL(/connections\?error=connection_expired$/);
+		await expect(other.getByRole('alert')).toHaveText(
+			'Esta solicitação de conexão expirou ou já foi usada. Comece de novo.'
+		);
 		await other.getByRole('button', { name: 'Sair', exact: true }).click();
 		await other.getByLabel('E-mail', { exact: true }).fill('browser@example.test');
 		await other.getByLabel('Senha', { exact: true }).fill('wrong-password');
@@ -57,6 +63,7 @@ test('persist the account language across browser sessions and a paired kiosk', 
 		await page.getByRole('button', { name: 'Aprovar tela' }).click();
 		await expect(device.locator('html')).toHaveAttribute('lang', 'pt-BR', { timeout: 15_000 });
 		await expect(device.getByText('TRABALHO DE HOJE')).toBeVisible();
+		await expect(device.getByText('O resumo chegará em uma versão futura.')).toBeVisible();
 
 		await page.getByRole('combobox', { name: 'Idioma' }).selectOption('es');
 		await page.getByRole('button', { name: 'Salvar preferências' }).click();
@@ -72,6 +79,9 @@ test('persist the account language across browser sessions and a paired kiosk', 
 		await device.reload({ waitUntil: 'domcontentloaded' });
 		await expect(device.locator('html')).toHaveAttribute('lang', 'es');
 		await expect(device.getByRole('status')).toContainText('SIN ACTUALIZAR');
+		await expect(
+			device.getByText('El resumen estará disponible en una versión futura.')
+		).toBeVisible();
 		await deviceContext.setOffline(false);
 
 		await page.route('**/api/v1/integrations/connections/', (route) =>
@@ -81,6 +91,21 @@ test('persist the account language across browser sessions and a paired kiosk', 
 		await expect(page.getByRole('heading', { name: 'Conéctate a tu manera.' })).toBeVisible();
 		await expect(page.getByRole('alert')).toHaveText('El servidor no está disponible.');
 		await page.getByRole('navigation').getByRole('link', { name: 'Hoy', exact: true }).click();
+		await expect(page.getByRole('heading', { name: 'Tu día' })).toBeVisible();
+		await page.getByRole('button', { name: 'Nueva tarea' }).click();
+		const dialog = page.getByRole('dialog');
+		const title = dialog.getByLabel('Título');
+		await title.fill('   ');
+		await dialog.getByRole('button', { name: 'Guardar tarea' }).click();
+		await expect(dialog.getByRole('alert')).toContainText('Rellena los campos obligatorios.');
+		await expect(title).toHaveAttribute('aria-describedby', 'task-editor-error');
+		await dialog.getByRole('button', { name: 'Cerrar editor' }).click();
+
+		await page.getByRole('button', { name: 'Cerrar sesión' }).click();
+		await expect(page.getByRole('heading', { name: 'Te damos la bienvenida.' })).toBeVisible();
+		await page.getByLabel('Correo electrónico', { exact: true }).fill('browser@example.test');
+		await page.getByLabel('Contraseña', { exact: true }).fill('test-browser-password-982');
+		await page.getByRole('button', { name: 'Iniciar sesión', exact: true }).click();
 		await expect(page.getByRole('heading', { name: 'Tu día' })).toBeVisible();
 
 		await page.getByRole('link', { name: 'Configuración' }).click();

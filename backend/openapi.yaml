@@ -100,6 +100,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Mount'
           description: ''
+        '400':
+          description: Invalid request.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
   /api/v1/integrations/connections/{id}/resources/:
     get:
       operationId: integrations_connections_resources_retrieve
@@ -199,6 +206,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Task'
           description: ''
+        '400':
+          description: Invalid request.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
   /api/v1/integrations/mounts/{id}/refresh/:
     post:
       operationId: integrations_mounts_refresh_create
@@ -229,12 +243,21 @@ paths:
                 items:
                   type: string
           description: The Mount is ineligible or its Connection changed.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
         '429':
           headers:
             Retry-After:
               schema:
                 type: integer
               description: Seconds until the calendar can be refreshed.
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
           content:
             application/json:
               schema:
@@ -267,6 +290,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/OAuthRedirect'
           description: ''
+        '400':
+          description: Invalid request.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
   /api/v1/jobs/:
     get:
       operationId: jobs_list
@@ -367,6 +397,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Device'
           description: ''
+        '400':
+          description: Invalid request.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
   /api/v1/kiosk/pair/poll/:
     post:
       operationId: kiosk_pair_poll_create
@@ -420,6 +457,11 @@ paths:
                       items:
                         type: string
           description: Invalid request or an expired, claimed, or revoked pairing.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
   /api/v1/kiosk/summary/:
     get:
       operationId: kiosk_summary_retrieve
@@ -472,6 +514,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Settings'
           description: ''
+        '400':
+          description: Invalid request.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
   /api/v1/tasks/:
     get:
       operationId: tasks_list
@@ -539,6 +588,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Task'
           description: ''
+        '400':
+          description: Invalid request.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
   /api/v1/tasks/{id}/:
     get:
       operationId: tasks_retrieve
@@ -596,6 +652,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Task'
           description: ''
+        '400':
+          description: Invalid request.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
     delete:
       operationId: tasks_destroy
       parameters:
@@ -687,18 +750,33 @@ paths:
                 required:
                 - If-Match
           description: The If-Match header is malformed.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
         '412':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PreconditionError'
           description: The Task version is stale.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
         '428':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PreconditionError'
           description: The If-Match header is required.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
   /api/v1/tasks/reorder/:
     post:
       operationId: tasks_reorder_create
@@ -738,6 +816,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedTaskList'
           description: ''
+        '400':
+          description: Invalid request.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
   /api/v1/timers/{id}/stop/:
     post:
       operationId: timers_stop_create
@@ -799,6 +884,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/TimeEntry'
           description: ''
+        '400':
+          description: Invalid request.
+          headers:
+            X-Beacon-Error-Code:
+              description: Stable code for the first error, when available.
+              schema:
+                type: string
 components:
   schemas:
     Activity:

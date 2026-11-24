@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { api, ApiError, message, write } from '$lib/api';
+	import { api, ApiError, fieldErrorProps, message, write } from '$lib/api';
 	import type { Task } from '$lib/types';
 	import { t } from '$lib/i18n';
 	import { safeUrl } from '$lib/format';
@@ -111,19 +111,54 @@
 				>{$t('title')}<input
 					bind:this={titleInput}
 					bind:value={title}
+					{...fieldErrorProps(error, 'title', 'task-editor-error')}
 					required
 					maxlength="500"
 				/></label
 			>
-			<label>{$t('notes')}<textarea bind:value={notes} rows="4" maxlength="20000"></textarea></label
+			<label
+				>{$t('notes')}<textarea
+					bind:value={notes}
+					{...fieldErrorProps(error, 'notes', 'task-editor-error')}
+					rows="4"
+					maxlength="20000"></textarea></label
 			>
 			<div class="form-grid">
-				<label>{$t('doDate')}<input type="date" bind:value={doDate} /></label><label
-					>{$t('dueDate')}<input type="date" bind:value={dueDate} /></label
-				><label>{$t('startDate')}<input type="date" bind:value={startDate} /></label>
 				<label
-					>{$t('estimate')}<input type="number" min="0" max="10080" bind:value={estimate} /></label
-				><label>{$t('priority')}<input type="number" min="0" max="5" bind:value={priority} /></label
+					>{$t('doDate')}<input
+						type="date"
+						bind:value={doDate}
+						{...fieldErrorProps(error, 'do_date', 'task-editor-error')}
+					/></label
+				><label
+					>{$t('dueDate')}<input
+						type="date"
+						bind:value={dueDate}
+						{...fieldErrorProps(error, 'due_date', 'task-editor-error')}
+					/></label
+				><label
+					>{$t('startDate')}<input
+						type="date"
+						bind:value={startDate}
+						{...fieldErrorProps(error, 'start_date', 'task-editor-error')}
+					/></label
+				>
+				<label
+					>{$t('estimate')}<input
+						type="number"
+						min="0"
+						max="10080"
+						bind:value={estimate}
+						{...fieldErrorProps(error, 'estimated_minutes', 'task-editor-error')}
+					/></label
+				><label
+					>{$t('priority')}<input
+						type="number"
+						min="0"
+						max="5"
+						bind:value={priority}
+						{...fieldErrorProps(error, 'priority', 'task-editor-error')}
+					/></label
 				>
 			</div>
 			{#if task?.source}<details class="source">
@@ -136,7 +171,7 @@
 					<pre>{JSON.stringify(task.source.raw, null, 2)}</pre>
 					<p>{$t('worksheetEdits')}</p>
 				</details>{/if}
-			{#if error}<p class="error" role="alert">
+			{#if error}<p id="task-editor-error" class="error" role="alert">
 					{message(error, $t)}
 					{errorHint ? $t(errorHint) : ''}
 				</p>{/if}
