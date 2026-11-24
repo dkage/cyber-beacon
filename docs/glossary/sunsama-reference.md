@@ -11,8 +11,9 @@ Decision owners: [parity map](../../.plan/maps/sunsama-parity/map.md).
 |---|---|
 | Start date | **Do date**, the day of intended work. Never map it to our earliest-actionable Start date |
 | Worksheet | A Task imported from a remote record; a personal copy whose local fields are yours. Decided (parity 13) |
-| Working session | Our **Time block**, committed planned clock time; estimate/day allocation coupling under review in parity 05 |
-| Task projection | Fluid, deterministic calendar preview, not a committed Time block or Time entry. Proposed read-model contract: parity 05 |
+| Working session | Our **Time block**, committed planned clock time. Decided (parity 05): many sessions per task across days; resize re-plans, never actuals |
+| Task projection | Fluid, deterministic calendar preview, not a committed Time block or Time entry. Decided (parity 05): derived read-model, explicit commit only |
+| Meeting checklist | Local read-model of a Calendar event on the day's list; auto-complete paused by a running timer; remove-without-delete. Decided shape (parity 05); day-lifecycle detail in parity 04 |
 | Actual time | Our **Time entry** concept. Storage, timer rules, corrections and totals await parity 06 |
 | Channel / Context | Reference grouping and personal/privacy/capacity semantics; not our Connection or Mount. Adoption/model: parity 07 |
 | Weekly objective | Reference weekly intent with linked work and notes; not automatically a Project or parent Task. Decision: parity 07 |
@@ -33,8 +34,10 @@ reversed by [parity ticket 13](../../.plan/maps/sunsama-parity/tickets/13-baseli
 - Wrap-up-gated Backlog Bump and Pending-day pinning → **midnight carry-forward**.
 - Mirrored title/due-date ownership → **local worksheet fields** with a source preview.
 
-Still open (not yet decided): meeting checklists, calendar routing, capacity/projections,
-recurrence, channels, weekly objectives, AI boundaries, and the per-field/action matrix.
+Still open (not yet decided): recurrence, channels, weekly objectives, AI boundaries,
+and the per-field/action matrix. Calendar routing, capacity/projections, pin-to-commit
+and auto-schedule are settled in parity 05 (Decisions 1–6); meeting checklist shape is
+settled there with day-lifecycle detail in parity 04.
 
 Django identity ownership, credential encryption, shared orchestration, first-class
 clients, durable kiosk Snapshots and the deployment stack are not reversed by a

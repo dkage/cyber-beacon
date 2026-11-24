@@ -168,3 +168,19 @@ semantics. Fulfills parity 04 meeting-checklist question with the audit shape.
 - **6.5 Route summary:** projection never writes; sessions go through the 6.1 chain;
 new standalone events use their own default; meeting checklists are local read-models
 of remote events. Canonical address table for API/kiosk/agent-host.
+
+## Decision set complete (2026-11-18)
+
+Decisions 1–6 are recorded above and mirrored in
+[issue #71](https://github.com/dkage/cyber-beacon/issues/71). The same close-out folds
+them into `CONTEXT.md` + the glossary (Day order, Pin, Projection, Meeting checklist,
+Shutdown, Capacity, Workload; Mount calendar flags) and amends backend answers 02/03/06
+to point at parity 05 instead of staying open.
+
+Remaining before the ticket is treated as closed:
+- Re-check the two blockers: parity **04** (meeting-checklist day-lifecycle detail,
+breadcrumbs, auto-archive) and parity **07** (channel "personal" flag driving 2.4, and
+channel→calendar binding in 6.1).
+- Finalize acceptance criteria for issues **#20–#24** now that the contracts are settled.
+- Decide when the scheduling contract materializes as model/API work (calendar-planning
+release; bound by the epic tree #39–#41).

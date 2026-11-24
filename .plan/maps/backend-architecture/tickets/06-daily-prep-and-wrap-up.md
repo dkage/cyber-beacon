@@ -7,7 +7,16 @@ claimed_at: 2026-10-08T06:05:59Z
 
 # The daily prep and wrap-up flow
 
-**Superseded premise (2026-11-16, updated).** The answer's phrase “like Sunsama” for Pending-day pinning and Wrap-up-gated Bump is reversed: midnight carry-forward is now decided ([parity 13](../../sunsama-parity/tickets/13-baseline-reversals.md)). Shutdown is an optional review and does not gate rollover. The [audit](../../../../docs/research/sunsama/README.md) also finds workload review, imported meeting checklists and past-day progress breadcrumbs absent here; those remain open in [parity 04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md). The original developer-confirmed choice is recorded as history. Resolve parity 04 before building the full day-state contract.
+**Superseded premise (2026-11-16, updated).** The answer's phrase “like Sunsama” for
+Pending-day pinning and Wrap-up-gated Bump is reversed: midnight carry-forward is now
+decided ([parity 13](../../sunsama-parity/tickets/13-baseline-reversals.md)). Shutdown
+is an optional review and does not gate rollover. Work hours per weekday, shutdown time,
+capacity and the advisory workload/predicted-finish signal are now decided in
+[parity 05](../../sunsama-parity/tickets/05-capacity-projections-and-timeboxing.md)
+(Decisions 1–6) and belong to the scheduling contract, not the ritual. Imported meeting
+checklists and past-day progress breadcrumbs remain open in
+[parity 04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md). Resolve
+parity 04 before building the full day-state contract.
 
 ## Question
 
