@@ -134,9 +134,21 @@ def authorize_url(provider, state):
 
 def exchange(provider, code):
     try:
-        return _exchange(provider, code)
+        credentials, identity, label, scopes = _exchange(provider, code)
     except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
         raise ProviderError("Provider returned an unreadable response.") from exc
+    if (
+        not isinstance(credentials.get("access_token"), str)
+        or not credentials["access_token"]
+        or not isinstance(identity, str)
+        or not identity.strip()
+        or len(identity) > 255
+        or "\x00" in identity
+        or not isinstance(label, str)
+        or "\x00" in label
+    ):
+        raise ProviderError("Provider returned an unreadable response.")
+    return credentials, identity, label, scopes
 
 
 def _exchange(provider, code):
@@ -193,8 +205,10 @@ def _exchange(provider, code):
             "https://api.github.com/user",
             headers={"Authorization": "Bearer " + result["access_token"]},
         )
-        identity = str(account["id"])
-        return result, identity, account.get("name") or account["login"], []
+        identity = account["id"]
+        if type(identity) is not int or identity <= 0:
+            raise ProviderError("Provider returned an unreadable response.")
+        return result, str(identity), account.get("name") or account["login"], []
     data.update(client_id=cfg["client_id"], client_secret=cfg["client_secret"])
     result = http("POST", "https://oauth2.googleapis.com/token", data=data)
     if GOOGLE_SCOPE not in result.get("scope", "").split():

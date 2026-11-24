@@ -34,6 +34,27 @@ CALENDAR_CHECKPOINT_MAX_AGE = timedelta(hours=1)
 CALENDAR_PAGE_LIMIT = 50
 CALENDAR_FAILURE_PAUSE_THRESHOLD = 5
 
+IMPORT_COPY = {
+    "en": (
+        "Untitled record",
+        "Untitled issue",
+        "GitHub issue",
+        {"open": "open", "closed": "closed"},
+    ),
+    "pt-BR": (
+        "Registro sem título",
+        "Issue sem título",
+        "Issue do GitHub",
+        {"open": "aberta", "closed": "fechada"},
+    ),
+    "es": (
+        "Registro sin título",
+        "Incidencia sin título",
+        "Incidencia de GitHub",
+        {"open": "abierta", "closed": "cerrada"},
+    ),
+}
+
 
 def digest(value):
     return hashlib.sha256(value.encode()).hexdigest()
@@ -158,6 +179,9 @@ def import_record(user, mount, external_id, day, key):
         raise ValidationError(
             "Choose an active worksheet source Mount.", code="choose_worksheet_source"
         )
+    record_title, issue_title, issue_label, issue_states = IMPORT_COPY.get(
+        user.language, IMPORT_COPY["en"]
+    )
     if provider == "notion":
         raw = providers.page(mount.connection, external_id)
         if raw.get("parent", {}).get("data_source_id", "").replace(
@@ -167,7 +191,7 @@ def import_record(user, mount, external_id, day, key):
                 "This record does not belong to the selected data source.",
                 code="source_record_mismatch",
             )
-        title = providers.notion_title(raw)
+        title = providers.notion_title(raw, fallback=record_title)
         lines = []
         for name, value in raw.get("properties", {}).items():
             kind = value.get("type")
@@ -195,8 +219,9 @@ def import_record(user, mount, external_id, day, key):
                 "This issue does not belong to the selected repository.",
                 code="source_issue_mismatch",
             )
-        title = f"#{external_id} {raw.get('title') or 'Untitled'}"[:500]
-        lines = [f"GitHub issue #{external_id} · {raw.get('state', 'open')}"]
+        title = f"#{external_id} {raw.get('title') or issue_title}"[:500]
+        state = raw.get("state", "open")
+        lines = [f"{issue_label} #{external_id} · {issue_states.get(state, state)}"]
         if raw.get("body"):
             lines.append(raw["body"])
     with transaction.atomic():

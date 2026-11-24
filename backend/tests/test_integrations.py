@@ -154,18 +154,40 @@ def test_github_import_count_is_scoped_to_the_selected_repository(
     assert response.json()["results"][0]["imported_count"] == 0
 
 
-def test_oauth_callback_redirects_after_incomplete_provider_response(client, notion, monkeypatch):
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {},
+        {"access_token": "token", "workspace_id": None},
+        {"access_token": "token", "workspace_id": "example", "workspace_name": 3},
+    ],
+)
+def test_oauth_callback_redirects_after_incomplete_provider_response(
+    client, notion, monkeypatch, payload
+):
     from urllib.parse import parse_qs, urlsplit
 
     start = client.post("/api/v1/integrations/oauth/start/", {"provider": "notion"})
     state = parse_qs(urlsplit(start.json()["url"]).query)["state"][0]
-    monkeypatch.setattr(providers, "http", lambda *args, **kwargs: {})
+    monkeypatch.setattr(providers, "http", lambda *args, **kwargs: payload)
     result = client.get(
         "/api/v1/integrations/oauth/notion/callback/",
         {"state": state, "code": "returned-code"},
     )
     assert result.status_code == 302
     assert result["Location"] == "/connections?error=provider_error"
+
+
+def test_import_generates_missing_title_in_account_language(user, notion, monkeypatch):
+    user.language = "pt-BR"
+    user.save(update_fields=["language"])
+    monkeypatch.setattr(
+        providers,
+        "page",
+        lambda *args: {"parent": {"data_source_id": notion.external_id}},
+    )
+    task = services.import_record(user, notion, "source", None, uuid.uuid4())
+    assert task.title == "Registro sem título"
 
 
 def test_missing_provider_title_is_distinct_from_literal_title():
