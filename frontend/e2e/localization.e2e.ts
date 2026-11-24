@@ -51,6 +51,12 @@ test('persist the account language across browser sessions and a paired kiosk', 
 			'Esta solicitação de conexão expirou ou já foi usada. Comece de novo.'
 		);
 		await other.getByRole('button', { name: 'Sair', exact: true }).click();
+		await expect(other).toHaveURL(/login$/);
+		await other.goto('/api/v1/integrations/oauth/notion/callback/?state=expired');
+		await expect(other).toHaveURL(/login\?error=connection_session$/);
+		await expect(other.getByRole('alert')).toHaveText(
+			'Acesso negado ou sua sessão mudou. Entre novamente e tente outra vez.'
+		);
 		await other.getByLabel('E-mail', { exact: true }).fill('browser@example.test');
 		await other.getByLabel('Senha', { exact: true }).fill('wrong-password');
 		await other.getByRole('button', { name: 'Entrar', exact: true }).click();

@@ -23,7 +23,7 @@
 	let scale = $state(1);
 	let now = $state(Date.now());
 	let token = $state('');
-	let stopped = false;
+	const requests = new AbortController();
 	let timeout: ReturnType<typeof setTimeout> | undefined;
 	let failures = 0;
 	function remember(key: string, value: string | null) {
@@ -43,8 +43,10 @@
 			},
 			body: body === undefined ? undefined : JSON.stringify(body),
 			cache: 'no-store',
-			credentials: 'omit'
+			credentials: 'omit',
+			signal: requests.signal
 		});
+		requests.signal.throwIfAborted();
 		if (response.status === 401) {
 			token = '';
 			summary = null;
@@ -59,6 +61,7 @@
 	}
 	async function refreshSummary() {
 		const result = await request('summary/');
+		requests.signal.throwIfAborted();
 		if (!isKioskSummary(result)) throw new LocalizedError('invalidSummary');
 		summary = result;
 		setKioskLanguage(result.language);
@@ -66,12 +69,13 @@
 		stale = false;
 	}
 	async function refresh() {
-		if (stopped) return;
+		if (requests.signal.aborted) return;
 		try {
 			if (token) {
 				await refreshSummary();
 			} else if (!secret) {
 				const pairing = await request('pair/', {});
+				requests.signal.throwIfAborted();
 				if (
 					!isRecord(pairing) ||
 					typeof pairing.code !== 'string' ||
@@ -84,6 +88,7 @@
 			} else {
 				try {
 					const result = await request('pair/poll/', { secret } satisfies Schema['Poll']);
+					requests.signal.throwIfAborted();
 					if (isRecord(result) && typeof result.token === 'string' && result.token) {
 						token = result.token;
 						secret = '';
@@ -99,14 +104,16 @@
 					throw cause;
 				}
 			}
+			if (requests.signal.aborted) return;
 			failures = 0;
 			error = null;
 		} catch (cause) {
+			if (requests.signal.aborted) return;
 			failures += 1;
 			error = cause;
 			stale = !!summary;
 		}
-		if (!stopped)
+		if (!requests.signal.aborted)
 			timeout = setTimeout(
 				() => {
 					void refresh();
@@ -115,7 +122,6 @@
 			);
 	}
 	onMount(() => {
-		stopped = false;
 		setKioskLanguage(undefined);
 		try {
 			token = localStorage.getItem('beacon-device') ?? '';
@@ -140,7 +146,7 @@
 		}, 1000);
 		void refresh();
 		return () => {
-			stopped = true;
+			requests.abort();
 			clearInterval(tick);
 			clearTimeout(timeout);
 		};

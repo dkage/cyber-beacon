@@ -2,11 +2,13 @@
 	import { t } from '$lib/i18n';
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { clearSession, csrf, message, syncLanguage, write } from '$lib/api';
 	let email = $state('');
 	let password = $state('');
 	let pending = $state(false);
 	let error = $state<unknown>(null);
+	const sessionExpired = $derived(page.url.searchParams.get('error') === 'connection_session');
 	async function login(event: SubmitEvent) {
 		event.preventDefault();
 		if (pending) return;
@@ -47,9 +49,10 @@
 				required
 			/></label
 		>
-		{#if error}<p class="error" role="alert">{message(error, $t)}</p>{/if}<button
-			class="primary"
-			disabled={pending}>{pending ? $t('signingIn') : $t('signIn')}</button
+		{#if error || sessionExpired}<p class="error" role="alert">
+				{error ? message(error, $t) : $t('accessDenied')}
+			</p>{/if}<button class="primary" disabled={pending}
+			>{pending ? $t('signingIn') : $t('signIn')}</button
 		>
 	</form>
 	<p class="muted">{$t('accountSetup')}</p>

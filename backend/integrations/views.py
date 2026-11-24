@@ -5,7 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import Throttled, ValidationError
+from rest_framework.exceptions import NotAuthenticated, Throttled, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -47,6 +47,11 @@ class OAuthStart(APIView):
 
 class OAuthCallback(APIView):
     permission_classes = [IsAuthenticated]
+
+    def handle_exception(self, exc):
+        if isinstance(exc, NotAuthenticated):
+            return HttpResponseRedirect("/login?error=connection_session")
+        return super().handle_exception(exc)
 
     @extend_schema(exclude=True)
     def get(self, request, provider):

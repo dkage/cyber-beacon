@@ -92,3 +92,38 @@ test('discard an invalid cached summary and keep the last good summary after a b
 		JSON.stringify(validSummary)
 	);
 });
+
+test('leaving the kiosk cancels its pending refresh', async ({ page }) => {
+	await page.addInitScript(() => localStorage.setItem('beacon-device', 'browser-fixture'));
+	let started!: () => void;
+	const requestStarted = new Promise<void>((resolve) => (started = resolve));
+	let release!: () => void;
+	const held = new Promise<void>((resolve) => (release = resolve));
+	await page.route('**/api/v1/kiosk/summary/', async (route) => {
+		started();
+		await held;
+		await route.fulfill({ status: 401 });
+	});
+
+	await page.goto('/kiosk');
+	await requestStarted;
+	const cancelled = page.waitForEvent('requestfailed', {
+		predicate: (request) => new URL(request.url()).pathname === '/api/v1/kiosk/summary/',
+		timeout: 5000
+	});
+	try {
+		await page.evaluate(() => {
+			const link = document.createElement('a');
+			link.href = '/login';
+			document.body.append(link);
+			link.click();
+		});
+		await expect(page).toHaveURL(/login$/);
+		await cancelled;
+		expect(await page.evaluate(() => localStorage.getItem('beacon-device'))).toBe(
+			'browser-fixture'
+		);
+	} finally {
+		release();
+	}
+});
