@@ -1,3 +1,12 @@
+## [1.0.1](https://github.com/dkage/cyber-beacon/compare/v1.0.0...v1.0.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* **ci:** exclude the generated release changelog ([c4147ba](https://github.com/dkage/cyber-beacon/commit/c4147ba39cfb0839e78ec0f88741d5746f21d471)), closes [#63](https://github.com/dkage/cyber-beacon/issues/63) [#65](https://github.com/dkage/cyber-beacon/issues/65) [#70](https://github.com/dkage/cyber-beacon/issues/70)
+* **ci:** keep quality checks within their intended scope ([8ac9f12](https://github.com/dkage/cyber-beacon/commit/8ac9f12f2e21b6fd7306e65ff71afd92031a7a25)), closes [#63](https://github.com/dkage/cyber-beacon/issues/63) [#69](https://github.com/dkage/cyber-beacon/issues/69) [#70](https://github.com/dkage/cyber-beacon/issues/70)
+* **kiosk:** reject malformed day summaries ([52800d6](https://github.com/dkage/cyber-beacon/commit/52800d69ffab8afdcbfe08d19946a84920657db5)), closes [#65](https://github.com/dkage/cyber-beacon/issues/65)
+
 # 1.0.0 (2026-11-19)
 
 
