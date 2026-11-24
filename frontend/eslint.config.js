@@ -1,10 +1,8 @@
-// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
-
 import prettier from 'eslint-config-prettier';
 import path from 'node:path';
 import js from '@eslint/js';
 import svelte from 'eslint-plugin-svelte';
-import { defineConfig, includeIgnoreFile } from 'eslint/config';
+import { defineConfig, globalIgnores, includeIgnoreFile } from 'eslint/config';
 import globals from 'globals';
 import ts from 'typescript-eslint';
 
@@ -12,11 +10,9 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
+	globalIgnores(['src/lib/schema.d.ts']),
 	js.configs.recommended,
 	ts.configs.recommended,
-	svelte.configs.recommended,
-	prettier,
-	svelte.configs.prettier,
 	{
 		languageOptions: { globals: { ...globals.browser, ...globals.node } },
 		rules: {
@@ -26,18 +22,22 @@ export default defineConfig(
 		}
 	},
 	{
-		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
+		// Tooling outside the app TSConfig keeps the syntax-based preset above.
+		files: ['src/**/*.{ts,svelte}', 'vite.config.ts'],
+		extends: [ts.configs.recommendedTypeChecked],
 		languageOptions: {
 			parserOptions: {
-				projectService: true,
-				extraFileExtensions: ['.svelte'],
-				parser: ts.parser
+				projectService: { allowDefaultProject: ['src/service-worker.ts'] },
+				tsconfigRootDir: import.meta.dirname,
+				extraFileExtensions: ['.svelte']
 			}
 		}
 	},
+	svelte.configs.recommended,
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
-	}
+		files: ['**/*.svelte'],
+		languageOptions: { parserOptions: { parser: ts.parser } }
+	},
+	prettier,
+	svelte.configs.prettier
 );

@@ -1,3 +1,5 @@
+from typing import cast
+
 from rest_framework import serializers
 
 from .models import Task, TaskActivity, TimeEntry
@@ -14,10 +16,11 @@ class SourcePreviewSerializer(serializers.Serializer):
     provider = serializers.CharField(source="mount.connection.provider")
 
 
-class TaskSerializer(serializers.ModelSerializer):
-    source = SourcePreviewSerializer(read_only=True, allow_null=True)
+class TaskSerializer(serializers.ModelSerializer[Task]):
+    # DRF collects these declared fields before using Field.source and Field.parent.
+    source = SourcePreviewSerializer(read_only=True, allow_null=True)  # type: ignore[assignment]
     completed = serializers.BooleanField(write_only=True, required=False)
-    parent = serializers.PrimaryKeyRelatedField(
+    parent = serializers.PrimaryKeyRelatedField(  # type: ignore[assignment]
         queryset=Task.objects.none(), allow_null=True, required=False
     )
 
@@ -57,16 +60,17 @@ class TaskSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         request = self.context.get("request")
         if request and request.user.is_authenticated:
-            self.fields["parent"].queryset = Task.objects.filter(user=request.user, deleted_at=None)
+            parent = cast(serializers.PrimaryKeyRelatedField[Task], self.fields["parent"])
+            parent.queryset = Task.objects.filter(user=request.user, deleted_at=None)
 
 
-class ActivitySerializer(serializers.ModelSerializer):
+class ActivitySerializer(serializers.ModelSerializer[TaskActivity]):
     class Meta:
         model = TaskActivity
         fields = ["id", "kind", "occurred_at", "payload"]
 
 
-class TimeEntrySerializer(serializers.ModelSerializer):
+class TimeEntrySerializer(serializers.ModelSerializer[TimeEntry]):
     class Meta:
         model = TimeEntry
         fields = ["id", "task", "started_at", "ended_at"]
@@ -89,7 +93,8 @@ class OrderItemSerializer(serializers.Serializer):
 
 class ReorderSerializer(serializers.Serializer):
     date = serializers.DateField()
-    items = OrderItemSerializer(many=True, max_length=1000)
+    # DRF forwards max_length to its ListSerializer when many=True.
+    items = OrderItemSerializer(many=True, max_length=1000)  # type: ignore[call-arg]
 
 
 class StartTimerSerializer(serializers.Serializer):

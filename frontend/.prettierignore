@@ -5,6 +5,9 @@ yarn.lock
 bun.lock
 bun.lockb
 
+# Generated and committed by semantic-release
+/CHANGELOG.md
+
 # Miscellaneous
 /static/
 /drizzle/

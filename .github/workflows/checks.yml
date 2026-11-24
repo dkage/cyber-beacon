@@ -6,6 +6,34 @@ on:
 permissions:
   contents: read
 jobs:
+  api-compatibility:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.x"
+          cache: false
+      - name: Compare OpenAPI contract with the merge base
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: ./scripts/check-api-compatibility "$PR_BASE_SHA"
+  workflow-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.x"
+          cache: false
+      - run: ./scripts/lint-workflows
   phase-one:
     runs-on: ubuntu-latest
     services:
@@ -48,6 +76,9 @@ jobs:
           uv run ruff format --check .
           uv run ruff check ../scripts
           uv run ruff format --check ../scripts
+          uv run mypy
+          uv run deptry .
+          uv run pre-commit validate-config ../.pre-commit-config.yaml
           uv run python manage.py check
           uv run python manage.py collectstatic --noinput
           uv run pytest
@@ -65,6 +96,7 @@ jobs:
           git diff --exit-code -- ../backend/openapi.yaml src/lib/schema.d.ts
           bun run check
           bun run lint
+          bun run knip
           bun run test:unit --run
           bun run test:e2e
           bun run build-storybook

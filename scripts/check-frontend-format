@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+
+# Pre-commit passes paths relative to the root. Prettier resolves plugins and
+# ignores from the frontend project, so make those paths relative to it.
+cd frontend
+for file do
+  shift
+  set -- "$@" "${file#frontend/}"
+done
+exec bunx --no-install prettier --check --ignore-unknown -- "$@"

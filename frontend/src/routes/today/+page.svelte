@@ -331,7 +331,9 @@
 		{#if editing !== undefined}{#key editing?.id ?? 'new'}<TaskEditor
 					task={editing}
 					day={data.date}
-					onbusy={(busy) => (pending = busy)}
+					onbusy={(busy: boolean) => {
+						pending = busy;
+					}}
 					onsaved={async () => {
 						pending = true;
 						editing = undefined;

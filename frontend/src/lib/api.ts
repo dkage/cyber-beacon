@@ -28,8 +28,18 @@ export function clearSession() {
 export async function csrf(fetcher: typeof fetch = fetch): Promise<string> {
 	const response = await fetcher('/api/v1/csrf/', { credentials: 'same-origin' });
 	if (!response.ok) throw new ApiError(response.status, 'Could not initialize a secure session.');
-	csrfToken = (await response.json()).csrf_token;
-	if (!csrfToken) throw new Error('The server did not return a CSRF token.');
+	const value: unknown = await response.json();
+	csrfToken = undefined;
+	if (
+		!value ||
+		typeof value !== 'object' ||
+		!('csrf_token' in value) ||
+		typeof value.csrf_token !== 'string' ||
+		!value.csrf_token
+	) {
+		throw new Error('The server did not return a CSRF token.');
+	}
+	csrfToken = value.csrf_token;
 	return csrfToken;
 }
 export async function api<T>(
