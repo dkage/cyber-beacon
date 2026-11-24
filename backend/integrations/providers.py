@@ -133,6 +133,13 @@ def authorize_url(provider, state):
 
 
 def exchange(provider, code):
+    try:
+        return _exchange(provider, code)
+    except (AttributeError, KeyError, OverflowError, TypeError, ValueError) as exc:
+        raise ProviderError("Provider returned an unreadable response.") from exc
+
+
+def _exchange(provider, code):
     cfg = config(provider)
     data = {"grant_type": "authorization_code", "code": code, "redirect_uri": cfg["redirect_uri"]}
     if provider == "notion":
@@ -142,6 +149,8 @@ def exchange(provider, code):
             json=data,
             auth=(cfg["client_id"], cfg["client_secret"]),
         )
+        if not isinstance(result.get("access_token"), str) or not result["access_token"]:
+            raise ProviderError("Provider returned an unreadable response.")
         return (
             result,
             result["workspace_id"],
@@ -339,7 +348,7 @@ def request(connection, method, path, **kwargs):
         raise
 
 
-def notion_title(record):
+def notion_title(record, *, fallback="Untitled"):
     title = record.get("title", [])
     for value in record.get("properties", {}).values():
         if value.get("type") == "title":
@@ -349,7 +358,7 @@ def notion_title(record):
         "".join(part.get("plain_text", part.get("text", {}).get("content", "")) for part in title)[
             :500
         ]
-        or "Untitled"
+        or fallback
     )
 
 
@@ -367,7 +376,8 @@ def resources(connection, cursor="", query=""):
         result = request(connection, "POST", "search", json=body)
         return {
             "results": [
-                {"id": row["id"], "label": notion_title(row)} for row in result.get("results", [])
+                {"id": row["id"], "label": notion_title(row, fallback="")}
+                for row in result.get("results", [])
             ],
             "next_cursor": result.get("next_cursor"),
         }

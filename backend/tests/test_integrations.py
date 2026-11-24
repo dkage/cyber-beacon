@@ -154,6 +154,35 @@ def test_github_import_count_is_scoped_to_the_selected_repository(
     assert response.json()["results"][0]["imported_count"] == 0
 
 
+def test_oauth_callback_redirects_after_incomplete_provider_response(client, notion, monkeypatch):
+    from urllib.parse import parse_qs, urlsplit
+
+    start = client.post("/api/v1/integrations/oauth/start/", {"provider": "notion"})
+    state = parse_qs(urlsplit(start.json()["url"]).query)["state"][0]
+    monkeypatch.setattr(providers, "http", lambda *args, **kwargs: {})
+    result = client.get(
+        "/api/v1/integrations/oauth/notion/callback/",
+        {"state": state, "code": "returned-code"},
+    )
+    assert result.status_code == 302
+    assert result["Location"] == "/connections?error=provider_error"
+
+
+def test_missing_provider_title_is_distinct_from_literal_title():
+    assert services.event_values({})["title"] == ""
+    assert (
+        services.event_values(
+            {"isAllDay": False, "start": {"dateTime": ""}, "end": {"dateTime": ""}}
+        )["title"]
+        == ""
+    )
+    assert services.event_values({"summary": "Untitled meeting"})["title"] == "Untitled meeting"
+    assert providers.notion_title({}, fallback="") == ""
+    assert (
+        providers.notion_title({"title": [{"plain_text": "Untitled"}]}, fallback="") == "Untitled"
+    )
+
+
 def test_oauth_state_is_session_bound_expiring_and_one_use(user, notion, monkeypatch):
     from django.contrib.sessions.backends.db import SessionStore
 

@@ -172,9 +172,13 @@ class MountViewSet(viewsets.GenericViewSet):
                         "id": str(row["id"])
                         if mount.connection.provider == "notion"
                         else str(row["number"]),
-                        "title": providers.notion_title(row)
-                        if mount.connection.provider == "notion"
-                        else f"#{row['number']} {row.get('title') or 'Untitled'}",
+                        "title": (
+                            providers.notion_title(row, fallback="")
+                            if mount.connection.provider == "notion"
+                            else f"#{row['number']} {row['title']}"
+                            if row.get("title")
+                            else ""
+                        ),
                         "url": row.get("url")
                         if mount.connection.provider == "notion"
                         else row.get("html_url", ""),

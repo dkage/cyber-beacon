@@ -211,7 +211,7 @@
 								? clock(event.starts_at, summary.timezone, $kioskLanguage)
 								: $t('allDay')}</span
 						>
-						<h2>{event.title}</h2>
+						<h2>{event.title || $t('untitledMeeting')}</h2>
 					</article>{/each}
 				{#each summary.calendars as calendar (calendar.id)}<p
 						class="small"

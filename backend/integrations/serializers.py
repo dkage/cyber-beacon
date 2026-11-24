@@ -43,7 +43,7 @@ class BrowseQuerySerializer(serializers.Serializer):
 
 class ResourceItemSerializer(serializers.Serializer):
     id = serializers.CharField()
-    label = serializers.CharField()
+    label = serializers.CharField(allow_blank=True)
 
 
 class ResourcePageSerializer(serializers.Serializer):
@@ -53,7 +53,7 @@ class ResourcePageSerializer(serializers.Serializer):
 
 class BrowseItemSerializer(serializers.Serializer):
     id = serializers.CharField()
-    title = serializers.CharField()
+    title = serializers.CharField(allow_blank=True)
     url = serializers.CharField(allow_blank=True)
     imported_count = serializers.IntegerField(min_value=0)
 
@@ -65,7 +65,7 @@ class BrowsePageSerializer(serializers.Serializer):
 
 class CreateMountSerializer(serializers.Serializer):
     external_id = serializers.CharField(max_length=255)
-    label = serializers.CharField(max_length=255)
+    label = serializers.CharField(max_length=255, allow_blank=True)
 
 
 class ImportSerializer(serializers.Serializer):

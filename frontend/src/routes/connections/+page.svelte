@@ -4,7 +4,7 @@
 	import { SvelteMap } from 'svelte/reactivity';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { language, t } from '$lib/i18n';
+	import { language, t, type Translator } from '$lib/i18n';
 	import {
 		api,
 		ApiError,
@@ -111,6 +111,14 @@
 			candidates = { page: result, query };
 		}
 	}
+	function candidateTitle(candidate: Schema['BrowseItem'], translate: Translator) {
+		return (
+			candidate.title ||
+			(selectedConnection?.provider === 'github'
+				? translate('untitledIssue', { id: candidate.id })
+				: translate('untitledRecord'))
+		);
+	}
 	async function importCandidate(candidate: Schema['BrowseItem']) {
 		if (!selectedMount) return;
 		const identity = `${selectedMount.id}:${candidate.id}:${day}`;
@@ -123,7 +131,7 @@
 		});
 		importKeys.delete(identity);
 		candidate.imported_count += 1;
-		notice = $t('importedWorksheet', { title: candidate.title });
+		notice = $t('importedWorksheet', { title: candidateTitle(candidate, $t) });
 	}
 </script>
 
@@ -199,7 +207,7 @@
 				>
 			</div>
 			{#each connection.mounts as mount (mount.id)}<article class="mount">
-					<h3>{mount.label}</h3>
+					<h3>{mount.label || $t('untitledResource')}</h3>
 					<p class="muted small">
 						{mount.enabled ? $t('enabled') : $t('paused')} · {mount.last_error
 							? providerStatusMessage(mount.last_error, $t)
@@ -263,7 +271,7 @@
 			</p>{/if}
 		<ul class="resource-list">
 			{#each resources?.page.results ?? [] as resource (resource.id)}<li>
-					<span>{resource.label}</span><button
+					<span>{resource.label || $t('untitledResource')}</span><button
 						disabled={pending}
 						onclick={() =>
 							action(async () => {
@@ -289,7 +297,7 @@
 		<div class="section-heading">
 			<div>
 				<span class="eyebrow">{$t('sourceBrowser')}</span>
-				<h2>{selectedMount.label}</h2>
+				<h2>{selectedMount.label || $t('untitledResource')}</h2>
 			</div>
 			<label>{$t('importToDay')}<input type="date" bind:value={day} /></label>
 		</div>
@@ -314,7 +322,7 @@
 		<ul class="resource-list">
 			{#each candidates?.page.results ?? [] as candidate (candidate.id)}<li>
 					<div>
-						<strong>{candidate.title}</strong>
+						<strong>{candidateTitle(candidate, $t)}</strong>
 						<p class="muted small">
 							{candidate.imported_count
 								? $t('importAgain', { count: candidate.imported_count })

@@ -240,7 +240,7 @@ def event_values(raw, timezone_name=None):
                 return parsed.astimezone(target_timezone).date()
 
             return {
-                "title": (raw.get("subject") or "Untitled meeting")[:500],
+                "title": (raw.get("subject") or "")[:500],
                 "starts_at": None,
                 "ends_at": None,
                 "start_date": local_date(start_value),
@@ -251,7 +251,7 @@ def event_values(raw, timezone_name=None):
                 "url": raw.get("webLink", "")[:2000],
             }
         return {
-            "title": (raw.get("subject") or "Untitled meeting")[:500],
+            "title": (raw.get("subject") or "")[:500],
             "starts_at": parse_datetime(start.get("dateTime")),
             "ends_at": parse_datetime(end.get("dateTime")),
             "start_date": None,
@@ -265,7 +265,7 @@ def event_values(raw, timezone_name=None):
         for person in raw.get("attendees", [])
     )
     return {
-        "title": raw.get("summary", "Untitled meeting")[:500],
+        "title": (raw.get("summary") or "")[:500],
         "starts_at": parse_datetime(start["dateTime"]) if "dateTime" in start else None,
         "ends_at": parse_datetime(end["dateTime"]) if "dateTime" in end else None,
         "start_date": parse_date(start["date"]) if "date" in start else None,

@@ -295,7 +295,7 @@
 									clock(event.ends_at!, data.timezone, $language)
 								: $t('allDay')}</span
 						>
-						<h3>{event.title}</h3>
+						<h3>{event.title || $t('untitledMeeting')}</h3>
 						<small
 							>{event.blocking && event.starts_at
 								? $t('blocksTime')
