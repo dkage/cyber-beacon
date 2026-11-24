@@ -46,3 +46,44 @@ The developer authorized autonomous implementation of the entire First usable da
 ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
 Broader release/parity questions above remain open. Verification and any limitations
 are recorded with the implementation; the packaging proof is not claimed in advance.
+
+## Resolved so far (2026-11-18) — Decision 1: daily ordering
+
+Worked through with the developer one decision at a time. Adopted positions are
+recorded here and still need folding into `CONTEXT.md` and the glossary when the full
+decision set for this ticket settles. Dependencies on tickets 04 (day lifecycle) and
+07 (channels/priorities, personal-work exclusion) must be re-checked at close.
+
+- **1.1 Who sets order:** Blend — per-day, per-user server-persisted order, freely
+draggable; optional pins that survive re-sort; **auto-arrange is an explicit user
+action**, never silent background re-sort. New days: carry prior order; auto-suggest
+shown but applied only on accept. (Order of the day is a row-level concept as in Phase 1.)
+- **1.2 Special-task precedence:** running/started task is always "next" for projection
+(its row is not moved), fixed clock-time tasks anchor like meetings (nothing placed
+over them, one gesture un-anchors), pinned tasks win, then others by estimate-desc and
+priority. Auto-sort precedence: running > fixed > pins > estimate-desc > priority.
+- **1.3 Concurrency:** reuse the Phase-1 row-lock + versioned whole-day reorder as the
+sole ordering write path (auto-sort, midnight sweep, import all route through it);
+record order changes as semantic Activity (per-day, per-user).
+- **1.4 Where order lives:** per-day, per-user, server-persisted. Carry-forward places
+unfinished work at top by default in original relative order, with a bottom-placement
+setting; consecutive-day badge derived from Activity, not stored.
+
+## Resolved so far (2026-11-18) — Decision 2: capacity
+
+- **2.1 Work window:** per-weekday work hours + optional shutdown time + one-day
+overrides + whole-day unavailable flags + optional channel overrides. Generalize Phase
+1's single window to per-weekday. Shutdown is an informational/hard-scheduling boundary
+that never gates carry-forward (consistent with the midnight rollover baseline, parity
+13). Channel override wiring depends on decision 7.
+- **2.2 Workload threshold & predicted finish:** derive predicted-finish by walking
+committed sessions weighted, in current order; show finish vs shutdown. Advisory, never
+blocking. Workload threshold = planned work vs window (minus meetings); personal work
+excluded. Feeds auto-schedule overcommit choices (decision 5). No fudge factors in v1.
+- **2.3 Missing estimates:** projection/finish-time use a configurable default duration
+(default 30m; 15/30/45/60 options); always show "+ N unestimated" separately. Strict
+over-capacity threshold uses real estimates only; projected finish uses real + default.
+- **2.4 Personal vs work capacity:** personal/private is excluded from work-capacity
+arithmetic and workload thresholds but still occupies calendar time and constrains
+scheduling. Tagging source = channel/calendar "personal" flag (decisions 6/7). Actual /
+completed time is always real and unaffected.
