@@ -2,4 +2,14 @@
 set -eu
 
 cd "$(git rev-parse --show-toplevel)"
+if [ "${1:-}" = --if-available ]; then
+  shift
+  if ! command -v go >/dev/null 2>&1; then
+    if command -v actionlint >/dev/null 2>&1; then
+      exec actionlint "$@"
+    fi
+    printf '%s\n' 'Skipping local workflow lint (Go and actionlint are unavailable). CI still checks workflows.'
+    exit 0
+  fi
+fi
 exec go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 "$@"

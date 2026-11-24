@@ -166,8 +166,8 @@ It runs the pinned actionlint version against all GitHub Actions workflows.
 Actionlint also checks embedded scripts when ShellCheck or Pyflakes is installed.
 
 The shared hook checks staged Python files with Ruff, supported staged frontend
-files with Prettier, and staged GitHub Actions workflows with actionlint. The hook
-runs in check mode. The GitHub Checks workflow runs the whole-project checks,
+files with Prettier, and staged GitHub Actions workflows when Go or actionlint is
+available. The hook runs in check mode. The GitHub Checks workflow runs the whole-project checks,
 including type and dependency analysis, API compatibility and tests.
 
 With Go installed, run `./scripts/check-api-compatibility origin/master` from the root.

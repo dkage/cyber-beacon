@@ -23,6 +23,6 @@ repos:
         types: [text]
       - id: actionlint
         name: GitHub Actions workflow lint
-        entry: ./scripts/lint-workflows
+        entry: ./scripts/lint-workflows --if-available
         language: unsupported
         files: ^\.github/workflows/[^/]+\.ya?ml$
