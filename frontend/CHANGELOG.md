@@ -1,3 +1,19 @@
+# [1.1.0](https://github.com/dkage/cyber-beacon/compare/v1.0.1...v1.1.0) (2026-11-24)
+
+
+### Bug Fixes
+
+* **i18n:** handle expired sessions and obsolete kiosk reads ([710ce1b](https://github.com/dkage/cyber-beacon/commit/710ce1ba5e454796a72d0b711a222ca86ab13159)), closes [#37](https://github.com/dkage/cyber-beacon/issues/37)
+* **i18n:** localize callback and kiosk fallback messages ([4ea70f6](https://github.com/dkage/cyber-beacon/commit/4ea70f6bf120ecb098dbeac1a4d2bc456ee874c3)), closes [#37](https://github.com/dkage/cyber-beacon/issues/37)
+* **i18n:** translate untitled provider items ([690c2fd](https://github.com/dkage/cyber-beacon/commit/690c2fdbf304841c5046ce318ff50cbcdd18e791)), closes [#37](https://github.com/dkage/cyber-beacon/issues/37)
+* **integrations:** validate exchange data and localize imports ([ce2dda4](https://github.com/dkage/cyber-beacon/commit/ce2dda467732e5cda1fb309c938c0251ff4873e6)), closes [#37](https://github.com/dkage/cyber-beacon/issues/37)
+
+
+### Features
+
+* **api:** persist the account language preference ([388803e](https://github.com/dkage/cyber-beacon/commit/388803e4c84a52f1208bf736a2ae5c6499765332)), closes [#37](https://github.com/dkage/cyber-beacon/issues/37)
+* **web:** localize the planner and paired kiosk ([88b55c4](https://github.com/dkage/cyber-beacon/commit/88b55c49afc4d7aa8b9dd79931afaf7ed01ab4e5)), closes [#37](https://github.com/dkage/cyber-beacon/issues/37)
+
 ## [1.0.1](https://github.com/dkage/cyber-beacon/compare/v1.0.0...v1.0.1) (2026-11-24)
 
 
