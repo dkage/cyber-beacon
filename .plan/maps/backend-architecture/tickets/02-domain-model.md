@@ -4,7 +4,19 @@ type: grilling
 
 # The domain model: do-date, due-date, and what a Task is
 
-**Reference reconciliation (2026-11-16, updated).** This answer is retained as the historical decision. Explicit import and local worksheets are now decided ([parity 13](../../sunsama-parity/tickets/13-baseline-reversals.md)); the earlier automatic projection and mirrored title/due-date ownership are superseded. Meeting checklist representations, daily time allocations, projections and timers remain open in [parity 04/05/06](../../sunsama-parity/map.md). Sunsama's start date translates to our **Do date**, not our Start date. Amend the answer and glossary with explicit approval before first affected migrations.
+**Reference reconciliation (2026-11-16, updated).** This answer is retained as the
+historical decision. Explicit import and local worksheets are now decided
+([parity 13](../../sunsama-parity/tickets/13-baseline-reversals.md)); the earlier
+automatic projection and mirrored title/due-date ownership are superseded. Capacity,
+per-day order/pins, projections, pin-to-commit, auto-schedule and calendar routing are
+now decided in
+[parity 05](../../sunsama-parity/tickets/05-capacity-projections-and-timeboxing.md)
+(Decisions 1–6): a projection is a derived read-model, a working session is a committed
+Time block, and a meeting checklist is a read-model, never a Task. Day-lifecycle detail
+remains in [parity 04](../../sunsama-parity/tickets/04-day-lifecycle-and-meetings.md)
+and timer rules in [parity 06](../../sunsama-parity/tickets/06-time-entries-and-focus-state.md).
+Sunsama's start date translates to our **Do date**, not our Start date. Amend the answer
+and glossary with explicit approval before first affected migrations.
 
 ## Question
 

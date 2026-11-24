@@ -4,8 +4,10 @@ Full definitions and `_Avoid_` synonyms are in [`CONTEXT.md`](../../CONTEXT.md).
 these words in models, routes, issues and commits.
 
 **Reference baseline:** explicit import, local worksheets, local completion and midnight
-carry-forward are decided (parity ticket 13). Meeting checklists, calendar routing,
-capacity/projections, recurrence, channels and weekly objectives remain open in the
+carry-forward are decided (parity ticket 13). Capacity, ordered work, projections,
+pin-to-commit, auto-schedule and calendar routing are decided (parity ticket 05,
+Decisions 1–6); meeting checklist shape is decided there, day-lifecycle detail in 04.
+Recurrence, channels, weekly objectives, AI boundaries remain open in the
 [parity map](../../.plan/maps/sunsama-parity/map.md). Sunsama's start date means our
 **Do date**. See [reference translation](./sunsama-reference.md).
 
@@ -17,6 +19,8 @@ capacity/projections, recurrence, channels and weekly objectives remain open in 
 | **Subtask** | A Task with a parent. Otherwise fully independent, with its own dates | child task, checklist item |
 | **Priority** | Your own ordering. Upstream priority is consulted only when you have none | severity, urgency |
 | **Backlog** | Every Task with no do date. A derived view, not a place | inbox, someday list |
+| **Day order** | The per-day, per-user sequence of Tasks on a day, persisted server-side. The projection walks it in order; auto-arrange is always explicit | queue, sort order |
+| **Pin** | Locking a Task's position in the day order; wins over every automatic ordering rule | locked, frozen |
 | **Attachment** | A file you added to a Task or Calendar event. Never sent upstream | upload, media |
 | **Estimate** | Your guess in minutes. Unrelated to upstream figures | story points, effort |
 
@@ -29,7 +33,9 @@ capacity/projections, recurrence, channels and weekly objectives remain open in 
 | **Start date** | Earliest day the Task is actionable | defer date |
 | **Time block** | A span of clock time you committed. May have no Task | slot, appointment |
 | **Time entry** | Time actually spent. Planned is Time block, actual is Time entry | session, log |
-| **Calendar event** | A meeting from a connected calendar. Never a Task | meeting, booking |
+| **Projection** | Deterministic, local-only preview of where ordered remaining work would land around meetings/hours. Derived, never stored as a Time block, never commits itself | forecast, auto-plan |
+| **Meeting checklist** | Local read-model of a Calendar event on the day's list: contributes to workload, can auto-complete (paused while a timer runs), removing it never deletes the event. Never a Task, no merge/real subtasks | imported meeting, event task |
+| **Calendar event** | A meeting from a connected calendar. Never a Task; appears on a day only via a Meeting checklist read-model | meeting, booking |
 
 All Task dates are **local calendar dates** (no time of day). Time blocks, Time entries and timed Calendar events hold instants.
 
@@ -39,7 +45,7 @@ All Task dates are **local calendar dates** (no time of day). Time blocks, Time 
 |---|---|---|
 | **Provider** | A kind of service we can talk to (Google Calendar, Notion, Telegram) | integration, adapter |
 | **Connection** | One authorised link to one account at one Provider. This is "the integration" you own | integration, account |
-| **Mount** | One remote resource under a Connection: one calendar, one Notion data source, one Obsidian directory. Holds mapping, cursor, freshness | binding, feed, sync target |
+| **Mount** | One remote resource under a Connection: one calendar, one Notion data source, one Obsidian directory. Holds mapping, cursor, freshness. Calendars carry four independent flags: enabled, visible, importable, scheduling-blocking | binding, feed, sync target |
 | **Source** | The upstream record a Task was imported from, plus its Connection, identity and last raw payload. No Source means you created it | origin, external task |
 | **Worksheet** | A Task imported from a remote record; a personal copy whose local fields are yours | mirror, projection |
 | **Snapshot** | Latest count and short list for a Mount, so widgets never call a provider. Shown with `last_succeeded_at`. Latest only | cache, widget data |
@@ -62,6 +68,9 @@ One Google Connection can have several Mounts.
 | **Daily prep** | Morning ritual: settle yesterday, assign do dates, place Time blocks. **Missed** if unresolved past `prep_cutoff` | planning session |
 | **Wrap-up** | Evening ritual: review the day, write the journal. **Resolved** when completed or skipped. Optional; does not gate carry-forward | review, retro |
 | **Carry-forward** | System-only: an uncompleted Task moves to the next day at midnight, and the miss is recorded. A deliberate move is a **reschedule** | bump, rollover |
+| **Shutdown** | Per-day configurable moment when work ends. Informational scheduling boundary — nothing past it without explicit overtime — never gates carry-forward | end of day, cutoff |
+| **Capacity** | Available work minutes on a day: work window minus the union of blocking meetings, floored at zero. Personal/private and non-blocking calendars don't consume it | free time, availability |
+| **Workload** | Planned work vs capacity: predicted finish (ordered committed sessions) and advisory threshold warning when the plan exceeds the window. Advisory only | overbooked, busy |
 | **Activity** | Semantic history of a Task, written as things happen ("carried forward", not "column changed") | audit log, changelog |
 
 Carry-forward happens at midnight, not gated by the wrap-up (parity ticket 13).

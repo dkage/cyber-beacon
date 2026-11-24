@@ -7,7 +7,20 @@ claimed_at: 2026-08-29T20:41:16Z
 
 # The integration provider abstraction
 
-**Reference reconciliation (2026-11-16, updated).** Keep the shared engine, rate-limited transport, credential encryption and Connection/Mount ownership. They are our architecture, not discovered Sunsama internals. Explicit import, local worksheets and local completion are decided ([parity 13](../../sunsama-parity/tickets/13-baseline-reversals.md)); the mirrors flag and generic resolved→complete are superseded. The [provider matrix](../../../../docs/research/sunsama/integration-semantics.md) still exposes copy-on-import vs live fields, remote-preview commands, scoped automations, action idempotency and per-channel calendar destinations. Resolve [parity 02](../../sunsama-parity/tickets/02-source-admission-and-worksheets.md), [03](../../sunsama-parity/tickets/03-provider-sync-and-actions.md) and [05](../../sunsama-parity/tickets/05-capacity-projections-and-timeboxing.md) before treating this interface as complete.
+**Reference reconciliation (2026-11-16, updated).** Keep the shared engine, rate-limited
+transport, credential encryption and Connection/Mount ownership. They are our
+architecture, not discovered Sunsama internals. Explicit import, local worksheets and
+local completion are decided ([parity 13](../../sunsama-parity/tickets/13-baseline-reversals.md));
+the mirrors flag and generic resolved→complete are superseded. Calendar routing,
+per-calendar flags and the channel→default→internal target chain are now decided in
+[parity 05](../../sunsama-parity/tickets/05-capacity-projections-and-timeboxing.md)
+(Decisions 1–6), superseding the single-publishing-Mount premise. Source admission and
+the per-field/action matrix remain in
+[parity 02](../../sunsama-parity/tickets/02-source-admission-and-worksheets.md) and
+[03](../../sunsama-parity/tickets/03-provider-sync-and-actions.md); channel-linkage
+wiring depends on
+[parity 07](../../sunsama-parity/tickets/07-channels-priorities-and-weekly-objectives.md).
+Resolve those before treating this interface as complete.
 
 ## Question
 

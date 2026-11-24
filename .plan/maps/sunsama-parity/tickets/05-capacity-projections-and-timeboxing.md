@@ -46,3 +46,141 @@ The developer authorized autonomous implementation of the entire First usable da
 ticket's Phase 1 slice and supersedes conflicting historical premises for that slice.
 Broader release/parity questions above remain open. Verification and any limitations
 are recorded with the implementation; the packaging proof is not claimed in advance.
+
+## Resolved so far (2026-11-18) — Decision 1: daily ordering
+
+Worked through with the developer one decision at a time. Adopted positions are
+recorded here and still need folding into `CONTEXT.md` and the glossary when the full
+decision set for this ticket settles. Dependencies on tickets 04 (day lifecycle) and
+07 (channels/priorities, personal-work exclusion) must be re-checked at close.
+
+- **1.1 Who sets order:** Blend — per-day, per-user server-persisted order, freely
+draggable; optional pins that survive re-sort; **auto-arrange is an explicit user
+action**, never silent background re-sort. New days: carry prior order; auto-suggest
+shown but applied only on accept. (Order of the day is a row-level concept as in Phase 1.)
+- **1.2 Special-task precedence:** running/started task is always "next" for projection
+(its row is not moved), fixed clock-time tasks anchor like meetings (nothing placed
+over them, one gesture un-anchors), pinned tasks win, then others by estimate-desc and
+priority. Auto-sort precedence: running > fixed > pins > estimate-desc > priority.
+- **1.3 Concurrency:** reuse the Phase-1 row-lock + versioned whole-day reorder as the
+sole ordering write path (auto-sort, midnight sweep, import all route through it);
+record order changes as semantic Activity (per-day, per-user).
+- **1.4 Where order lives:** per-day, per-user, server-persisted. Carry-forward places
+unfinished work at top by default in original relative order, with a bottom-placement
+setting; consecutive-day badge derived from Activity, not stored.
+
+## Resolved so far (2026-11-18) — Decision 2: capacity
+
+- **2.1 Work window:** per-weekday work hours + optional shutdown time + one-day
+overrides + whole-day unavailable flags + optional channel overrides. Generalize Phase
+1's single window to per-weekday. Shutdown is an informational/hard-scheduling boundary
+that never gates carry-forward (consistent with the midnight rollover baseline, parity
+13). Channel override wiring depends on decision 7.
+- **2.2 Workload threshold & predicted finish:** derive predicted-finish by walking
+committed sessions weighted, in current order; show finish vs shutdown. Advisory, never
+blocking. Workload threshold = planned work vs window (minus meetings); personal work
+excluded. Feeds auto-schedule overcommit choices (decision 5). No fudge factors in v1.
+- **2.3 Missing estimates:** projection/finish-time use a configurable default duration
+(default 30m; 15/30/45/60 options); always show "+ N unestimated" separately. Strict
+over-capacity threshold uses real estimates only; projected finish uses real + default.
+- **2.4 Personal vs work capacity:** personal/private is excluded from work-capacity
+arithmetic and workload thresholds but still occupies calendar time and constrains
+scheduling. Tagging source = channel/calendar "personal" flag (decisions 6/7). Actual /
+completed time is always real and unaffected.
+
+## Resolved so far (2026-11-18) — Decision 3: projections vs committed blocks
+
+- **3.1 Projection is a derived read-model, not a stored entity.** Computed from
+committed inputs (order, remaining estimates, work hours, blocking meetings) with a
+deterministic algorithm, exposed via a read endpoint, labeled preview. No projection
+row is persisted as a TimeBlock; a cached snapshot for kiosk freshness is never a
+committed block.
+- **3.2 Deterministic recipe:** walk ordered remaining work (real estimate minus
+tracked actual), fit into work window minus blocking meetings, never past shutdown.
+Parallel tasks share projected intervals; Focused breaks the sequence; running timer
+first; fixed clock times anchor (per Decision 1).
+- **3.3 Explicit commit only.** Viewing/ordering/projecting writes nothing. Only pin /
+commit / drag creates a working session (TimeBlock) on its calendar target. Per audit
+(F053/F054): projection never creates an external event and never commits by itself.
+- **3.4 Freshness:** recompute on authoritative server state, debounced per user
+interaction; commit re-reads the current projection atomically before locking (never
+pin a stale preview); kiosk shows last-good projection with computed-at freshness.
+
+## Resolved so far (2026-11-18) — Decision 4: pin-to-commit & undo
+
+- **4.1 Commit mechanics:** commit creates one working session per pinned projection
+slot; many sessions per task across days allowed; session resize updates planned time
+and re-projects the remainder, never actuals. Plain pin uses the projection; a
+modifier key = one-block/no-split override. Targets resolve per Decision 6 (internal
+default -> channel -> tasks calendar).
+- **4.2 Intended plan preserved:** every commit/resize/move/undo writes a semantic
+Activity record of the intended plan; actuals (TimeEntry) never modify or replace
+planned session history. Planned-vs-actual reporting reads both streams; a
+rearrangement is a first-class event (who/what/when/from->to).
+- **4.3 Undo contract:** version-checked inverse patch through the Phase-1 row-lock /
+precondition write path; atomic per change-set; scoped so it never reverts unrelated
+edits; distinct "undo whole run" command for runs; conflict with newer local edits ->
+surface and ask, never clobber.
+- **4.4 Boundary invariants:** commit never writes remotely by default; never
+moves/edits meetings; never places sessions in the past; ambiguous projections route
+to explicit choices (Decision 5), never silent decisions.
+
+## Resolved so far (2026-11-18) — Decision 5: auto-schedule
+
+- **5.1 Finding room:** configurable gap buffer (None/5/10/15m); split-at-most-3 with a
+one-block (shift-style) override; <=1h tasks split only when necessary; configurable
+default duration from 2.3 (default 30m; 15/30/45/60). Server-owned, per-user
+configurable, deterministic, asserted in scheduling tests.
+- **5.2 No-past rule:** never place sessions in absolute or stepped-over past time;
+respect work window, shutdown, unavailable days. Overtime (5.3) is the only path past
+shutdown, always explicit.
+- **5.3 Overcommit choices:** on no-room offer overtime / next-day-with-room (search
+<=1 month) / defer / cancel as explicit choices; never auto-pick. Default dialog to
+defer with a visible note. Advisory capacity (2.2) feeds but never overrides.
+- **5.4 Collision & early-finish rescheduling:** only owned sessions, never meetings /
+past days. Early-finish contraction pulls contiguous work forward until a >=30m gap.
+Both opt-in, separate toggles (collision-reschedule on, early-finish pull-forward on),
+each reversible by one version-checked undo, original plan preserved in Activity
+(4.2); shift-style gesture skips the cascade once.
+- **5.5 Deterministic change-set:** auto-schedule = deterministic scheduler returning a
+previewable change-set; apply is atomic through the versioned write path; whole-run
+undo as in 4.3. Non-AI; testable against the ticket acceptance examples.
+
+## Resolved so far (2026-11-18) — Decision 6: calendar targets & routing
+
+- **6.1 Target precedence:** channel-linked calendar -> default tasks calendar ->
+internal private calendar; separate per-calendar default for new standalone events.
+Replace the phase-one single-publish assumption; each hop per-user configurable; the
+internal fallback always exists (#20).
+- **6.2 Per-calendar independent flags:** enabled / visible / importable /
+scheduling-blocking are four independent booleans. Replaces the single "Mount enabled"
+concept; the read/sync engine reads whatever is enabled, and each flag gates only its
+own behavior. Defaults: enabled+visible+importable on connect; blocking = non-blocking
+default with per-event override.
+- **6.3 Publish policy:** sessions busy by default (configurable), no reminders by
+default, private on personal/private channels. Invariant: local non-blocking/visibility
+flags never patch remote free/busy or visibility; per-event override marks a session
+free/busy/private without changing calendar policy.
+- **6.4 Meetings as checklist work:** linked checklist read-model (never a Task);
+filterable import, auto-completion (default always) paused while a timer runs,
+remove-without-delete with occurrence-level suppression, no merge/real-subtask
+semantics. Fulfills parity 04 meeting-checklist question with the audit shape.
+- **6.5 Route summary:** projection never writes; sessions go through the 6.1 chain;
+new standalone events use their own default; meeting checklists are local read-models
+of remote events. Canonical address table for API/kiosk/agent-host.
+
+## Decision set complete (2026-11-18)
+
+Decisions 1–6 are recorded above and mirrored in
+[issue #71](https://github.com/dkage/cyber-beacon/issues/71). The same close-out folds
+them into `CONTEXT.md` + the glossary (Day order, Pin, Projection, Meeting checklist,
+Shutdown, Capacity, Workload; Mount calendar flags) and amends backend answers 02/03/06
+to point at parity 05 instead of staying open.
+
+Remaining before the ticket is treated as closed:
+- Re-check the two blockers: parity **04** (meeting-checklist day-lifecycle detail,
+breadcrumbs, auto-archive) and parity **07** (channel "personal" flag driving 2.4, and
+channel→calendar binding in 6.1).
+- Finalize acceptance criteria for issues **#20–#24** now that the contracts are settled.
+- Decide when the scheduling contract materializes as model/API work (calendar-planning
+release; bound by the epic tree #39–#41).

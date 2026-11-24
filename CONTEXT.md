@@ -23,9 +23,12 @@ the earlier model are decided and reflected below:
   is an optional review and does not gate rollover.
 
 Sunsama's “start date” means our **Do date**, not our earliest-actionable **Start date**.
-Remaining decisions (meeting checklists, calendar routing, capacity/projections, recurrence,
-channels, weekly objectives, AI boundaries) stay open in the parity map and must not be
-assumed settled. Update this document and its glossary index together when they resolve.
+Capacity, ordered work, projections, pin-to-commit, auto-schedule and calendar routing are
+decided in [parity ticket 05](.plan/maps/sunsama-parity/tickets/05-capacity-projections-and-timeboxing.md)
+(Decisions 1–6). Meeting checklist representations are decided in shape there, with
+day-lifecycle detail owned by parity 04. Still open: recurrence, channels, weekly
+objectives, AI boundaries and the per-field/action matrix. Update this document and its
+glossary index together when they resolve.
 
 ## Language
 
@@ -53,6 +56,17 @@ _Avoid_: Severity, urgency, importance.
 Every Task you have not committed to a day — that is, every Task with no do date.
 It is a derived view, not a place a Task is moved into.
 _Avoid_: Inbox, someday list, unscheduled list.
+
+**Day order**:
+The sequence of Tasks on a day, owned per-day and per-user and persisted
+server-side. The projection walks it in order; you can reorder freely and auto-
+arrange is always an explicit action, never silent.
+_Avoid_: Queue, sort order, sequence.
+
+**Pin**:
+Locking a Task's position in the day order so re-sort, auto-arrange or carry-
+forward leave it where you put it. A pin wins over every automatic ordering rule.
+_Avoid_: Locked, frozen, fixed slot.
 
 **Attachment**:
 A file you have added to a Task or a Calendar event from this application — a
@@ -89,9 +103,23 @@ is what *happened*. Keeping them apart is what makes it possible to ask what you
 estimates are worth.
 _Avoid_: Time block, session, log.
 
+**Projection**:
+A deterministic, local-only preview of where a day's ordered remaining work would
+land around meetings and work hours. It is derived from committed inputs, never
+stored as a Time block, and never commits itself — only an explicit pin does.
+_Avoid_: Forecast, suggested schedule, auto-plan.
+
+**Meeting checklist**:
+A local read-model of a Calendar event on the day's list: it contributes to
+workload, can auto-complete when the event ends (paused while a timer runs), and
+removing it never deletes the event. It is never a Task and cannot merge or hold
+real subtasks.
+_Avoid_: Imported meeting, event task, meeting task.
+
 **Calendar event**:
-A meeting or appointment belonging to a calendar you have connected. It is never a
-Task: you do not complete it, do-date it, or own it. It shares the day's timeline
+A meeting or appointment belonging to a calendar you have connected. It is never
+a Task: you do not do-date it or own it, and it can only appear on the day through a
+**Meeting checklist** read-model, never as a worksheet. It shares the day's timeline
 with Time blocks and nothing else.
 _Avoid_: Meeting, booking, appointment.
 
@@ -119,7 +147,9 @@ One remote resource attached through a Connection: a single calendar, a single
 Notion database view, a single Obsidian directory. A Connection is the permission;
 a Mount is what that permission is aimed at. A Mount says how the remote thing's
 fields correspond to ours, and it can be detached without the Connection being
-lost.
+lost. For calendars a Mount carries four independent flags: **enabled**, **visible**,
+**importable** and **scheduling-blocking**; visible, importable and blocking do not
+imply one another.
 _Avoid_: Binding, feed, channel, subscription, sync target.
 
 **Source**:
@@ -181,6 +211,24 @@ kept. Only the system carries forward; a deliberate move to another day is a
 reschedule. Repeated carry-forwards are a signal about the Task, not noise to be
 tidied away.
 _Avoid_: Bump, rollover, postpone, reschedule.
+
+**Shutdown**:
+A per-day configurable moment when work ends. It is an informational scheduling
+boundary — nothing is planned past it without explicit overtime — and never gates
+carry-forward.
+_Avoid_: End of day, cutoff, wrap-up.
+
+**Capacity**:
+The available work minutes on a day: the work window minus the union of blocking
+meeting intersections, floored at zero. Personal/private work and non-blocking
+calendars do not consume it.
+_Avoid_: Free time, availability, workload.
+
+**Workload**:
+Planned work against capacity: the predicted finish (walking ordered committed
+sessions) and the advisory threshold warning when the plan exceeds the window.
+Advisory only; it never blocks planning.
+_Avoid_: Overbooked, busy, over-committed.
 
 **Activity**:
 The recorded history of a Task, written as things happen and never derived after
