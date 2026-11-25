@@ -70,7 +70,10 @@ state machine, meeting-checklist identity/lifecycle, history/archive and authori
 Postgres Journal are decided in the parity-04 decision set. Midnight carry-forward was
 already decided (ticket 13). Affects backend 02/06/08/09 and worker sweeps.
 - **Scheduling and capacity.** Ordering, work hours, workload, deterministic projections vs committed blocks, split/auto-reschedule, local calendars and channel-target routing. Affects backend 02/03/06. **Release 2 boundary, top priority.** <clears-with: 05>
-- **Actual time and focus.** Timer state, manual corrections, day totals, inferred actual, Parallel overlap and breaks. Previously deferred TimeEntry now has an explicit parity owner. <clears-with: 06>
+- ~~**Actual time and focus.**~~ **Resolved (2026-11-18).** Timer state, manual
+corrections, day totals, inferred actual, Parallel overlap and breaks are decided in
+the parity-06 decision set. Parallel deferred with semantics recorded; Toggl is an
+explicit later boundary.
 - ~~**Organization and weekly intent.**~~ **Resolved (2026-11-18).** Channels/contexts,
 personal privacy/capacity, daily-vs-backlog priority and weekly objectives/rituals are
 decided in the parity-07 decision set. Not a generic project-board substitution.
